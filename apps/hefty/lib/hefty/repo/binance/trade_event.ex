@@ -17,5 +17,4 @@ defmodule Hefty.Repo.Binance.TradeEvent do
 
     timestamps()
   end
-
 end

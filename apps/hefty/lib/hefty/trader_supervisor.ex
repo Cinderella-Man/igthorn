@@ -14,13 +14,11 @@ defmodule Hefty.TraderSupervisor do
       worker(Hefty.NaiveTrader, [])
     ]
 
-    opts = [strategy: :simple_one_for_one,
-            max_restarts: 5,
-            max_seconds: 5]
+    opts = [strategy: :simple_one_for_one, max_restarts: 5, max_seconds: 5]
 
     Supervisor.init(
-        children,
-        opts
+      children,
+      opts
     )
   end
 end

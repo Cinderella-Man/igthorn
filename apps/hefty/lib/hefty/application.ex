@@ -2,7 +2,8 @@ defmodule Hefty.Application do
   use Application
 
   def start(_type, _args) do
-    Supervisor.start_link([
+    Supervisor.start_link(
+      [
         {Hefty.Repo, []},
         {Hefty.Streaming.Supervisor, []}
       ],

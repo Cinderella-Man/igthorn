@@ -19,8 +19,11 @@ defmodule Hefty.Repo.Binance.NaiveTraderSetting do
   end
 
   def fetch_settings(symbol) do
-    query = from s in __MODULE__,
-      where: s.symbol == ^symbol
+    query =
+      from(s in __MODULE__,
+        where: s.symbol == ^symbol
+      )
+
     Hefty.Repo.one(query)
   end
 end

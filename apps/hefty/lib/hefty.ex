@@ -10,8 +10,11 @@ defmodule Hefty do
   require Logger
 
   def fetch_settings() do
-    query = from nts in Hefty.Repo.Binance.NaiveTraderSetting,
-      order_by: nts.symbol
+    query =
+      from(nts in Hefty.Repo.Binance.NaiveTraderSetting,
+        order_by: nts.symbol
+      )
+
     Hefty.Repo.all(query)
   end
 
@@ -23,5 +26,4 @@ defmodule Hefty do
     # Hefty.Trading.Server.flip_trading(symbol)
     {:ok, symbol}
   end
-
 end
