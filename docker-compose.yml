@@ -1,0 +1,14 @@
+version: '3.2'
+services:
+  db:
+    image: postgres:11
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: "postgres"
+    ports:
+      - 5432:5432
+    volumes:
+      - db-volume:/docker-entrypoint-initdb.d
+
+volumes:
+  db-volume:
