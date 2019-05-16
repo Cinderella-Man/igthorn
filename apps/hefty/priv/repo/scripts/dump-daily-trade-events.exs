@@ -63,7 +63,7 @@ defmodule Shell do
         |> build_query(date)
         |> Hefty.Repo.stream
         |> Stream.map(&(convert_to_csv_line(&1)))
-        |> &(Stream.concat(@columns, &1))
+        |> (fn lines -> Stream.concat(@columns, lines) end).()
         |> CSV.encode()
         |> Stream.map(
           &(Enum.into(&1, File.stream!(file)))
