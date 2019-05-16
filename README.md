@@ -52,3 +52,27 @@ mix priv/repo/scripts/dump-daily-trade-events.exs --date "2019-05-16"
 
 This will create bunch of files in main directory of project (one for each symbol that it has any events in the day).
 
+## Screenshots
+
+![Seeding process](/docs/seeding.png)
+![Settings screen](/docs/settings.png)
+
+## Naive trader strategy
+
+Single strategy should be provided for
+people to understand how to implement one on their own.
+
+Naive strategy described in video called "[My Adventures in Automated Crypto Trading](https://youtu.be/b-8ciz6w9Xo?t=2257)" by Timothy Clayton
+
+## Technical considerations:
+
+- My aim is to keep UI close to Elixir with as minimal Javascript as possible so I definietly prefer to keep going on [Liveview](https://github.com/phoenixframework/phoenix_live_view) route.
+
+- Would like to keep streaming seperate from trading as I would like to allow for multiple strategies running simultaneously. 
+
+## To do:
+
+- implement backtesting routine (possibly CLI)
+- implement naive trader algo
+- dashboard screen to allow people to have strategies that flag "interesting" symbols (for example [volume trading](https://www.investopedia.com/articles/technical/02/010702.asp))
+- possibly implement different exchanges to allow for strategies like [arbitrage](https://www.investopedia.com/terms/a/arbitrage.asp) and others.
