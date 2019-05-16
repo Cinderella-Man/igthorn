@@ -53,4 +53,4 @@ config :binance,
   api_key: "",
   secret_key: ""
 
-config :logger, level: :debug
+config :logger, level: :info
