@@ -47,7 +47,7 @@ That's all nice and fine for algo trading but we need data for possibly back tes
 
 ```
 cd apps/hefty
-mix priv/repo/scripts/dump-daily-trade-events.exs --date "2019-05-16"
+mix run priv/repo/scripts/dump-daily-trade-events.exs --date "2019-05-16"
 ```
 
 This will create bunch of files in main directory of project (one for each symbol that it has any events in the day).
