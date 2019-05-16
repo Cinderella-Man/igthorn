@@ -10,11 +10,11 @@ defmodule Hefty.Streaming.Supervisor do
   end
 
   def init(_args) do
-    Supervisor.init([
+    Supervisor.init(
+      [
         {
           DynamicSupervisor,
-          strategy: :one_for_one,
-          name: Hefty.Streaming.DynamicStreamerSupervisor
+          strategy: :one_for_one, name: Hefty.Streaming.DynamicStreamerSupervisor
         },
         {Hefty.Streaming.Server, []}
       ],

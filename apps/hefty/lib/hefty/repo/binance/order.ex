@@ -25,6 +25,5 @@ defmodule Hefty.Repo.Binance.Order do
   end
 
   def fetch(_id) do
-
   end
 end

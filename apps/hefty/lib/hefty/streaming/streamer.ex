@@ -11,13 +11,15 @@ defmodule Hefty.Streaming.Streamer do
     symbol = String.downcase(symbol)
     Logger.debug("Starting streaming on #{symbol}")
     Logger.debug("wss://stream.binance.com:9443/ws/#{symbol}@trade")
+
     WebSockex.start_link(
-        "wss://stream.binance.com:9443/ws/#{symbol}@trade",
-        __MODULE__,
-        %State{
-            :symbol => symbol
-        },
-        [name: :"#{__MODULE__}-#{symbol}"])
+      "wss://stream.binance.com:9443/ws/#{symbol}@trade",
+      __MODULE__,
+      %State{
+        :symbol => symbol
+      },
+      name: :"#{__MODULE__}-#{symbol}"
+    )
   end
 
   @doc """
@@ -29,9 +31,10 @@ defmodule Hefty.Streaming.Streamer do
   """
   def handle_frame({:text, msg}, state) do
     Logger.debug("Frame received")
+
     case JSON.decode(msg) do
-        {:ok, event} -> handle_event(event, state)
-        _ -> throw "Unable to parse: " <> msg
+      {:ok, event} -> handle_event(event, state)
+      _ -> throw("Unable to parse: " <> msg)
     end
   end
 
@@ -41,7 +44,9 @@ defmodule Hefty.Streaming.Streamer do
 
   defp handle_event(%{"e" => "trade"} = event, state) do
     Logger.debug("Getting event - #{event["symbol"]}")
-    {:ok, trade_event} = %Hefty.Repo.Binance.TradeEvent{
+
+    {:ok, trade_event} =
+      %Hefty.Repo.Binance.TradeEvent{
         :event_type => event["e"],
         :event_time => event["E"],
         :symbol => event["s"],
@@ -52,10 +57,11 @@ defmodule Hefty.Streaming.Streamer do
         :seller_order_id => event["a"],
         :trade_time => event["T"],
         :buyer_market_maker => event["m"]
-    } |> Hefty.Repo.insert
+      }
+      |> Hefty.Repo.insert()
 
     state.subscribers
-        |> Enum.map(&(GenServer.cast(&1, {:trade_event, trade_event})))
+    |> Enum.map(&GenServer.cast(&1, {:trade_event, trade_event}))
 
     {:ok, state}
   end

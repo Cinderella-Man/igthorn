@@ -33,10 +33,13 @@ config :hefty,
   ecto_repos: [Hefty.Repo],
   trading: %{
     :defaults => %{
-      :profit_interval => "0.0025",   # 0.25%
-      :buy_down_interval => "0.0020", # 0.20%
+      # 0.25%
+      :profit_interval => "0.0025",
+      # 0.20%
+      :buy_down_interval => "0.0020",
       :chunks => 5,
-      :stop_loss_interval => "0.05"    # 5%
+      # 5%
+      :stop_loss_interval => "0.05"
     }
   }
 
