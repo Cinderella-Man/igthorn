@@ -53,6 +53,6 @@ defmodule Hefty.NaiveTrader do
 
   def handle_cast({:trade_event, trade_event}, state) do
     IO.inspect(trade_event, label: "NaiveTrader: Trade event received")
-    {:ok, state}
+    {:noreply, state}
   end
 end
