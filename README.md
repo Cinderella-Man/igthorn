@@ -4,9 +4,7 @@
 docker-compose up -d
 mix deps.get
 cd apps/ui/assets && npm install && cd ../../..
-mix ecto.create
-mix ecto.migrate
-mix run apps/trader/priv/repo/seeds.exs
+cd apps/hefty && mix ecto.reset && cd ../..
 
 iex -S mix phx.server
 ```

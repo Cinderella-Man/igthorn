@@ -85,13 +85,17 @@ symbols
     &(Hefty.Repo.insert(&1)) |> elem(1)
   )
 
-Logger.info("Loading current balances from Binance / updating db")
+binance_config = Application.get_all_env(:binance)
 
-{:ok, account} = Binance.get_account()
+if Keyword.fetch!(binance_config, :api_key) != "" do
+  Logger.info("Loading current balances from Binance / updating db")
 
-account.balances
-  |> Enum.filter(&(!Helpers.empty_balance(&1)))
-  |> Enum.map(&(Helpers.update_balance(balances_map, &1)))
+  {:ok, account} = Binance.get_account()
+
+  account.balances
+    |> Enum.filter(&(!Helpers.empty_balance(&1)))
+    |> Enum.map(&(Helpers.update_balance(balances_map, &1)))
+end
 
 Logger.info("Inserting default naive trader settings")
 
@@ -110,5 +114,5 @@ pairs
     &(Hefty.Repo.insert(&1)) |> elem(1)
   )
 
-:ok
+Logger.info("Seeding finished")
 
