@@ -1,4 +1,4 @@
-defmodule Hefty.Repo.Binance.NaiveTraderSetting do
+defmodule Hefty.Repo.NaiveTraderSetting do
   use Ecto.Schema
 
   import Ecto.Query, only: [from: 2]
@@ -13,7 +13,6 @@ defmodule Hefty.Repo.Binance.NaiveTraderSetting do
     field(:chunks, :integer)
     field(:stop_loss_interval, :string)
     field(:trading, :boolean, default: false)
-    field(:streaming, :boolean, default: false)
 
     timestamps()
   end

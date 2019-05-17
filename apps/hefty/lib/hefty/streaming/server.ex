@@ -1,7 +1,7 @@
 defmodule Hefty.Streaming.Server do
   use GenServer
 
-  import Ecto.Query, only: [from: 1]
+  import Ecto.Query, only: [from: 2]
   import Ecto.Changeset, only: [cast: 3]
 
   defmodule State do
@@ -21,11 +21,18 @@ defmodule Hefty.Streaming.Server do
     GenServer.cast(__MODULE__, {:flip, symbol})
   end
 
+  def fetch_streaming_symbols() do
+    GenServer.call(__MODULE__, :fetch_streamers)
+  end
+
+  def handle_call(:fetch_streamers, _from, state) do
+    {:reply, state.workers, state}
+  end
+
   def handle_cast(:init_streams, _state) do
     workers =
-      from(nts in Hefty.Repo.Binance.NaiveTraderSetting)
+      from(nts in Hefty.Repo.StreamingSetting, where: nts.platform == "Binance" and nts.enabled == true)
       |> Hefty.Repo.all()
-      |> Enum.filter(& &1.streaming)
       |> Enum.map(&{&1.symbol, start_streaming(&1.symbol)})
       |> Enum.into(%{})
 
@@ -49,10 +56,11 @@ defmodule Hefty.Streaming.Server do
   end
 
   defp flip_db_flag(symbol) do
-    settings = Hefty.Repo.Binance.NaiveTraderSetting.fetch_settings(symbol)
+    settings = from(nts in Hefty.Repo.StreamingSetting, where: nts.symbol == ^symbol)
+      |> Hefty.Repo.one()
 
     settings
-    |> cast(%{:streaming => !settings.streaming}, [:streaming])
+    |> cast(%{:enabled => !settings.enabled}, [:enabled])
     |> Hefty.Repo.update!()
   end
 

@@ -1,16 +1,7 @@
 #!/usr/bin/env elixir
 #
-# A Template for writing an Elixir script to be used on the
-# command-line.
-#
-# (c) 2019 by Andreas Altendorfer <andreas@altendorfer.at>
-# License: Free to use without any warranty.
-#
-# Usage:
-#   1. Add your command to strict and aliases on @opts
-#   2. Implement your function (rename my_script() )
-#   3. Call your script in `run()` (line 38)
-#
+# A Template for writing an Elixir script by
+# Andreas Altendorfer <andreas@altendorfer.at>
 defmodule Shell do
 
   import Ecto.Query
@@ -36,21 +27,20 @@ defmodule Shell do
   # Call your script here
   #
   def run({[{:date, date}], _}) do
-    files = (
+    (
       from te in Hefty.Repo.Binance.TradeEvent,
       group_by: te.symbol,
       select: {te.symbol, count(te.id)}
     )
-    |> Hefty.Repo.stream
+    |> Hefty.Repo.all
     |> Flow.from_enumerable(max_demand: 1)
     |> Flow.partition
     |> Flow.map(
       &(stream_data_by_symbol(elem(&1, 0), date))
     )
     |> Enum.to_list()
-    IO.inspect(files)
 
-    # Logger.info("Data stored to files: #{Enum.join(files, "\n")}")
+    Logger.info("Data stored successfully to files")
   end
 
   def stream_data_by_symbol(symbol, date) do
@@ -58,16 +48,14 @@ defmodule Shell do
     Logger.info(
       "Saving data from #{date} for #{symbol} into #{file}"
     )
-    Hefty.Repo.transaction fn ->
+    {:ok, result} = Hefty.Repo.transaction fn ->
       symbol
         |> build_query(date)
         |> Hefty.Repo.stream
         |> Stream.map(&(convert_to_csv_line(&1)))
-        |> (fn lines -> Stream.concat(@columns, lines) end).()
+        |> (fn rows -> Stream.concat([@columns], rows) end).()
         |> CSV.encode()
-        |> Stream.map(
-          &(Enum.into(&1, File.stream!(file)))
-        )
+        |> Enum.into(File.stream!(file))
       file
     end
   end
@@ -90,7 +78,7 @@ defmodule Shell do
   end
 
   defp convert_to_csv_line(record) do
-    Enum.map(@columns, &Map.get(record, &1))
+    Enum.map(@columns, &Map.get(record, :"#{&1}"))
   end
 
   def main(args) do

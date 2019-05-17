@@ -24,6 +24,7 @@ defmodule UiWeb do
       import Plug.Conn
       import UiWeb.Gettext
       alias UiWeb.Router.Helpers, as: Routes
+      import Phoenix.LiveView.Controller, only: [live_render: 3]
     end
   end
 

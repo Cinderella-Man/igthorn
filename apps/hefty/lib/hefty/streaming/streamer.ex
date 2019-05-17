@@ -22,6 +22,11 @@ defmodule Hefty.Streaming.Streamer do
     )
   end
 
+  def subscribe(stream_pid, pid \\ self()) do
+    Logger.debug("Subscribing to pid", pid: pid)
+    GenServer.cast(stream_pid, {:subscribe, pid})
+  end
+
   @doc """
   This function will be used to handle incoming trade events.
 
@@ -38,8 +43,16 @@ defmodule Hefty.Streaming.Streamer do
     end
   end
 
-  def handle_cast({:subscribe, pid}, state) do
+  # Custom protocol as websocketx is NOT using GenServer...
+  def handle_info({:"$gen_cast", {:subscribe, pid}}, state) do
+    Logger.debug("Subscribe called with pid", pid: pid)
+    Process.monitor(pid)
+    # {:ok, new_state} is expected as websocketx is NOT using GenServer... 
     {:ok, %{state | :subscribers => [pid | state.subscribers]}}
+  end
+
+  def handle_info({:DOWN, _ref, pid, _reason}, state) do
+    {:ok, %{state | :subscribers => List.delete(state.subscribers, pid)}}
   end
 
   defp handle_event(%{"e" => "trade"} = event, state) do
@@ -60,8 +73,10 @@ defmodule Hefty.Streaming.Streamer do
       }
       |> Hefty.Repo.insert()
 
+    IO.inspect(state.subscribers)
+
     state.subscribers
-    |> Enum.map(&GenServer.cast(&1, {:trade_event, trade_event}))
+    |> Enum.map(&(send(&1, {:trade_event, trade_event})))
 
     {:ok, state}
   end

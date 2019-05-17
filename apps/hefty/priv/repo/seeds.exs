@@ -10,7 +10,8 @@
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
 
-alias Hefty.Repo.Binance.{Balance, Pair, NaiveTraderSetting}
+alias Hefty.Repo.Binance.{Balance, Pair}
+alias Hefty.Repo.{StreamingSetting, NaiveTraderSetting}
 import Ecto.Query
 require Logger
 
@@ -51,8 +52,7 @@ defmodule Helpers do
       :buy_down_interval => default_settings.buy_down_interval,
       :chunks => default_settings.chunks,
       :stop_loss_interval => default_settings.stop_loss_interval,
-      :trading => false,
-      :streaming => false,
+      :trading => false
     }
   end
 end
@@ -113,6 +113,10 @@ pairs
   |> Enum.map(
     &(Hefty.Repo.insert(&1)) |> elem(1)
   )
+
+pairs
+  |> Enum.map(&%StreamingSetting{:symbol => &1.symbol})
+  |> Enum.map(&Hefty.Repo.insert/1)
 
 Logger.info("Seeding finished")
 
