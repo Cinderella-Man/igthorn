@@ -19,11 +19,12 @@ defmodule Hefty.Streaming.Streamer do
         :symbol => symbol
       },
       name: :"#{__MODULE__}-#{symbol}"
+      # debug: [:trace]
     )
   end
 
   def subscribe(stream_pid, pid \\ self()) do
-    Logger.debug("Subscribing to pid", pid: pid)
+    Logger.debug("Subscribing to stream pid #{inspect(stream_pid)}")
     GenServer.cast(stream_pid, {:subscribe, pid})
   end
 
@@ -45,13 +46,13 @@ defmodule Hefty.Streaming.Streamer do
 
   # Custom protocol as websocketx is NOT using GenServer...
   def handle_info({:"$gen_cast", {:subscribe, pid}}, state) do
-    Logger.debug("Subscribe called with pid", pid: pid)
+    Logger.debug("Subscribe called with pid #{inspect(pid)}")
     Process.monitor(pid)
     # {:ok, new_state} is expected as websocketx is NOT using GenServer... 
     {:ok, %{state | :subscribers => [pid | state.subscribers]}}
   end
 
-  def handle_info({:DOWN, _ref, pid, _reason}, state) do
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     {:ok, %{state | :subscribers => List.delete(state.subscribers, pid)}}
   end
 

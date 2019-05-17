@@ -18,6 +18,18 @@ defmodule Hefty do
     Hefty.Repo.all(query)
   end
 
+  def fetch_tick(symbol) do
+    case from(te in Hefty.Repo.Binance.TradeEvent,
+      order_by: [desc: te.trade_time],
+      where: te.symbol == ^symbol,
+      limit: 1
+    )
+      |> Hefty.Repo.one do
+      nil    -> %{:symbol => symbol, :price => "N/A"}
+      result -> result
+    end
+  end
+
   def fetch_streaming_symbols() do
     Hefty.Streaming.Server.fetch_streaming_symbols()
   end
