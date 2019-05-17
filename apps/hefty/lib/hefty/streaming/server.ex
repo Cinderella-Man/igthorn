@@ -71,6 +71,8 @@ defmodule Hefty.Streaming.Server do
         {Hefty.Streaming.Streamer, symbol}
       )
 
+    Process.monitor(pid)
+
     pid
   end
 
@@ -80,5 +82,16 @@ defmodule Hefty.Streaming.Server do
         Hefty.Streaming.DynamicStreamerSupervisor,
         child_pid
       )
+  end
+
+  def handle_info({:DOWN, _ref, pid, :process, _reason}, state) do
+    {symbol, _} = state.workers
+      |> Enum.find(false, fn({_, process_pid}) -> process_pid == pid end)
+
+    new_pid = start_streaming(symbol)
+
+    workers = %{state.workers | :symbol => new_pid}
+
+    {:noreply, %{state | :workers => workers }}
   end
 end

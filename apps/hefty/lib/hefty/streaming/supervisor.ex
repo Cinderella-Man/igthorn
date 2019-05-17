@@ -14,7 +14,7 @@ defmodule Hefty.Streaming.Supervisor do
       [
         {
           DynamicSupervisor,
-          strategy: :one_for_one, name: Hefty.Streaming.DynamicStreamerSupervisor
+          strategy: :one_for_one, restart: :temporary, name: Hefty.Streaming.DynamicStreamerSupervisor
         },
         {Hefty.Streaming.Server, []}
       ],
