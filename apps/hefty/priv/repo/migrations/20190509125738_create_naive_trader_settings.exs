@@ -11,7 +11,6 @@ defmodule Hefty.Repo.Migrations.CreateNaiveTraderSettings do
       add :chunks, :integer
       add :stop_loss_interval, :text
       add :trading, :boolean
-      add :streaming, :boolean
 
       timestamps()
     end

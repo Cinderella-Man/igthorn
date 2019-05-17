@@ -9,13 +9,17 @@ defmodule Hefty do
   import Ecto.Query, only: [from: 2]
   require Logger
 
-  def fetch_settings() do
+  def fetch_stream_settings() do
     query =
-      from(nts in Hefty.Repo.Binance.NaiveTraderSetting,
-        order_by: nts.symbol
+      from(ss in Hefty.Repo.StreamingSetting,
+        order_by: ss.symbol
       )
 
     Hefty.Repo.all(query)
+  end
+
+  def fetch_streaming_symbols() do
+    Hefty.Streaming.Server.fetch_streaming_symbols()
   end
 
   def flip_streamer(symbol) do

@@ -4,32 +4,28 @@ defmodule UiWeb.SettingsLive do
 
   def render(assigns) do
     ~L"""
-    <div class="">
-      <div>
-        <table>
-          <tr>
-            <th>Symbol</th>
-            <th>Budget</th>
-            <th>Profit Interval</th>
-            <th>Buy Down Interval</th>
-            <th>Chunks</th>
-            <th><a phx-click="stream-all" href="#">Is streaming?</a></th>
-            <th><a phx-click="trade-all" href="#">Is trading?</a></th>
+      <table id="example2" class="table table-bordered table-hover dataTable" role="grid" aria-describedby="example2_info">
+        <thead>
+          <tr role="row">
+            <th class="sorting_asc" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Rendering engine: activate to sort column descending">Symbol</th>
+            <th class="sorting" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending">Streaming enabled</th>
           </tr>
+        </thead>
+        <tbody>
           <%= for setting <- Keyword.values(@settings) do %>
-            <tr>
-                <td><%= setting.symbol %></td>
-                <td><%= setting.budget %></td>
-                <td><%= setting.profit_interval %></td>
-                <td><%= setting.buy_down_interval %></td>
-                <td><%= setting.chunks %></td>
-                <td><a href="#" phx-click="stream-symbol-<%= setting.symbol %>"><%= setting.streaming %></a></td>
-                <td><a href="#" phx-click="trade-symbol-<%= setting.symbol %>"><%= setting.trading %></a></td>
+            <tr role="row" class="odd">
+              <td class="sorting_1"><%= setting.symbol %></td>
+              <td><a phx-click="stream-symbol-<%= setting.symbol %>"><i class="fa fa-<%= convert_to_symbol(setting.enabled) %>"></i></a></td>
             </tr>
           <% end %>
-        </table>
-      </div>
-    </div>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th rowspan="1" colspan="1">Symbol</th>
+            <th rowspan="1" colspan="1">Streaming enabled</th>
+          </tr>
+        </tfoot>
+      </table>
     """
   end
 
@@ -44,22 +40,11 @@ defmodule UiWeb.SettingsLive do
     settings = Keyword.update!(
       socket.assigns.settings,
       :"#{symbol}",
-      &(%{&1 | :streaming => !&1.streaming})
+      &(%{&1 | :enabled => !&1.enabled})
     )
     {:noreply, assign(socket, settings: settings)}
   end
 
-  def handle_event("stream-all", _, socket) do
-    Logger.info("Flipping streaming of all symbols", [entity: "SettingLive"])
-    socket.assigns.settings
-      |> Enum.map(&(&1.symbol))
-      |> Enum.map(&(Hefty.flip_streamer(&1)))
-    {:noreply, assign(socket, stream: "all")}
-  end
-
-  def handle_event("trade-symbol-" <> symbol, _, socket) do
-    Logger.info("Flipping trading of " <> symbol, [entity: "SettingLive"])
-    Hefty.flip_trader(symbol)
-    {:noreply, assign(socket, trade: symbol)}
-  end
+  def convert_to_symbol(true), do: "check"
+  def convert_to_symbol(_), do: "times"
 end

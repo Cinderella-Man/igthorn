@@ -18,7 +18,7 @@ defmodule UiWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :index
-    get "/settings", SettingsController, :index
+    get "/streaming-settings", StreamingSettingsController, :index
   end
 
   # Other scopes may use custom stacks.
