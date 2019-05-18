@@ -1,5 +1,5 @@
 defmodule Hefty.Streaming.Streamer do
-  use WebSockex
+  use WebSockex, restart: :temporary
 
   require Logger
 

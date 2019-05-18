@@ -27,8 +27,6 @@ defmodule UiWeb.LayoutView do
   end  
 
   defp fetch_from_conn(conn, key, default, suffix \\ "") do
-    IO.inspect(conn.assigns[key])
-    
     if conn.assigns[key] do
       "#{conn.assigns[key]}" <> suffix
     else
