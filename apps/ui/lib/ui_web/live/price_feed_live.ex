@@ -53,7 +53,7 @@ defmodule UiWeb.PriceFeedLive do
 
     symbol_list
         |> Enum.map(&(elem(&1, 1)))
-        |> Enum.map(&(Hefty.Streaming.Streamer.subscribe(&1)))
+        |> Enum.map(&(Hefty.Streaming.Streamer.subscribe(elem(&1, 0))))
 
     {:ok, assign(socket, ticks: ticks)}
   end

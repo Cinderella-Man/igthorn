@@ -44,12 +44,12 @@ defmodule Hefty.Streaming.Server do
 
     case Map.get(state.workers, symbol, false) do
       false ->
-        child_pid = start_streaming(symbol)
-        workers = Map.put(state.workers, symbol, child_pid)
+        result = start_streaming(symbol)
+        workers = Map.put(state.workers, symbol, result)
         {:noreply, %{state | :workers => workers}}
 
-      child_pid ->
-        stop_child(child_pid)
+      result ->
+        stop_child(result)
         workers = Map.delete(state.workers, symbol)
         {:noreply, %{state | :workers => workers}}
     end
@@ -71,12 +71,14 @@ defmodule Hefty.Streaming.Server do
         {Hefty.Streaming.Streamer, symbol}
       )
 
-    Process.monitor(pid)
+    ref = Process.monitor(pid)
 
-    pid
+    {pid, ref}
   end
 
-  defp stop_child(child_pid) do
+  defp stop_child({child_pid, ref}) do
+    Process.demonitor(ref)
+
     :ok =
       DynamicSupervisor.terminate_child(
         Hefty.Streaming.DynamicStreamerSupervisor,
@@ -84,13 +86,13 @@ defmodule Hefty.Streaming.Server do
       )
   end
 
-  def handle_info({:DOWN, _ref, pid, :process, _reason}, state) do
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     {symbol, _} = state.workers
-      |> Enum.find(false, fn({_, process_pid}) -> process_pid == pid end)
+      |> Enum.find(false, fn({_, {process_pid, _}}) -> process_pid == pid end)
 
-    new_pid = start_streaming(symbol)
+    result = start_streaming(symbol)
 
-    workers = %{state.workers | :symbol => new_pid}
+    workers = Map.put(state.workers, symbol, result)
 
     {:noreply, %{state | :workers => workers }}
   end
