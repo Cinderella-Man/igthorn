@@ -4,29 +4,43 @@ defmodule UiWeb.SettingsLive do
 
   def render(assigns) do
     ~L"""
-      <table id="example2" class="table table-bordered table-hover dataTable" role="grid" aria-describedby="example2_info">
-        <thead>
-          <tr role="row">
-            <th class="sorting_asc" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Rendering engine: activate to sort column descending">Symbol</th>
-            <th class="sorting" tabindex="0" aria-controls="example2" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending">Streaming enabled</th>
-          </tr>
-        </thead>
-        <tbody>
-          <%= for setting <- Keyword.values(@settings) do %>
-            <tr role="row" class="odd">
-              <td class="sorting_1"><%= setting.symbol %></td>
-              <td><a phx-click="stream-symbol-<%= setting.symbol %>"><i class="fa fa-<%= convert_to_symbol(setting.enabled) %>"></i></a></td>
+    <div class="row">
+    <div class="col-xs-12">
+      <div class="box">
+        <div class="box-header">
+          <h3 class="box-title">Streaming settings</h3>
+
+          <div class="box-tools">
+            <div class="input-group input-group-sm" style="width: 150px;">
+              <input type="text" name="table_search" class="form-control pull-right" placeholder="Search">
+
+              <div class="input-group-btn">
+                <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- /.box-header -->
+        <div class="box-body table-responsive no-padding">
+          <table class="table table-hover">
+            <tbody><tr>
+              <th>Symbol</th>
+              <th>Status</th>
             </tr>
-          <% end %>
-        </tbody>
-        <tfoot>
-          <tr>
-            <th rowspan="1" colspan="1">Symbol</th>
-            <th rowspan="1" colspan="1">Streaming enabled</th>
-          </tr>
-        </tfoot>
-      </table>
-    """
+            <%= for setting <- Keyword.values(@settings) do %>
+            <tr>
+              <td><%= setting.symbol %></td>
+              <td><a role="button" phx-click="stream-symbol-<%= setting.symbol %>"><span class="label label-<%= enabled_to_class(setting.enabled) %>"><%= enabled_to_text(setting.enabled) %></span></a></td>
+            </tr>
+            <% end %>
+          </tbody></table>
+        </div>
+        <!-- /.box-body -->
+      </div>
+      <!-- /.box -->
+    </div>
+  </div>
+"""
   end
 
   def mount(%{settings: settings}, socket) do
@@ -45,6 +59,9 @@ defmodule UiWeb.SettingsLive do
     {:noreply, assign(socket, settings: settings)}
   end
 
-  def convert_to_symbol(true), do: "check"
-  def convert_to_symbol(_), do: "times"
+  def enabled_to_class(true), do: "success"
+  def enabled_to_class(_), do: "danger"
+
+  def enabled_to_text(true), do: "Streaming"
+  def enabled_to_text(_), do: "Stopped"
 end

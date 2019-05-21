@@ -25,13 +25,20 @@ defmodule Hefty do
       limit: 1
     )
       |> Hefty.Repo.one do
-      nil    -> %{:symbol => symbol, :price => "N/A"}
+      nil    -> %{:symbol => symbol, :price => "Not available"}
       result -> result
     end
   end
 
-  def fetch_streaming_symbols() do
-    Hefty.Streaming.Server.fetch_streaming_symbols()
+  def fetch_streaming_symbols(symbol \\ "") do
+    symbols = Hefty.Streaming.Server.fetch_streaming_symbols()
+
+    case symbol != "" do
+      false -> symbols
+      _     -> symbols
+              |> Enum.filter(
+                  fn({s, _}) -> String.contains?(String.upcase(s), symbol) end)
+    end
   end
 
   def flip_streamer(symbol) do
