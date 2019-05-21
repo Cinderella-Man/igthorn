@@ -56,6 +56,7 @@ This will create bunch of files in main directory of project (one for each symbo
 
 ![Seeding process](/docs/seeding.png)
 ![Settings screen](/docs/settings.png)
+![Dashboard screen](/docs/dashboard.png)
 
 ## Naive trader strategy
 

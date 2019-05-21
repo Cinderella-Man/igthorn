@@ -48,7 +48,7 @@ defmodule Hefty.Streaming.Streamer do
   def handle_info({:"$gen_cast", {:subscribe, pid}}, state) do
     Logger.debug("Subscribe called with pid #{inspect(pid)}")
     Process.monitor(pid)
-    # {:ok, new_state} is expected as websocketx is NOT using GenServer... 
+    # {:ok, new_state} is expected as websocketx is NOT using GenServer...
     {:ok, %{state | :subscribers => [pid | state.subscribers]}}
   end
 
@@ -74,10 +74,7 @@ defmodule Hefty.Streaming.Streamer do
       }
       |> Hefty.Repo.insert()
 
-    IO.inspect(state.subscribers)
-
-    state.subscribers
-    |> Enum.map(&(send(&1, {:trade_event, trade_event})))
+    UiWeb.Endpoint.broadcast_from(self(), "stream-#{trade_event.symbol}", "trade_event", trade_event)
 
     {:ok, state}
   end
