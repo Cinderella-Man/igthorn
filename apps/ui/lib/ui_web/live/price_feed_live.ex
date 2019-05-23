@@ -11,14 +11,14 @@ defmodule UiWeb.PriceFeedLive do
           <h3 class="box-title">Current prices</h3>
 
           <div class="box-tools">
-            <div class="input-group input-group-sm" style="width: 180px;">
-              <form phx_change="validate" phx-submit="validate">
+            <form phx_change="validate" phx-submit="validate">
+              <div class="input-group input-group-sm" style="width: 180px;">
                 <input type="text" name="search" class="form-control pull-right" placeholder="Search">
                 <div class="input-group-btn">
                   <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
                 </div>
-              </form>
-            </div>
+              </div>
+            </form>
           </div>
         </div>
         <!-- /.box-header -->
@@ -64,7 +64,7 @@ defmodule UiWeb.PriceFeedLive do
       |> Keyword.keys()
       |> Enum.map(&(UiWeb.Endpoint.subscribe("stream-#{&1}")))
 
-    atom = :gt
+    atom = :null
     ticks = ticks
       |> Enum.map(fn {key, data} -> {key, Map.put_new(data, :direction, get_direction(atom))} end)
 
@@ -110,9 +110,11 @@ defmodule UiWeb.PriceFeedLive do
 
   defp get_direction_class(:gt), do: "text-green"
   defp get_direction_class(:lt), do: "text-red"
+  defp get_direction_class(:null), do: "text-black"
 
   def get_direction_arrow(:gt), do: "fa-angle-up"
   def get_direction_arrow(:lt), do: "fa-angle-down"
+  def get_direction_arrow(:null), do: "fa-angle-left"
 end
 
 
