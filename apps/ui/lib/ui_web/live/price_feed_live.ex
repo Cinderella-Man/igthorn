@@ -1,5 +1,6 @@
 defmodule UiWeb.PriceFeedLive do
   use Phoenix.LiveView
+  alias Decimal, as: D
 
   def render(assigns) do
     ~L"""
@@ -32,8 +33,8 @@ defmodule UiWeb.PriceFeedLive do
               <tr>
                 <td><%= tick.symbol %></td>
                 <td>
-                  <span class="text-<%= if tick.direction == "up" do %>green<% else %>red<% end %>">
-                    <i class="fa fa-angle-<%= tick.direction %>"></i>
+                  <span class="<%= get_direction_class(tick.direction) %>">
+                    <i class="fa <%= get_direction_arrow(tick.direction) %>"></i>
                     <%= tick.price %>
                   </span>
                 </td>
@@ -63,8 +64,9 @@ defmodule UiWeb.PriceFeedLive do
       |> Keyword.keys()
       |> Enum.map(&(UiWeb.Endpoint.subscribe("stream-#{&1}")))
 
+    atom = :gt
     ticks = ticks
-      |> Enum.map(fn {key, data} -> {key, Map.put_new(data, :direction, get_direction())} end)
+      |> Enum.map(fn {key, data} -> {key, Map.put_new(data, :direction, get_direction(atom))} end)
 
     {:ok, assign(socket, ticks: ticks)}
   end
@@ -79,23 +81,17 @@ defmodule UiWeb.PriceFeedLive do
   end
 
   def handle_info(%{event: "trade_event", payload: event}, socket) do
-
-    socket.assigns.ticks
-    |> Enum.map(&IO.inspect/1)
-
     old_tick = Keyword.get(
       socket.assigns.ticks,
       :"#{event.symbol}"
     )
 
-    IO.inspect(Float.parse(old_tick.price))
-
-    direction = get_direction(String.to_float(old_tick.price), String.to_float(event.price), old_tick.direction)
+    direction = get_direction(D.cmp(event.price, old_tick.price), old_tick.direction)
 
     ticks = Keyword.update!(
       socket.assigns.ticks,
       :"#{event.symbol}",
-      &(%{&1 | :price => event.price, :direction => "down"})
+      &(%{&1 | :price => event.price, :direction => direction})
     )
 
     {:noreply, assign(socket, ticks: ticks)}
@@ -108,12 +104,15 @@ defmodule UiWeb.PriceFeedLive do
     |> Enum.into([], &{:"#{&1.symbol}", &1})
   end
 
-  defp get_direction(old, new, _) when old > new, do: "down"
-  defp get_direction(old, new, _) when old < new, do: "up"
-  defp get_direction(old, new, direction) when old == new, do: direction
-  defp get_direction() do
-    "up"
-  end
+  defp get_direction(atom, direction) when atom == :eq, do: direction
+  defp get_direction(atom, _), do: atom
+  defp get_direction(atom), do: atom
+
+  defp get_direction_class(:gt), do: "text-green"
+  defp get_direction_class(:lt), do: "text-red"
+
+  def get_direction_arrow(:gt), do: "fa-angle-up"
+  def get_direction_arrow(:lt), do: "fa-angle-down"
 end
 
 
