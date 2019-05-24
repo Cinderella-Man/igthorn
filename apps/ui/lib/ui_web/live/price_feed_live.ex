@@ -33,8 +33,8 @@ defmodule UiWeb.PriceFeedLive do
               <tr>
                 <td><%= tick.symbol %></td>
                 <td>
-                  <span class="<%= get_direction_class(tick.direction) %>">
-                    <i class="fa <%= get_direction_arrow(tick.direction) %>"></i>
+                  <span class="<%= elem(get_direction_indicators(tick.direction), 0) %>">
+                    <i class="fa <%= elem(get_direction_indicators(tick.direction), 1) %>"></i>
                     <%= tick.price %>
                   </span>
                 </td>
@@ -64,9 +64,8 @@ defmodule UiWeb.PriceFeedLive do
       |> Keyword.keys()
       |> Enum.map(&(UiWeb.Endpoint.subscribe("stream-#{&1}")))
 
-    atom = :null
     ticks = ticks
-      |> Enum.map(fn {key, data} -> {key, Map.put_new(data, :direction, get_direction(atom))} end)
+      |> Enum.map(fn {key, data} -> {key, Map.put_new(data, :direction, :eq)} end)
 
     {:ok, assign(socket, ticks: ticks)}
   end
@@ -86,7 +85,13 @@ defmodule UiWeb.PriceFeedLive do
       :"#{event.symbol}"
     )
 
-    direction = get_direction(D.cmp(event.price, old_tick.price), old_tick.direction)
+#    direction =  get_direction(event.price, old_tick.price)
+
+    direction = case get_direction(event.price, old_tick.price) do
+      :eq -> old_tick.direction
+      at -> at
+    end
+
 
     ticks = Keyword.update!(
       socket.assigns.ticks,
@@ -104,17 +109,12 @@ defmodule UiWeb.PriceFeedLive do
     |> Enum.into([], &{:"#{&1.symbol}", &1})
   end
 
-  defp get_direction(atom, direction) when atom == :eq, do: direction
-  defp get_direction(atom, _), do: atom
-  defp get_direction(atom), do: atom
+  defp get_direction(new_price), do: :eq
+  defp get_direction(new_price, old_price), do: D.cmp(new_price, old_price)
 
-  defp get_direction_class(:gt), do: "text-green"
-  defp get_direction_class(:lt), do: "text-red"
-  defp get_direction_class(:null), do: "text-black"
-
-  def get_direction_arrow(:gt), do: "fa-angle-up"
-  def get_direction_arrow(:lt), do: "fa-angle-down"
-  def get_direction_arrow(:null), do: "fa-angle-left"
+  defp get_direction_indicators(:gt), do: {"text-green", "fa-angle-up"}
+  defp get_direction_indicators(:lt), do: {"text-red", "fa-angle-down"}
+  defp get_direction_indicators(:eq), do: {"text-black", "fa-angle-left"}
 end
 
 
