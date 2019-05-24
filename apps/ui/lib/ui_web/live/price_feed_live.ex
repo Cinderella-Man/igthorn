@@ -85,18 +85,10 @@ defmodule UiWeb.PriceFeedLive do
       :"#{event.symbol}"
     )
 
-#    direction =  get_direction(event.price, old_tick.price)
-
-    direction = case get_direction(event.price, old_tick.price) do
-      :eq -> old_tick.direction
-      at -> at
-    end
-
-
     ticks = Keyword.update!(
       socket.assigns.ticks,
       :"#{event.symbol}",
-      &(%{&1 | :price => event.price, :direction => direction})
+      &(%{&1 | :price => event.price, :direction => get_direction(event.price, old_tick.price)})
     )
 
     {:noreply, assign(socket, ticks: ticks)}
