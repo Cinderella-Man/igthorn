@@ -1,8 +1,9 @@
-defmodule Hefty.NaiveTrader do
+defmodule Hefty.Algos.Naive.Trader do
   use GenServer
 
   @moduledoc """
-  Hefty.NaiveTrader worker module is responsible for trading on single symbol.
+  Hefty.Algos.Naive.Trader module is responsible for making a trade(buy + sell)
+  on a single symbol.
 
   Naive trader is simple strategy which hopes that it will get on more raising
   waves than drops.
@@ -12,7 +13,7 @@ defmodule Hefty.NaiveTrader do
 
   It requires few informations to work:
   - symbol
-  - budget (amount of coins in base currency)
+  - budget (amount of coins in "quote" currency)
   - profit interval (expected net profit in % - this will be used to set
   `sell orders` at level of `buy price`+`buy_fee`+`sell_fee`+`expected profit`)
   - buy down interval (expected buy price in % under current value)
@@ -33,17 +34,18 @@ defmodule Hefty.NaiveTrader do
   """
 
   defmodule State do
-    defstruct symbol: nil
+    defstruct symbol: nil, budget: 0
   end
 
-  def start_link(symbol) do
-    GenServer.start_link(__MODULE__, symbol, name: :"#{__MODULE__}-#{symbol}")
+  def start_link(symbol, budget) do
+    GenServer.start_link(__MODULE__, {symbol, budget}, name: :"#{__MODULE__}-#{symbol}")
   end
 
-  def init(symbol) do
+  def init({symbol, budget}) do
     {:ok,
      %State{
-       :symbol => symbol
+       :symbol => symbol,
+       :budget => budget
      }}
   end
 
