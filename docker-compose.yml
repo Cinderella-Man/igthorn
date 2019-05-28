@@ -8,7 +8,4 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - db-volume:/docker-entrypoint-initdb.d
-
-volumes:
-  db-volume:
+      - ./postgres-data:/var/lib/postgresql/data
