@@ -50,7 +50,8 @@ config :hefty, Hefty.Repo,
   database: "hefty_dev",
   hostname: "localhost",
   pool_size: 10,
-  log: :debug
+  log: :debug,
+  timeout: 60_000
 
 config :binance,
   api_key: "",
