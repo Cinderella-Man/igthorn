@@ -7,7 +7,7 @@ defmodule UiWeb.NativeTraderSettingsLive do
       <div class="col-xs-12">
         <div class="box">
           <div class="box-header">
-            <h3 class="box-title">Native trader settings</h3>
+            <h3 class="box-title">Current prices</h3>
 
             <div class="box-tools">
               <form phx_change="validate" phx-submit="validate">
@@ -19,10 +19,31 @@ defmodule UiWeb.NativeTraderSettingsLive do
                 </div>
               </form>
             </div>
+
           </div>
           <!-- /.box-header -->
           <%= if length(@native_trader_settings) > 0 do %>
             <div class="box-body table-responsive no-padding">
+
+              <div class="box-body">
+                <form phx_change="rows" phx-submit="rows">
+                  <div class="input-group input-group-sm col-xs-1">
+                    <select class="form-control" name="rows_per_page">
+                      <option value="10" selected>10</option>
+                      <option value="20">20</option>
+                      <option value="30">30</option>
+                      <option value="40">40</option>
+                      <option value="20">50</option>
+                    </select>
+                    <span class="input-group-btn">
+                      <button type="submit" class="btn btn-info btn-flat">Rows</button>
+                    </span>
+                  </div>
+                </form>
+              </div>
+
+              <br>
+
               <table class="table table-hover">
                 <tbody>
                   <th>Symbol</th>
@@ -50,58 +71,28 @@ defmodule UiWeb.NativeTraderSettingsLive do
                 </tbody>
               </table>
             </div>
-            <div class="box-body">
-            <div id="example1_wrapper" class="dataTables_wrapper form-inline dt-bootstrap">
-              <div class="row">
-                <div class="col-sm-5">
-                  <div class="dataTables_info" id="example2_info" role="status" aria-live="polite">
-                    Showing 1 to 10 of 57 entries
-                  </div>
-                </div>
-                <div class="col-sm-7">
-                  <div class="dataTables_paginate paging_simple_numbers" id="example1_paginate">
-                    <ul class="pagination">
-                      <li class="paginate_button previous disabled" id="example2_previous">
-                        <a href="#" aria-controls="example2" data-dt-idx="0" tabindex="0">Previous</a>
-                      </li>
-                      <li class="paginate_button active">
-                        <a href="#" aria-controls="example2" data-dt-idx="1" tabindex="0">1</a>
-                      </li>
-                      <li class="paginate_button ">
-                        <a href="#" aria-controls="example2" data-dt-idx="2" tabindex="0">2</a>
-                      </li>
-                      <li class="paginate_button ">
-                        <a href="#" aria-controls="example2" data-dt-idx="3" tabindex="0">3</a>
-                      </li>
-                      <li class="paginate_button ">
-                        <a href="#" aria-controls="example2" data-dt-idx="4" tabindex="0">4</a>
-                      </li>
-                      <li class="paginate_button ">
-                        <a href="#" aria-controls="example2" data-dt-idx="5" tabindex="0">5</a>
-                      </li>
-                      <li class="paginate_button ">
-                        <a href="#" aria-controls="example2" data-dt-idx="6" tabindex="0">6</a>
-                      </li>
-                      <li class="paginate_button next" id="example2_next">
-                        <a href="#" aria-controls="example2" data-dt-idx="7" tabindex="0">Next</a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div class="box-footer clearfix">
+              <span>Test info</span>
+              <ul class="pagination pagination-sm no-margin pull-right">
+                <li><a href="#">«</a></li>
+                <li><a href="#">1</a></li>
+                <li><a href="#">2</a></li>
+                <li><a href="#">3</a></li>
+                <li><a href="#">»</a></li>
+              </ul>
             </div>
           <% end %>
+          <!-- /.box-body -->
         </div>
+        <!-- /.box -->
       </div>
     </div>
     """
   end
 
   def mount(%{}, socket) do
-    native_trader_settings = Hefty.fetch_native_trader_settings()
+    native_trader_settings = Hefty.fetch_native_trader_settings(0, 10)
       |> Enum.into([], &{:"#{&1.symbol}", &1})
-    IO.inspect(native_trader_settings)
 
     {:ok, assign(socket, native_trader_settings: native_trader_settings)}
   end
@@ -110,8 +101,16 @@ defmodule UiWeb.NativeTraderSettingsLive do
   defp trading_decoration(), do: %{:true => "success", :false => "danger"}
 
   def handle_event("validate", %{"native_trader_settings" => params}, socket) do
+    IO.inspect('czesc')
 #    changeset =
 #      %NaiveTraderSetting{}
 #      |> Actions()
+  end
+
+  def handle_event("rows", %{"rows_per_page" => limit} , socket) do
+    native_trader_settings = Hefty.fetch_native_trader_settings(0, limit)
+      |> Enum.into([], &{:"#{&1.symbol}", &1})
+
+    {:noreply, assign(socket, native_trader_settings: native_trader_settings, rows_per_page: limit)}
   end
 end
