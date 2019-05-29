@@ -49,4 +49,12 @@ defmodule Hefty do
     # Hefty.Trading.Server.flip_trading(symbol)
     {:ok, symbol}
   end
+
+  def fetch_native_trader_settings() do
+    query = from(nts in Hefty.Repo.NaiveTraderSetting,
+      order_by: nts.symbol
+    )
+
+    Hefty.Repo.all(query)
+  end
 end
