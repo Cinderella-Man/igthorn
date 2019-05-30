@@ -13,11 +13,11 @@ defmodule Hefty.Repo.Migrations.CreateBalances do
 
   def change do
     create table(:balances, primary_key: false) do
-      add :id, :uuid, primary_key: true
-      add :asset, :text
-      add :free, :text, default: "0.00000000"
-      add :locked, :text, default: "0.00000000"
-      add :precision, :integer
+      add(:id, :uuid, primary_key: true)
+      add(:asset, :text)
+      add(:free, :text, default: "0.00000000")
+      add(:locked, :text, default: "0.00000000")
+      add(:precision, :integer)
 
       timestamps()
     end

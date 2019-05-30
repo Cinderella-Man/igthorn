@@ -20,12 +20,12 @@ defmodule Hefty do
 
   def fetch_tick(symbol) do
     case from(te in Hefty.Repo.Binance.TradeEvent,
-      order_by: [desc: te.trade_time],
-      where: te.symbol == ^symbol,
-      limit: 1
-    )
-      |> Hefty.Repo.one do
-      nil    -> %{:symbol => symbol, :price => "Not available"}
+           order_by: [desc: te.trade_time],
+           where: te.symbol == ^symbol,
+           limit: 1
+         )
+         |> Hefty.Repo.one() do
+      nil -> %{:symbol => symbol, :price => "Not available"}
       result -> result
     end
   end
@@ -34,10 +34,12 @@ defmodule Hefty do
     symbols = Hefty.Streaming.Server.fetch_streaming_symbols()
 
     case symbol != "" do
-      false -> symbols
-      _     -> symbols
-              |> Enum.filter(
-                  fn({s, _}) -> String.contains?(String.upcase(s), symbol) end)
+      false ->
+        symbols
+
+      _ ->
+        symbols
+        |> Enum.filter(fn {s, _} -> String.contains?(String.upcase(s), symbol) end)
     end
   end
 

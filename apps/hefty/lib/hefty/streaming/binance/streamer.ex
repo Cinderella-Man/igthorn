@@ -74,7 +74,12 @@ defmodule Hefty.Streaming.Streamer do
       }
       |> Hefty.Repo.insert()
 
-    UiWeb.Endpoint.broadcast_from(self(), "stream-#{trade_event.symbol}", "trade_event", trade_event)
+    UiWeb.Endpoint.broadcast_from(
+      self(),
+      "stream-#{trade_event.symbol}",
+      "trade_event",
+      trade_event
+    )
 
     {:ok, state}
   end

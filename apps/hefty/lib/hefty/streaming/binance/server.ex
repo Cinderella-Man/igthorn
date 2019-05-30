@@ -31,7 +31,9 @@ defmodule Hefty.Streaming.Server do
 
   def handle_cast(:init_streams, _state) do
     workers =
-      from(nts in Hefty.Repo.StreamingSetting, where: nts.platform == "Binance" and nts.enabled == true)
+      from(nts in Hefty.Repo.StreamingSetting,
+        where: nts.platform == "Binance" and nts.enabled == true
+      )
       |> Hefty.Repo.all()
       |> Enum.map(&{&1.symbol, start_streaming(&1.symbol)})
       |> Enum.into(%{})
@@ -56,7 +58,8 @@ defmodule Hefty.Streaming.Server do
   end
 
   defp flip_db_flag(symbol) do
-    settings = from(nts in Hefty.Repo.StreamingSetting, where: nts.symbol == ^symbol)
+    settings =
+      from(nts in Hefty.Repo.StreamingSetting, where: nts.symbol == ^symbol)
       |> Hefty.Repo.one()
 
     settings
@@ -87,13 +90,14 @@ defmodule Hefty.Streaming.Server do
   end
 
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
-    {symbol, _} = state.workers
-      |> Enum.find(false, fn({_, {process_pid, _}}) -> process_pid == pid end)
+    {symbol, _} =
+      state.workers
+      |> Enum.find(false, fn {_, {process_pid, _}} -> process_pid == pid end)
 
     result = start_streaming(symbol)
 
     workers = Map.put(state.workers, symbol, result)
 
-    {:noreply, %{state | :workers => workers }}
+    {:noreply, %{state | :workers => workers}}
   end
 end
