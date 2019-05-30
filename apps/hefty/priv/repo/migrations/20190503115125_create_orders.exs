@@ -27,23 +27,27 @@ defmodule Hefty.Repo.Migrations.CreateOrders do
 
   def change do
     create table(:orders, primary_key: false) do
-      add :id, :uuid, primary_key: true
-      add(:symbol_id, references(:pairs, type: :uuid)) # uuid of LTCBTC
-      add :order_id, :integer
-      add :client_order_id, :text
-      add :price, :text
-      add :original_quantity, :text
-      add :executed_quantity, :text
-      add :cummulative_quote_quantity, :text
-      add :status, :text
-      add :time_in_force, :text # GTC
-      add :type, :text # LIMIT, MARKET, STOP_LOSS
-      add :side, :text # BUY or SELL
-      add :stop_price, :text
-      add :iceberg_quantity, :text
-      add :time, :integer
-      add :update_time, :integer
-      add :is_working, :boolean
+      add(:id, :uuid, primary_key: true)
+      # uuid of LTCBTC
+      add(:symbol_id, references(:pairs, type: :uuid))
+      add(:order_id, :integer)
+      add(:client_order_id, :text)
+      add(:price, :text)
+      add(:original_quantity, :text)
+      add(:executed_quantity, :text)
+      add(:cummulative_quote_quantity, :text)
+      add(:status, :text)
+      # GTC
+      add(:time_in_force, :text)
+      # LIMIT, MARKET, STOP_LOSS
+      add(:type, :text)
+      # BUY or SELL
+      add(:side, :text)
+      add(:stop_price, :text)
+      add(:iceberg_quantity, :text)
+      add(:time, :integer)
+      add(:update_time, :integer)
+      add(:is_working, :boolean)
 
       timestamps()
     end

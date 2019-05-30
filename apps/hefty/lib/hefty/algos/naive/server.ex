@@ -21,5 +21,4 @@ defmodule Hefty.Algos.Naive.Server do
   def init(symbol) do
     {:ok, %State{symbol: symbol}}
   end
-
 end

@@ -3,11 +3,15 @@ defmodule Hefty.Repo.Migrations.CreatePairs do
 
   def change do
     create table(:pairs, primary_key: false) do
-      add :id, :uuid, primary_key: true
-      add :symbol, :text # LTCBTC
-      add(:base_asset_id, references(:balances, type: :uuid)) # uuid of BTC
-      add(:quote_asset_id, references(:balances, type: :uuid)) # uuid of LTC
-      add :status, :string # binance's status like "TRADING"
+      add(:id, :uuid, primary_key: true)
+      # LTCBTC
+      add(:symbol, :text)
+      # uuid of BTC
+      add(:base_asset_id, references(:balances, type: :uuid))
+      # uuid of LTC
+      add(:quote_asset_id, references(:balances, type: :uuid))
+      # binance's status like "TRADING"
+      add(:status, :string)
 
       timestamps()
     end

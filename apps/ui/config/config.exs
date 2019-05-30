@@ -23,9 +23,9 @@ config :logger, :console,
 config :phoenix, :json_library, Jason
 
 config :ui, UiWeb.Endpoint,
-   live_view: [
-     signing_salt: "SECRET_SALT"
-   ]
+  live_view: [
+    signing_salt: "SECRET_SALT"
+  ]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

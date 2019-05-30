@@ -37,7 +37,8 @@ defmodule Helpers do
 
   def update_balance(balances_map, %{"asset" => asset, "free" => free, "locked" => locked}) do
     balance = Ecto.Changeset.change(balances_map[asset], %{:free => free, :locked => locked})
-    case Hefty.Repo.update balance do
+
+    case Hefty.Repo.update(balance) do
       {:ok, struct} -> struct
       {:error, _changeset} -> throw("Unable to update " <> asset <> " balance")
     end
@@ -45,6 +46,7 @@ defmodule Helpers do
 
   def create_naive_setting(%Pair{} = pair, balances_map) do
     default_settings = Keyword.fetch!(Application.get_all_env(:hefty), :trading).defaults
+
     %NaiveTraderSetting{
       :symbol => pair.symbol,
       :budget => balances_map[pair.quote_asset.asset].free,
@@ -63,27 +65,27 @@ Logger.info("Fetching exchange info to retrieve assets and symbols")
 
 Logger.info("Inserting 'empty' balances")
 
-balances = symbols
-    |> Enum.map(&([{&1["baseAsset"], &1["baseAssetPrecision"]}, {&1["quoteAsset"], &1["quotePrecision"]}]))
-    |> List.flatten
-    |> Enum.uniq
-    |> Enum.map(&Helpers.create_balance/1)
-    |> Enum.map(
-      &(Hefty.Repo.insert(&1)) |> elem(1)
-    )
+balances =
+  symbols
+  |> Enum.map(
+    &[{&1["baseAsset"], &1["baseAssetPrecision"]}, {&1["quoteAsset"], &1["quotePrecision"]}]
+  )
+  |> List.flatten()
+  |> Enum.uniq()
+  |> Enum.map(&Helpers.create_balance/1)
+  |> Enum.map(&(Hefty.Repo.insert(&1) |> elem(1)))
 
-Logger.info("#{length balances} 'empty' balances inserted")
+Logger.info("#{length(balances)} 'empty' balances inserted")
 
-balances_map = balances
-    |> Enum.into(%{}, fn(b) -> {b.asset, b} end)
+balances_map =
+  balances
+  |> Enum.into(%{}, fn b -> {b.asset, b} end)
 
-Logger.info("Inserting #{length symbols} symbols(pairs)")
+Logger.info("Inserting #{length(symbols)} symbols(pairs)")
 
 symbols
-  |> Enum.map(&(Helpers.create_pair(&1, balances_map)))
-  |> Enum.map(
-    &(Hefty.Repo.insert(&1)) |> elem(1)
-  )
+|> Enum.map(&Helpers.create_pair(&1, balances_map))
+|> Enum.map(&(Hefty.Repo.insert(&1) |> elem(1)))
 
 binance_config = Application.get_all_env(:binance)
 
@@ -93,30 +95,30 @@ if Keyword.fetch!(binance_config, :api_key) != "" do
   {:ok, account} = Binance.get_account()
 
   account.balances
-    |> Enum.filter(&(!Helpers.empty_balance(&1)))
-    |> Enum.map(&(Helpers.update_balance(balances_map, &1)))
+  |> Enum.filter(&(!Helpers.empty_balance(&1)))
+  |> Enum.map(&Helpers.update_balance(balances_map, &1))
 end
 
 Logger.info("Inserting default naive trader settings")
 
 # Fetching pairs with quote assets joined
-pairs = (from p in Pair, preload: [:quote_asset])
-  |> Hefty.Repo.all
+pairs =
+  from(p in Pair, preload: [:quote_asset])
+  |> Hefty.Repo.all()
 
 # Fetching balances from db
-balances = (from b in Balance) |> Hefty.Repo.all
-balances_map = balances
-    |> Enum.into(%{}, fn(b) -> {b.asset, b} end)
+balances = from(b in Balance) |> Hefty.Repo.all()
+
+balances_map =
+  balances
+  |> Enum.into(%{}, fn b -> {b.asset, b} end)
 
 pairs
-  |> Enum.map(&(Helpers.create_naive_setting(&1, balances_map)))
-  |> Enum.map(
-    &(Hefty.Repo.insert(&1)) |> elem(1)
-  )
+|> Enum.map(&Helpers.create_naive_setting(&1, balances_map))
+|> Enum.map(&(Hefty.Repo.insert(&1) |> elem(1)))
 
 pairs
-  |> Enum.map(&%StreamingSetting{:symbol => &1.symbol})
-  |> Enum.map(&Hefty.Repo.insert/1)
+|> Enum.map(&%StreamingSetting{:symbol => &1.symbol})
+|> Enum.map(&Hefty.Repo.insert/1)
 
 Logger.info("Seeding finished")
-
