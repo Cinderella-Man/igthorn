@@ -22,7 +22,7 @@ defmodule UiWeb.NativeTraderSettingsLive do
 
           </div>
           <!-- /.box-header -->
-          <%= if length(@native_trader_settings) > 0 do %>
+          <%= if length(@native_trader_settings_paginate.list) > 0 do %>
             <div class="box-body table-responsive no-padding">
 
               <div class="box-body">
@@ -33,7 +33,7 @@ defmodule UiWeb.NativeTraderSettingsLive do
                       <option value="20">20</option>
                       <option value="30">30</option>
                       <option value="40">40</option>
-                      <option value="20">50</option>
+                      <option value="50">50</option>
                     </select>
                     <span class="input-group-btn">
                       <button type="submit" class="btn btn-info btn-flat">Rows</button>
@@ -56,7 +56,7 @@ defmodule UiWeb.NativeTraderSettingsLive do
                   <th></th>
                 </tbody>
                 <tbody>
-                  <%= for nts <- Keyword.values(@native_trader_settings) do %>
+                  <%= for nts <- Keyword.values(@native_trader_settings_paginate.list) do %>
                     <tr>
                       <td><%= nts.symbol %></td>
                       <td><%= nts.budget %></td>
@@ -74,11 +74,16 @@ defmodule UiWeb.NativeTraderSettingsLive do
             <div class="box-footer clearfix">
               <span>Test info</span>
               <ul class="pagination pagination-sm no-margin pull-right">
-                <li><a href="#">«</a></li>
-                <li><a href="#">1</a></li>
-                <li><a href="#">2</a></li>
-                <li><a href="#">3</a></li>
-                <li><a href="#">»</a></li>
+                <li><a phx-click="pagination-1" href="#">«</a></li>
+                <%= for link <- @native_trader_settings_paginate.links do %>
+                  <li <%= if link == @native_trader_settings_paginate.page do %>
+                      class="active"
+                    <% end %>
+                  >
+                    <a phx-click="pagination-<%= link %>" href="#"><%= link %></a>
+                  </li>
+                <% end %>
+                <li><a phx-click="pagination-<%= @native_trader_settings_paginate.pages %>" href="#">»</a></li>
               </ul>
             </div>
           <% end %>
@@ -91,10 +96,7 @@ defmodule UiWeb.NativeTraderSettingsLive do
   end
 
   def mount(%{}, socket) do
-    native_trader_settings = Hefty.fetch_native_trader_settings(0, 10)
-      |> Enum.into([], &{:"#{&1.symbol}", &1})
-
-    {:ok, assign(socket, native_trader_settings: native_trader_settings)}
+    {:ok, assign(socket, native_trader_settings_paginate: pagination(10, 1))}
   end
 
   defp trading_status(), do: %{:true => "Trading", :false => "Disabled"}
@@ -108,9 +110,36 @@ defmodule UiWeb.NativeTraderSettingsLive do
   end
 
   def handle_event("rows", %{"rows_per_page" => limit} , socket) do
-    native_trader_settings = Hefty.fetch_native_trader_settings(0, limit)
-      |> Enum.into([], &{:"#{&1.symbol}", &1})
+    {:noreply, assign(socket, native_trader_settings_paginate:  pagination(String.to_integer(limit), 1))}
+  end
 
-    {:noreply, assign(socket, native_trader_settings: native_trader_settings, rows_per_page: limit)}
+  def handle_event("pagination-" <> page, _, socket) do
+    {:noreply, assign(socket, native_trader_settings_paginate: pagination(socket.assigns.native_trader_settings_paginate.limit, String.to_integer(page)))}
+  end
+
+  defp pagination(limit, page) do
+    pagination = Hefty.fetch_native_trader_settings(((page - 1) * limit), limit)
+       |> Enum.into([], &{:"#{&1.symbol}", &1})
+
+    all = Hefty.fetch_native_trader_settings()
+
+    links = Enum.filter((page-3)..(page+3), & &1 >= 1 and &1 <= round(Float.ceil(length(all) / limit)))
+
+    IO.inspect(%{
+      :total => length(all),
+      :pages => round(Float.ceil(length(all) / limit)),
+      :links => links,
+      :page => page,
+      :limit => limit
+    })
+
+    %{
+      :list => pagination,
+      :total => length(all),
+      :pages => round(Float.ceil(length(all) / limit)),
+      :links => links,
+      :page => page,
+      :limit => limit
+    }
   end
 end
