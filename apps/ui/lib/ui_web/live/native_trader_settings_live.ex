@@ -29,11 +29,13 @@ defmodule UiWeb.NativeTraderSettingsLive do
                 <form phx_change="rows" phx-submit="rows">
                   <div class="input-group input-group-sm col-xs-1">
                     <select class="form-control" name="rows_per_page">
-                      <option value="10" selected>10</option>
-                      <option value="20">20</option>
-                      <option value="30">30</option>
-                      <option value="40">40</option>
-                      <option value="50">50</option>
+                      <%= for row <- @rows_numbers do %>
+                        <option value="<%= row %>"
+                        <%= if row == @set_rows do %>
+                          selected
+                        <% end %>
+                        ><%= row %></option>
+                      <% end %>
                     </select>
                     <span class="input-group-btn">
                       <button type="submit" class="btn btn-info btn-flat">Rows</button>
@@ -96,7 +98,7 @@ defmodule UiWeb.NativeTraderSettingsLive do
   end
 
   def mount(%{}, socket) do
-    {:ok, assign(socket, native_trader_settings_paginate: pagination(10, 1))}
+    {:ok, assign(socket, native_trader_settings_paginate: pagination(10, 1), rows_numbers: [10, 20, 30, 40, 50], set_rows: 10)}
   end
 
   defp trading_status(), do: %{:true => "Trading", :false => "Disabled"}
@@ -110,7 +112,7 @@ defmodule UiWeb.NativeTraderSettingsLive do
   end
 
   def handle_event("rows", %{"rows_per_page" => limit} , socket) do
-    {:noreply, assign(socket, native_trader_settings_paginate:  pagination(String.to_integer(limit), 1))}
+    {:noreply, assign(socket, native_trader_settings_paginate:  pagination(String.to_integer(limit), 1), set_rows: String.to_integer(limit))}
   end
 
   def handle_event("pagination-" <> page, _, socket) do
