@@ -104,11 +104,8 @@ defmodule UiWeb.NativeTraderSettingsLive do
   defp trading_status(), do: %{:true => "Trading", :false => "Disabled"}
   defp trading_decoration(), do: %{:true => "success", :false => "danger"}
 
-  def handle_event("validate", %{"native_trader_settings" => params}, socket) do
-    IO.inspect('czesc')
-#    changeset =
-#      %NaiveTraderSetting{}
-#      |> Actions()
+  def handle_event("validate", %{}, socket) do
+    {:noreply, assign(socket)}
   end
 
   def handle_event("rows", %{"rows_per_page" => limit} , socket) do
