@@ -1,7 +1,7 @@
 defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   use GenServer
 
-  import Ecto.Query, only: [from: 2]
+  alias Hefty.Streaming.Backtester.DbStreamer
 
   @moduledoc """
   The SimpleStreamer module as the name implies is a responsible for
@@ -27,64 +27,42 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   be put on top of stack and taken out in next iteration.
   """
 
-  defmodule State do
-    defstruct(interval: nil, db_stream: nil, temp_stack: [])
+  def start_link() do
+    GenServer.start_link(__MODULE__, [self()])
+  end
+
+  def init([backtesting_pid]) do
+    {:ok, %{backtesting_pid: backtesting_pid}}
+  end
+
+  def start_streaming(pid, symbol, from, to, interval \\ 5) do
+    GenServer.cast(pid, {:start_streaming, symbol, from, to, interval})
+  end
+
+  def handle_cast({:start_streaming, symbol, from, to, interval}, state) do
+    task = DbStreamer.start_link(symbol, from, to, self(), interval)
+    {:noreply, Map.put(state, :db_streamer_task, task)}
   end
 
   @doc """
-  Expected args:
-  * symbol: string
-  * from: string (YYYY-MM-DD)
-  * to: string (YYYY-MM-DD)
-  * interval: number (of ms)
+  Trade events coming from either db streamer
   """
-  def start_link(symbol, from, to, interval \\ 5) do
-    GenServer.start_link(__MODULE__, [symbol, from, to, interval],
-      name: :"#{__MODULE__}-#{symbol}"
-    )
+  def handle_cast({:trade_event, trade_event}, state) do
+    IO.inspect(trade_event)
+    {:noreply, state}
   end
 
-  def init([symbol, from, to, interval]) do
-    GenServer.cast(:"#{__MODULE__}-#{symbol}", {:init_stream, symbol, from, to})
-
-    {:ok,
-     %State{
-       :interval => interval
-     }}
+  @doc """
+  This handle is used to notify test that all events already arrived
+  """
+  def handle_cast(:stream_finished, state) do
+    send(state.backtesting_pid, :stream_finished)
   end
 
-  def handle_cast({:init_stream, symbol, from, to}, state) do
-    from_ts = Hefty.Utils.Date.ymdToTs(from)
-
-    to_ts = to
-    |> Hefty.Utils.Date.ymdToNaiveDate
-    |> NaiveDateTime.add(24 * 60 * 60, :second)
-    |> Hefty.Utils.Date.naiveDateToTs
-
-    {:ok, db_stream} =
-      Hefty.Repo.transaction(fn ->
-        from(te in Hefty.Repo.Binance.TradeEvent,
-          where: te.symbol == ^symbol and te.trade_time >= ^from_ts and te.trade_time < ^to_ts
-        )
-        |> Hefty.Repo.stream()
-      end)
-
-    Process.send_after(self(), :next, state.interval)
-
-    {:noreply, %{state | :db_stream => db_stream}}
-  end
-
+  @doc """
+  Those should be coming from Binance Mock
+  """
   def handle_cast({:order, order}, state) do
     {:noreply, Map.get_and_update(state, :temp_stack, fn stack -> [order | stack] end)}
-  end
-
-@doc """
-Called by :init_stream as well as itself recursively
-Publishes single trade event
-"""
-  def handle_info(:next, state) do
-    [next] = Enum.to_list(state.db_stream |> Stream.take(1))
-    IO.inspect(next)
-    {:noreply, state}
   end
 end
