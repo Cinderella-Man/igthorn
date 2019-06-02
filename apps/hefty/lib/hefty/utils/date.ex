@@ -14,5 +14,6 @@ defmodule Hefty.Utils.Date do
     date
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.to_unix()
+    |> Kernel.*(1000)
   end
 end
