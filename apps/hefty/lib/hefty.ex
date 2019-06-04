@@ -57,6 +57,18 @@ defmodule Hefty do
     Hefty.Repo.all(query)
   end
 
+  def fetch_native_trader_settings(symbol) do
+    case from(nts in Hefty.Repo.NaiveTraderSetting,
+           order_by: nts.symbol,
+           where: nts.symbol == ^symbol,
+           limit: 1
+         )
+         |> Hefty.Repo.one do
+      nil    -> %{:symbol => symbol}
+      result -> result
+    end
+  end
+
   def fetch_native_trader_settings(offset, limit) do
     query = from(nts in Hefty.Repo.NaiveTraderSetting,
       order_by: nts.symbol,
@@ -64,5 +76,23 @@ defmodule Hefty do
       offset: ^offset
     )
     Hefty.Repo.all(query)
+  end
+
+  def update_native_trader_settings(data) do
+    record = Hefty.Repo.get_by!(Hefty.Repo.NaiveTraderSetting, symbol: data["symbol"])
+    nts = Ecto.Changeset.change(record,
+      %{
+        :budget => data["budget"],
+        :buy_down_interval => data["buy_down_interval"],
+        :chunks => String.to_integer(data["chunks"]),
+        :profit_interval => data["profit_interval"],
+        :stop_loss_interval => data["stop_loss_interval"],
+        :trading => !!String.to_integer(data["trading"])
+      })
+
+    case Hefty.Repo.update nts do
+      {:ok, struct} -> struct
+      {:error, _changeset} -> throw("Unable to update " <> data["symbol"] <> " native trader settings")
+    end
   end
 end
