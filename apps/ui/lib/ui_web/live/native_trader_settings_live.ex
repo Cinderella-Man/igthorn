@@ -81,9 +81,9 @@ defmodule UiWeb.NativeTraderSettingsLive do
                             <input class="form-control input-sm" type="text" name="stop_loss_interval" value="<%= nts.stop_loss_interval %>">
                           </td>
                           <td>
-                            <select class="form-control" name="trading" data-enpassusermodified="yes">
-                              <option value="1" <%= trading_select(nts.trading)[true] %>>Enabled</option>
-                              <option value="0" <%= trading_select(nts.trading)[false] %>>Disabled</option>
+                            <select class="form-control input-sm" name="trading" data-enpassusermodified="yes">
+                              <option value="true" <%= trading_select(nts.trading)[true] %>>Enabled</option>
+                              <option value="false" <%= trading_select(nts.trading)[false] %>>Disabled</option>
                             </select>
                           </td>
                           <td><button type="submit" class="btn btn-block btn-info btn-xs"><span class="fa fa-edit"></span>Save</button></td>

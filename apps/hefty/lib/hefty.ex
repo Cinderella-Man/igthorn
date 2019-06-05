@@ -87,7 +87,7 @@ defmodule Hefty do
         :chunks => String.to_integer(data["chunks"]),
         :profit_interval => data["profit_interval"],
         :stop_loss_interval => data["stop_loss_interval"],
-        :trading => !!String.to_integer(data["trading"])
+        :trading => String.to_existing_atom(data["trading"])
       })
 
     case Hefty.Repo.update nts do
