@@ -19,7 +19,7 @@ defmodule UiWeb.Router do
 
     get "/", PageController, :index
     get "/streaming-settings", StreamingSettingsController, :index
-    get "/native-trader-settings", NativeSettingsController, :index
+    get "/naive-trader-settings", NaiveSettingsController, :index
   end
 
   # Other scopes may use custom stacks.
