@@ -1,5 +1,4 @@
 defmodule Hefty.Utils.Date do
-
   def ymdToTs(date) do
     date
     |> ymdToNaiveDate
@@ -8,7 +7,7 @@ defmodule Hefty.Utils.Date do
 
   def ymdToNaiveDate(date) do
     NaiveDateTime.from_iso8601!("#{date}T00:00:00.000Z")
-  end  
+  end
 
   def naiveDateToTs(date) do
     date

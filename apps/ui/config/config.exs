@@ -29,4 +29,15 @@ config :ui, UiWeb.Endpoint,
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env()}.exs"
+get_config_file_path = fn filename ->
+  config_directory = __ENV__.file |> String.slice(0..-11)
+
+  filename
+  |> Path.expand(config_directory)
+end
+
+path = get_config_file_path.("#{Mix.env()}.exs")
+
+if File.exists?(path) do
+  import_config path
+end

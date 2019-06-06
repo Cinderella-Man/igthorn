@@ -26,11 +26,12 @@ use Mix.Config
 # by uncommenting the line below and defining dev.exs, test.exs and such.
 # Configuration from the imported file will override the ones defined
 # here (which is why it is important to import them last).
-#
-#     import_config "#{Mix.env()}.exs"
 
 config :hefty,
   ecto_repos: [Hefty.Repo],
+  exchanges: %{
+    binance: Binance
+  },
   trading: %{
     :defaults => %{
       # 0.25%
@@ -58,3 +59,18 @@ config :binance,
   secret_key: ""
 
 config :logger, level: :debug
+
+# Import environment specific config. This must remain at the bottom
+# of this file so it overrides the configuration defined above.
+get_config_file_path = fn filename ->
+  config_directory = __ENV__.file |> String.slice(0..-11)
+
+  filename
+  |> Path.expand(config_directory)
+end
+
+path = get_config_file_path.("#{Mix.env()}.exs")
+
+if File.exists?(path) do
+  import_config path
+end
