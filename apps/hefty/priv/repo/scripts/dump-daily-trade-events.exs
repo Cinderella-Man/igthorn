@@ -2,6 +2,10 @@
 #
 # A Template for writing an Elixir script by
 # Andreas Altendorfer <andreas@altendorfer.at>
+# 
+# This command line tool requires `psql` and
+# utilises Postgres' COPY tool to export to
+# CSV format
 defmodule Shell do
   import Ecto.Query
   require Logger
@@ -26,38 +30,27 @@ defmodule Shell do
   # Call your script here
   #
   def run({[{:date, date}], _}) do
+    timestamps = get_timestamps(date)
+
     from(te in Hefty.Repo.Binance.TradeEvent,
       group_by: te.symbol,
       select: {te.symbol, count(te.id)}
     )
     |> Hefty.Repo.all()
-    |> Flow.from_enumerable(max_demand: 1)
-    |> Flow.partition()
-    |> Flow.map(&stream_data_by_symbol(elem(&1, 0), date))
-    |> Enum.to_list()
+    |> Enum.map(&(create_query(&1, date, timestamps)))
 
     Logger.info("Data stored successfully to files")
   end
 
-  def stream_data_by_symbol(symbol, date) do
-    file = "#{date}-#{symbol}.csv"
-    Logger.info("Saving data from #{date} for #{symbol} into #{file}")
-
-    {:ok, result} =
-      Hefty.Repo.transaction(fn ->
-        symbol
-        |> build_query(date)
-        |> Hefty.Repo.stream()
-        |> Stream.map(&convert_to_csv_line(&1))
-        |> (fn rows -> Stream.concat([@columns], rows) end).()
-        |> CSV.encode()
-        |> Enum.into(File.stream!(file))
-
-        file
-      end)
+  def create_query({symbol, _}, date, [from, to]) do
+    command = "PGPASSWORD=postgres psql -Upostgres -h localhost -dhefty_dev  -c \"\\copy " <>
+      "(SELECT * FROM trade_events WHERE trade_time >= #{from} AND trade_time < #{to} AND symbol='#{symbol}') " <>
+      "TO '/tmp/dumps/#{symbol}-#{date}.csv' (format csv, delimiter ';')\""
+    IO.puts(command)
+    :os.cmd(String.to_charlist(command))
   end
 
-  def build_query(symbol, date) do
+  def get_timestamps(date) do
     from_datetime = NaiveDateTime.from_iso8601!("#{date}T00:00:00.000Z")
 
     from_timestamp =
@@ -72,15 +65,7 @@ defmodule Shell do
       |> DateTime.from_naive!("Etc/UTC")
       |> DateTime.to_unix()
 
-    from(te in Hefty.Repo.Binance.TradeEvent,
-      where: te.trade_time >= ^(from_timestamp * 1000),
-      where: te.trade_time < ^(to_timestamp * 1000),
-      where: te.symbol == ^symbol
-    )
-  end
-
-  defp convert_to_csv_line(record) do
-    Enum.map(@columns, &Map.get(record, :"#{&1}"))
+    [from_timestamp * 1000, to_timestamp * 1000]
   end
 
   def main(args) do
