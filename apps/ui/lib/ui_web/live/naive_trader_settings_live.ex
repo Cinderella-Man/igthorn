@@ -138,15 +138,14 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   defp trading_status(), do: %{true => "Trading", false => "Disabled"}
   defp trading_decoration(), do: %{true => "success", false => "danger"}
 
-  defp trading_status(), do: %{:true => "Trading", :false => "Disabled"}
-  defp trading_decoration(), do: %{:true => "success", :false => "danger"}
+  defp trading_select(true), do: %{true => "selected"}
+  defp trading_select(false), do: %{false => "selected"}
 
-  defp trading_select(:true), do: %{:true => "selected"}
-  defp trading_select(:false), do: %{:false => "selected"}
+  def handle_event("validate", %{"search" => search}, socket) do
+    result =
+      Hefty.fetch_naive_trader_settings(search)
+      |> Enum.into([], &{:"#{&1.symbol}", &1})
 
-  def handle_event("validate",  %{"search" => search}, socket) do
-    result = Hefty.fetch_naive_trader_settings(search)
-             |> Enum.into([], &{:"#{&1.symbol}", &1})
     {:noreply, assign(socket, naive_trader_settings_paginate: %{:list => result})}
   end
 
@@ -166,28 +165,29 @@ defmodule UiWeb.NaiveTraderSettingsLive do
      )}
   end
 
-  def handle_event("edit-row-" <> symbol, _, socket), do: {:noreply, assign(socket, edit_row: symbol)}
+  def handle_event("edit-row-" <> symbol, _, socket),
+    do: {:noreply, assign(socket, edit_row: symbol)}
 
   def handle_event("save-row", data, socket) do
-    Hefty.update_naive_trader_settings(data);
+    Hefty.update_naive_trader_settings(data)
+
     {
-      :noreply, assign(socket,
-      naive_trader_settings_paginate: pagination(
-        socket.assigns.naive_trader_settings_paginate.limit,
-        socket.assigns.naive_trader_settings_paginate.page),
-      edit_row: nil)
+      :noreply,
+      assign(socket,
+        naive_trader_settings_paginate:
+          pagination(
+            socket.assigns.naive_trader_settings_paginate.limit,
+            socket.assigns.naive_trader_settings_paginate.page
+          ),
+        edit_row: nil
+      )
     }
   end
 
   defp pagination(limit, page) do
-<<<<<<< HEAD
     pagination =
       Hefty.fetch_naive_trader_settings((page - 1) * limit, limit)
       |> Enum.into([], &{:"#{&1.symbol}", &1})
-=======
-    pagination = Hefty.fetch_naive_trader_settings(((page - 1) * limit), limit)
-                 |> Enum.into([], &{:"#{&1.symbol}", &1})
->>>>>>> origin
 
     all = Hefty.fetch_naive_trader_settings()
 
