@@ -68,7 +68,11 @@ defmodule UiWeb.BacktestingLive do
     {:ok, assign(socket, symbols: Hefty.fetch_symbols())}
   end
 
-  def handle_event("kick-off-backtesting", %{"symbol" => symbol, "date-range" => date_range}, socket) do
+  def handle_event(
+        "kick-off-backtesting",
+        %{"symbol" => symbol, "date-range" => date_range},
+        socket
+      ) do
     [from_date, to_date] = convert_daterange_to_dates(date_range)
     Hefty.Backtesting.kick_off_backtesting(symbol, from_date, to_date)
     {:noreply, socket}
