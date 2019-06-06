@@ -7,7 +7,7 @@ defmodule UiWeb.NaiveTraderSettingsLive do
       <div class="col-xs-12">
         <div class="box">
           <div class="box-header">
-            <h3 class="box-title">Current prices</h3>
+            <h3 class="box-title">Naive trader settings</h3>
             <div class="box-tools">
               <form>
                 <div class="input-group input-group-sm" style="width: 180px;">
