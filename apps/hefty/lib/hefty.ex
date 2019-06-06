@@ -50,26 +50,26 @@ defmodule Hefty do
     {:ok, symbol}
   end
 
-  def fetch_native_trader_settings() do
+  def fetch_naive_trader_settings() do
     query = from(nts in Hefty.Repo.NaiveTraderSetting,
       order_by: nts.symbol,
     )
     Hefty.Repo.all(query)
   end
 
-  def fetch_native_trader_settings(symbol) do
+  def fetch_naive_trader_settings(symbol) do
     case from(nts in Hefty.Repo.NaiveTraderSetting,
            order_by: nts.symbol,
            where: nts.symbol == ^symbol,
            limit: 1
          )
          |> Hefty.Repo.one do
-      nil    -> %{:symbol => symbol}
+      nil    -> %{}
       result -> result
     end
   end
 
-  def fetch_native_trader_settings(offset, limit) do
+  def fetch_naive_trader_settings(offset, limit) do
     query = from(nts in Hefty.Repo.NaiveTraderSetting,
       order_by: nts.symbol,
       limit: ^limit,
