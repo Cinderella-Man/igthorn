@@ -15,6 +15,8 @@ alias Hefty.Repo.{StreamingSetting, NaiveTraderSetting}
 import Ecto.Query
 require Logger
 
+binance_client = Application.get_env(:hefty, :exchanges).binance
+
 defmodule Helpers do
   def create_balance({asset, precision}) do
     %Balance{
@@ -61,7 +63,7 @@ end
 
 Logger.info("Fetching exchange info to retrieve assets and symbols")
 
-{:ok, %{symbols: symbols}} = Binance.get_exchange_info()
+{:ok, %{symbols: symbols}} = binance_client.get_exchange_info()
 
 Logger.info("Inserting 'empty' balances")
 
@@ -92,7 +94,7 @@ binance_config = Application.get_all_env(:binance)
 if Keyword.fetch!(binance_config, :api_key) != "" do
   Logger.info("Loading current balances from Binance / updating db")
 
-  {:ok, account} = Binance.get_account()
+  {:ok, account} = binance_client.get_account()
 
   account.balances
   |> Enum.filter(&(!Helpers.empty_balance(&1)))
