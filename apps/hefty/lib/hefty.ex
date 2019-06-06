@@ -71,4 +71,14 @@ defmodule Hefty do
 
     Hefty.Repo.all(query)
   end
+
+  def fetch_symbols() do
+    query =
+      from(p in Hefty.Repo.Binance.Pair,
+        select: %{symbol: p.symbol},
+        order_by: p.symbol
+      )
+
+    Hefty.Repo.all(query)
+  end
 end

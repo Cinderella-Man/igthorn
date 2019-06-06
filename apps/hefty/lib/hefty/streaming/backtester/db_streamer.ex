@@ -15,8 +15,6 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
   end
 
   def run(symbol, from, to, streamer_pid, interval) do
-    IO.inspect("run called")
-
     from_ts = Hefty.Utils.Date.ymdToTs(from)
 
     to_ts =
@@ -24,9 +22,6 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
       |> Hefty.Utils.Date.ymdToNaiveDate()
       |> NaiveDateTime.add(24 * 60 * 60, :second)
       |> Hefty.Utils.Date.naiveDateToTs()
-
-    IO.inspect(from_ts)
-    IO.inspect(to_ts)
 
     Hefty.Repo.transaction(fn ->
       from(te in Hefty.Repo.Binance.TradeEvent,

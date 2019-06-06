@@ -48,7 +48,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   Trade events coming from either db streamer
   """
   def handle_cast({:trade_event, trade_event}, state) do
-    IO.inspect(trade_event)
+    IO.inspect(trade_event, label: "SimpleStream: Trade received")
     {:noreply, state}
   end
 
@@ -56,7 +56,8 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   This handle is used to notify test that all events already arrived
   """
   def handle_cast(:stream_finished, state) do
-    send(state.backtesting_pid, :stream_finished)
+    IO.puts("SimpleStream: Db stream finished")
+    {:noreply, state}
   end
 
   @doc """
