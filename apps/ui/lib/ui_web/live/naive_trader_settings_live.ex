@@ -94,32 +94,50 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   end
 
   def mount(%{}, socket) do
-    {:ok, assign(socket, naive_trader_settings_paginate: pagination(10, 1), rows_numbers: [10, 20, 30, 40, 50], set_rows: 10)}
+    {:ok,
+     assign(socket,
+       naive_trader_settings_paginate: pagination(10, 1),
+       rows_numbers: [10, 20, 30, 40, 50],
+       set_rows: 10
+     )}
   end
 
-  defp trading_status(), do: %{:true => "Trading", :false => "Disabled"}
-  defp trading_decoration(), do: %{:true => "success", :false => "danger"}
+  defp trading_status(), do: %{true => "Trading", false => "Disabled"}
+  defp trading_decoration(), do: %{true => "success", false => "danger"}
 
   def handle_event("validate", %{"naive_trader_settings" => _params}, _socket) do
     # todo: possibly unsubrice all non-showing symbols here
     {:noreply}
   end
 
-  def handle_event("rows", %{"rows_per_page" => limit} , socket) do
-    {:noreply, assign(socket, naive_trader_settings_paginate:  pagination(String.to_integer(limit), 1), set_rows: String.to_integer(limit))}
+  def handle_event("rows", %{"rows_per_page" => limit}, socket) do
+    {:noreply,
+     assign(socket,
+       naive_trader_settings_paginate: pagination(String.to_integer(limit), 1),
+       set_rows: String.to_integer(limit)
+     )}
   end
 
   def handle_event("pagination-" <> page, _, socket) do
-    {:noreply, assign(socket, naive_trader_settings_paginate: pagination(socket.assigns.naive_trader_settings_paginate.limit, String.to_integer(page)))}
+    {:noreply,
+     assign(socket,
+       naive_trader_settings_paginate:
+         pagination(socket.assigns.naive_trader_settings_paginate.limit, String.to_integer(page))
+     )}
   end
 
   defp pagination(limit, page) do
-    pagination = Hefty.fetch_naive_trader_settings(((page - 1) * limit), limit)
-       |> Enum.into([], &{:"#{&1.symbol}", &1})
+    pagination =
+      Hefty.fetch_naive_trader_settings((page - 1) * limit, limit)
+      |> Enum.into([], &{:"#{&1.symbol}", &1})
 
     all = Hefty.fetch_naive_trader_settings()
 
-    links = Enum.filter((page-3)..(page+3), & &1 >= 1 and &1 <= round(Float.ceil(length(all) / limit)))
+    links =
+      Enum.filter(
+        (page - 3)..(page + 3),
+        &(&1 >= 1 and &1 <= round(Float.ceil(length(all) / limit)))
+      )
 
     IO.inspect(%{
       :total => length(all),

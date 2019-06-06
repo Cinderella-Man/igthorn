@@ -15,7 +15,7 @@ defmodule UiWeb.BacktestingLive do
 
         <div class="form-group">
           <label>Symbol</label>
-          <select class="form-control select2 select2-hidden-accessible" name="symbol" style="width: 100%;" tabindex="-1" aria-hidden="true">
+          <select class="form-control select2" style="width: 100%;">
             <option selected="selected">Alabama</option>
             <option>Alaska</option>
             <option>California</option>
@@ -26,30 +26,19 @@ defmodule UiWeb.BacktestingLive do
           </select>
         </div>
 
-
-        <div class="form-group">
-          <label>From:</label>
-
-          <div class="input-group">
-            <div class="input-group-addon">
-              <i class="fa fa-calendar"></i>
-            </div>
-            <input type="text" name="from" class="form-control" data-inputmask="'alias': 'dd/mm/yyyy'" data-mask="">
-          </div>
-          <!-- /.input group -->
-        </div>
-
-        <div class="form-group">
-          <label>To(inclusive):</label>
+        <!-- Date range -->
+          <div class="form-group">
+          <label>Date range:</label>
 
           <div class="input-group">
             <div class="input-group-addon">
               <i class="fa fa-calendar"></i>
             </div>
-            <input type="text" name="to" class="form-control" data-inputmask="'alias': 'dd/mm/yyyy'" data-mask="">
+            <input type="text" class="form-control pull-right" id="date-range">
           </div>
           <!-- /.input group -->
         </div>
+        <!-- /.form group -->
 
 
 
@@ -61,6 +50,17 @@ defmodule UiWeb.BacktestingLive do
       </div>
     </form>
     </div>
+
+    <script>
+      setTimeout(function () {
+        console.log("Called");
+        //Initialize Select2 Elements
+        $('.select2').select2()
+
+        //Date range picker
+        $('#date-range').daterangepicker()
+      }, 1000)
+    </script>
     """
   end
 

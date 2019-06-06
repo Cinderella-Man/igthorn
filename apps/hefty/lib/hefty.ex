@@ -53,18 +53,22 @@ defmodule Hefty do
   end
 
   def fetch_naive_trader_settings() do
-    query = from(nts in Hefty.Repo.NaiveTraderSetting,
-      order_by: nts.symbol,
-    )
+    query =
+      from(nts in Hefty.Repo.NaiveTraderSetting,
+        order_by: nts.symbol
+      )
+
     Hefty.Repo.all(query)
   end
 
   def fetch_naive_trader_settings(offset, limit) do
-    query = from(nts in Hefty.Repo.NaiveTraderSetting,
-      order_by: nts.symbol,
-      limit: ^limit,
-      offset: ^offset
-    )
+    query =
+      from(nts in Hefty.Repo.NaiveTraderSetting,
+        order_by: nts.symbol,
+        limit: ^limit,
+        offset: ^offset
+      )
+
     Hefty.Repo.all(query)
   end
 end
