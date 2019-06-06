@@ -78,7 +78,7 @@ defmodule Hefty do
     Hefty.Repo.all(query)
   end
 
-  def update_native_trader_settings(data) do
+  def update_naive_trader_settings(data) do
     record = Hefty.Repo.get_by!(Hefty.Repo.NaiveTraderSetting, symbol: data["symbol"])
     nts = Ecto.Changeset.change(record,
       %{
@@ -92,7 +92,7 @@ defmodule Hefty do
 
     case Hefty.Repo.update nts do
       {:ok, struct} -> struct
-      {:error, _changeset} -> throw("Unable to update " <> data["symbol"] <> " native trader settings")
+      {:error, _changeset} -> throw("Unable to update " <> data["symbol"] <> " naive trader settings")
     end
   end
 end
