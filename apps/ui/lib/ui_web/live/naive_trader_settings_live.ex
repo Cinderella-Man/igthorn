@@ -8,7 +8,6 @@ defmodule UiWeb.NaiveTraderSettingsLive do
         <div class="box">
           <div class="box-header">
             <h3 class="box-title">Current prices</h3>
-
             <div class="box-tools">
               <form>
                 <div class="input-group input-group-sm" style="width: 180px;">
@@ -19,12 +18,10 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                 </div>
               </form>
             </div>
-
           </div>
           <!-- /.box-header -->
           <%= if length(@naive_trader_settings_paginate.list) > 0 do %>
             <div class="box-body table-responsive no-padding">
-
               <div class="box-body">
                 <form phx_change="rows" phx-submit="rows">
                   <div class="input-group input-group-sm col-xs-1">
@@ -43,7 +40,6 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                   </div>
                 </form>
               </div>
-
               <br>
               <form phx_change="save-row" phx-submit="save-row">
                 <table class="table table-hover">
