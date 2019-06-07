@@ -1,4 +1,4 @@
-defmodule Toretto.MixProject do
+defmodule Igthorn.MixProject do
   use Mix.Project
 
   def project do
