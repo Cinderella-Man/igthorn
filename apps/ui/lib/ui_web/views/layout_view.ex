@@ -5,7 +5,7 @@ defmodule UiWeb.LayoutView do
     conn
       |> fetch_from_conn(
         :page_title,
-        "Toretto",
+        "Igthorn",
         " - Igthorn"
       )
   end
