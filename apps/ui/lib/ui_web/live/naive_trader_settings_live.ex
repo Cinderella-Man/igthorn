@@ -92,7 +92,13 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                           <td><%= nts.buy_down_interval %></td>
                           <td><%= nts.chunks %></td>
                           <td><%= nts.stop_loss_interval %></td>
-                          <td><span class="label label-<%= trading_decoration()[nts.trading] %>"><%= trading_status()[nts.trading] %></span></td>
+                          <td>
+                            <a role="button" phx-click="trade-symbol-<%= nts.symbol %>">
+                              <span class="label label-<%= trading_decoration(nts.trading) %>">
+                                <%= trading_status(nts.trading) %>
+                              </span>
+                            </a>
+                          </td>
                           <td><button phx-click="edit-row-<%= nts.symbol %>" type="button" class="btn btn-block btn-primary btn-xs"><span class="fa fa-edit"></span> Edit</button></td>
                         </tr>
                       <%end %>
@@ -135,8 +141,10 @@ defmodule UiWeb.NaiveTraderSettingsLive do
      )}
   end
 
-  defp trading_status(), do: %{true => "Trading", false => "Disabled"}
-  defp trading_decoration(), do: %{true => "success", false => "danger"}
+  defp trading_status(true), do: "Trading"
+  defp trading_status(false), do: "Disabled"
+  defp trading_decoration(true), do: "success"
+  defp trading_decoration(false), do: "danger"
 
   defp trading_select(true), do: %{true => "selected"}
   defp trading_select(false), do: %{false => "selected"}
@@ -182,6 +190,11 @@ defmodule UiWeb.NaiveTraderSettingsLive do
         edit_row: nil
       )
     }
+  end
+
+  def handle_event("trade-symbol-" <> symbol, _, socket) do
+    IO.inspect("flip trading on " <> symbol)
+    {:noreply, assign(socket, edit_row: symbol)}
   end
 
   defp pagination(limit, page) do

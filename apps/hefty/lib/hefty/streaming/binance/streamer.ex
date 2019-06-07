@@ -1,4 +1,4 @@
-defmodule Hefty.Streaming.Streamer do
+defmodule Hefty.Streaming.Binance.Streamer do
   use WebSockex, restart: :temporary
 
   require Logger

@@ -31,7 +31,7 @@ defmodule Hefty do
   end
 
   def fetch_streaming_symbols(symbol \\ "") do
-    symbols = Hefty.Streaming.Server.fetch_streaming_symbols()
+    symbols = Hefty.Streaming.Binance.Server.fetch_streaming_symbols()
 
     case symbol != "" do
       false ->
@@ -44,7 +44,7 @@ defmodule Hefty do
   end
 
   def flip_streamer(symbol) do
-    Hefty.Streaming.Server.flip_stream(symbol)
+    Hefty.Streaming.Binance.Server.flip_stream(symbol)
   end
 
   def flip_trader(symbol) do

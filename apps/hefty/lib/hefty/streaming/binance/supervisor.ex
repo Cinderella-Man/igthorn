@@ -1,4 +1,4 @@
-defmodule Hefty.Streaming.Supervisor do
+defmodule Hefty.Streaming.Binance.Supervisor do
   use Supervisor
 
   def start_link([]) do
@@ -14,9 +14,9 @@ defmodule Hefty.Streaming.Supervisor do
       [
         {
           DynamicSupervisor,
-          strategy: :one_for_one, name: Hefty.Streaming.DynamicStreamerSupervisor
+          strategy: :one_for_one, name: Hefty.Streaming.Binance.DynamicStreamerSupervisor
         },
-        {Hefty.Streaming.Server, []}
+        {Hefty.Streaming.Binance.Server, []}
       ],
       strategy: :one_for_all
     )

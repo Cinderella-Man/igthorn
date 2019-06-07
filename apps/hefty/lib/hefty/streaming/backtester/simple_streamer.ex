@@ -28,11 +28,11 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   """
 
   def start_link() do
-    GenServer.start_link(__MODULE__, [self()])
+    GenServer.start_link(__MODULE__, [])
   end
 
-  def init([backtesting_pid]) do
-    {:ok, %{backtesting_pid: backtesting_pid}}
+  def init([]) do
+    {:ok, nil}
   end
 
   def start_streaming(pid, symbol, from, to, interval \\ 5) do
@@ -47,8 +47,17 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   @doc """
   Trade events coming from either db streamer
   """
+  @spec
   def handle_cast({:trade_event, trade_event}, state) do
-    IO.inspect(trade_event, label: "SimpleStream: Trade received")
+    IO.puts("broadcasting event")
+
+    UiWeb.Endpoint.broadcast_from(
+      self(),
+      "stream-#{trade_event.symbol}",
+      "trade_event",
+      trade_event
+    )
+
     {:noreply, state}
   end
 
