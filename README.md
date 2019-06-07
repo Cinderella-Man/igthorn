@@ -1,8 +1,8 @@
-# Toretto
+# Igthorn
 
 This is still work in progress(it fully works but could be greatly extended). I would love to get some help either graphics or code.
 
-Toretto is an Elixir boilerplate for kick-starting your crypto bot project. It contains everything you need to immediately focus on writing algo instead of worrying about streaming and backoffice in general.
+Igthorn is an Elixir boilerplate for kick-starting your crypto bot project. It contains everything you need to immediately focus on writing algo instead of worrying about streaming and backoffice in general.
 
 It's structured as umbrella app that consist of:
 - `Hefty` - streaming backend supporting Binance, all done via supervision tree, resilient and prepared to shift data straight to your trading strategies
