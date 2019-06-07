@@ -1,4 +1,4 @@
-defmodule Hefty.Repo.Binance.Order do
+defmodule Hefty.Repo.Order do
   use Ecto.Schema
 
   @primary_key {:id, :binary_id, autogenerate: true}

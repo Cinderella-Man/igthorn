@@ -118,4 +118,15 @@ defmodule Hefty do
         throw("Unable to update " <> data["symbol"] <> " naive trader settings")
     end
   end
+
+  # TRANSACTIONS
+  def fetch_transactions(offset, limit) do
+    query =
+      from(t in Hefty.Repo.Transaction,
+        order_by: [desc: t.inserted_at],
+        limit: ^limit,
+        offset: ^offset
+      )
+    Hefty.Repo.all(query)
+  end
 end
