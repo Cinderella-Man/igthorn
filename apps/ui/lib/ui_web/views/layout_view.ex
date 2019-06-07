@@ -6,7 +6,7 @@ defmodule UiWeb.LayoutView do
       |> fetch_from_conn(
         :page_title,
         "Toretto",
-        " - Toretto"
+        " - Igthorn"
       )
   end
 
@@ -24,7 +24,7 @@ defmodule UiWeb.LayoutView do
         :section_subtitle,
         "Error"
       )
-  end  
+  end
 
   defp fetch_from_conn(conn, key, default, suffix \\ "") do
     if conn.assigns[key] do
