@@ -47,6 +47,10 @@ defmodule Hefty do
     Hefty.Streaming.Binance.Server.flip_stream(symbol)
   end
 
+  def flip_trading(symbol) do
+    Hefty.Algo.Naive.flip_trading(symbol)
+  end
+
   def flip_trader(symbol) do
     # Hefty.Trading.Server.flip_trading(symbol)
     {:ok, symbol}

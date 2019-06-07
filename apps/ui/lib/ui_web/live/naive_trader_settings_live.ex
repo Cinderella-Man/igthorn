@@ -82,7 +82,9 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                               <option value="false" <%= trading_select(nts.trading)[false] %>>Disabled</option>
                             </select>
                           </td>
-                          <td><button type="submit" class="btn btn-block btn-info btn-xs"><span class="fa fa-edit"></span>Save</button></td>
+                          <td>
+                            <button type="submit" class="btn btn-block btn-info btn-xs"><span class="fa fa-edit"></span>Save</button>
+                          </td>
                         </tr>
                       <% else %>
                         <tr>
@@ -99,7 +101,9 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                               </span>
                             </a>
                           </td>
-                          <td><button phx-click="edit-row-<%= nts.symbol %>" type="button" class="btn btn-block btn-primary btn-xs"><span class="fa fa-edit"></span> Edit</button></td>
+                          <td>
+                            <button phx-click="edit-row-<%= nts.symbol %>" type="button" class="btn btn-block btn-primary btn-xs"><span class="fa fa-edit"></span> Edit</button>
+                          </td>
                         </tr>
                       <%end %>
                     <% end %>
@@ -173,8 +177,10 @@ defmodule UiWeb.NaiveTraderSettingsLive do
      )}
   end
 
-  def handle_event("edit-row-" <> symbol, _, socket),
-    do: {:noreply, assign(socket, edit_row: symbol)}
+  def handle_event("edit-row-" <> symbol, _, socket) do
+    IO.inspect("edit-row-#{symbol} triggered")
+    {:noreply, assign(socket, edit_row: symbol)}
+  end
 
   def handle_event("save-row", data, socket) do
     Hefty.update_naive_trader_settings(data)
@@ -194,7 +200,13 @@ defmodule UiWeb.NaiveTraderSettingsLive do
 
   def handle_event("trade-symbol-" <> symbol, _, socket) do
     IO.inspect("flip trading on " <> symbol)
-    {:noreply, assign(socket, edit_row: symbol)}
+    # list = socket.naive_trader_settings_paginate.list
+
+    Hefty.flip_trading(symbol)
+
+    # TODO: Call hefty and update value here
+
+    {:noreply, socket}
   end
 
   defp pagination(limit, page) do
