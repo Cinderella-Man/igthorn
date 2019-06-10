@@ -31,8 +31,8 @@ defmodule Hefty.Streaming.Binance.Server do
 
   def handle_cast(:init_streams, _state) do
     workers =
-      from(nts in Hefty.Repo.StreamingSetting,
-        where: nts.platform == "Binance" and nts.enabled == true
+      from(ss in Hefty.Repo.StreamingSetting,
+        where: ss.platform == "Binance" and ss.enabled == true
       )
       |> Hefty.Repo.all()
       |> Enum.map(&{&1.symbol, start_streaming(&1.symbol)})
@@ -59,7 +59,7 @@ defmodule Hefty.Streaming.Binance.Server do
 
   defp flip_db_flag(symbol) do
     settings =
-      from(nts in Hefty.Repo.StreamingSetting, where: nts.symbol == ^symbol)
+      from(ss in Hefty.Repo.StreamingSetting, where: ss.symbol == ^symbol)
       |> Hefty.Repo.one()
 
     settings

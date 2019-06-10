@@ -56,13 +56,11 @@ defmodule Hefty do
     {:ok, symbol}
   end
 
-  def fetch_naive_trader_settings() do
-    query =
-      from(nts in Hefty.Repo.NaiveTraderSetting,
-        order_by: nts.symbol
-      )
-
-    Hefty.Repo.all(query)
+  def count_naive_trader_settings() do
+    from(nts in Hefty.Repo.NaiveTraderSetting,
+      select: count("*")
+    )
+    |> Hefty.Repo.one()
   end
 
   def fetch_naive_trader_settings(symbol) do

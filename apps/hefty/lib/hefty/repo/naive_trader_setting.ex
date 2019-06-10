@@ -12,6 +12,7 @@ defmodule Hefty.Repo.NaiveTraderSetting do
     field(:buy_down_interval, :string)
     field(:chunks, :integer)
     field(:stop_loss_interval, :string)
+    field(:platform, :string, default: "Binance")
     field(:trading, :boolean, default: false)
 
     timestamps()

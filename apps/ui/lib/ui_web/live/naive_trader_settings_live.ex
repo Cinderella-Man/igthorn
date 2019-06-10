@@ -210,22 +210,22 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   end
 
   defp pagination(limit, page) do
-    pagination =
+    rows =
       Hefty.fetch_naive_trader_settings((page - 1) * limit, limit)
       |> Enum.into([], &{:"#{&1.symbol}", &1})
 
-    all = Hefty.fetch_naive_trader_settings()
+    total = Hefty.count_naive_trader_settings()
 
     links =
       Enum.filter(
         (page - 3)..(page + 3),
-        &(&1 >= 1 and &1 <= round(Float.ceil(length(all) / limit)))
+        &(&1 >= 1 and &1 <= round(Float.ceil(total / limit)))
       )
 
     %{
-      :list => pagination,
-      :total => length(all),
-      :pages => round(Float.ceil(length(all) / limit)),
+      :list => rows,
+      :total => total,
+      :pages => round(Float.ceil(total / limit)),
       :links => links,
       :page => page,
       :limit => limit

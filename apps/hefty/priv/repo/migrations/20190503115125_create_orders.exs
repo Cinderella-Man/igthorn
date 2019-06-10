@@ -29,7 +29,8 @@ defmodule Hefty.Repo.Migrations.CreateOrders do
     create table(:orders, primary_key: false) do
       add(:id, :uuid, primary_key: true)
       # uuid of LTCBTC
-      add(:symbol_id, references(:pairs, type: :uuid))
+      # add(:symbol_id, references(:pairs, type: :uuid))
+      add(:symbol, :text)
       add(:order_id, :integer)
       add(:client_order_id, :text)
       add(:price, :text)
@@ -48,6 +49,8 @@ defmodule Hefty.Repo.Migrations.CreateOrders do
       add(:time, :integer)
       add(:update_time, :integer)
       add(:is_working, :boolean)
+      add(:strategy, :text)
+      add(:matching_order, :text) # Sell order pointing to buy order
 
       timestamps()
     end
