@@ -14,7 +14,7 @@ defmodule Hefty.Algos.Naive.Leader do
   """
 
   defmodule State do
-    defstruct symbol: nil, free_budget: 0, locked_budget: 0, traders: []
+    defstruct symbol: nil, budget: 0, traders: []
   end
 
   def start_link(symbol) do
@@ -38,18 +38,43 @@ defmodule Hefty.Algos.Naive.Leader do
 
   # Safety fuse
   defp init_traders(%Hefty.Repo.NaiveTraderSetting{:trading => false}, state), do: {:noreply, state}
-  defp init_traders(_settings, state) do
-    open_trades = fetch_open_trades(state.symbol)
+  defp init_traders(settings, state) do
 
-    IO.inspect(open_trades)
+    open_trades = state.symbol
+    |> fetch_open_trades()
 
-    {:noreply, state}
+    case open_trades do
+      [] -> start_new_trader()
+      x  -> Enum.map(x, &(start_trader(&1)))
+    end
+
+    {:noreply, %State{
+      symbol: settings.symbol,
+      budget: settings.budget
+    }}
   end
 
   defp fetch_open_trades(symbol) do
+    symbol
+    |> fetch_open_orders()
+    |> Enum.group_by(&(&1.matching_order || &1.id))
+    |> Map.keys()
+  end
+
+  defp fetch_open_orders(symbol) do
     from(o in Hefty.Repo.Binance.Order,
-      where: o.symbol == ^symbol
+      where: o.symbol == ^symbol,
+      where: (o.type == "BUY" and is_nil(o.matching_order)) or (o.type == "SELL")
     )
     |> Hefty.Repo.all()
+  end
+
+  defp start_new_trader() do
+    IO.inspect("Start new trader")
+  end
+
+  defp start_trader(orders) do
+    IO.inspect("Starting trader for orders:")
+    Enum.map(orders, &(IO.puts(&1.id)))
   end
 end
