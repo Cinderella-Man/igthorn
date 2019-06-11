@@ -1,5 +1,9 @@
 defmodule Hefty.Algos.Naive.Trader do
   use GenServer
+  require Logger
+  import Ecto.Query, only: [from: 2]
+
+  @binance_client Application.get_env(:hefty, :exchanges).binance
 
   @moduledoc """
   Hefty.Algos.Naive.Trader module is responsible for making a trade(buy + sell)
@@ -34,7 +38,8 @@ defmodule Hefty.Algos.Naive.Trader do
   """
 
   defmodule State do
-    defstruct symbol: nil, strategy: nil, budget: 0
+    defstruct symbol: nil, strategy: nil, budget: nil, buy_order: nil, sell_order: nil,
+              buy_down_interval: nil, profit_interval: nil, stop_loss_interval: nil
   end
 
   def start_link({symbol, strategy}) do
@@ -53,6 +58,10 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   def handle_cast({:init_strategy, :blank}, state) do
+    _settings = fetch_settings(state.symbol)
+    
+
+    
     IO.inspect("Init_strategy called")
     {:noreply, state}
   end
@@ -60,5 +69,12 @@ defmodule Hefty.Algos.Naive.Trader do
   def handle_info(%{event: "trade_event", payload: event}, state) do
     IO.inspect(event, label: "Trade event received by trader")
     {:noreply, state}
+  end
+
+  defp fetch_settings(symbol) do
+    from(nts in Hefty.Repo.NaiveTraderSetting,
+      where: nts.platform == "Binance" and nts.symbol == ^symbol
+    )
+    |> Hefty.Repo.one()
   end
 end
