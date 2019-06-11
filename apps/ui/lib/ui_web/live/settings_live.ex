@@ -11,13 +11,14 @@ defmodule UiWeb.SettingsLive do
               <h3 class="box-title">Streaming settings</h3>
 
               <div class="box-tools">
-                <div class="input-group input-group-sm" style="width: 150px;">
-                  <input type="text" name="table_search" class="form-control pull-right" placeholder="Search">
-
-                  <div class="input-group-btn">
-                    <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
+                <form phx_change="validate" phx-submit="validate">
+                  <div class="input-group input-group-sm" style="width: 180px;">
+                    <input type="text" name="search" class="form-control pull-right" placeholder="Search" value="<%= @search %>">
+                    <div class="input-group-btn">
+                      <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
+                    </div>
                   </div>
-                </div>
+                </form>
               </div>
             </div>
             <!-- /.box-header -->
@@ -44,7 +45,7 @@ defmodule UiWeb.SettingsLive do
   end
 
   def mount(%{settings: settings}, socket) do
-    {:ok, assign(socket, settings: settings)}
+    {:ok, assign(socket, settings: settings, search: "")}
   end
 
   def handle_event("stream-symbol-" <> symbol, _, socket) do
@@ -59,6 +60,13 @@ defmodule UiWeb.SettingsLive do
       )
 
     {:noreply, assign(socket, settings: settings)}
+  end
+
+  def handle_event("validate", %{"search" => search}, socket) do
+    settings =
+      Hefty.fetch_stream_settings(search)
+      |> Enum.into([], &{:"#{&1.symbol}", &1})
+    {:noreply, assign(socket, settings: settings, search: search)}
   end
 
   def enabled_to_class(true), do: "success"
