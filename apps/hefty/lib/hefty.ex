@@ -62,6 +62,17 @@ defmodule Hefty do
     {:ok, symbol}
   end
 
+  def fetch_symbols() do
+    query =
+      from(p in Hefty.Repo.Binance.Pair,
+        select: %{symbol: p.symbol},
+        order_by: p.symbol
+      )
+
+    Hefty.Repo.all(query)
+  end
+
+  # NAIVE TRADER SETTINGS
   def fetch_naive_trader_settings() do
     query =
       from(nts in Hefty.Repo.NaiveTraderSetting,
@@ -71,37 +82,22 @@ defmodule Hefty do
     Hefty.Repo.all(query)
   end
 
-  def fetch_naive_trader_settings(symbol) do
-    case from(nts in Hefty.Repo.NaiveTraderSetting,
-           order_by: nts.symbol,
-           where: nts.symbol == ^symbol,
-           limit: 1
-         )
-         |> Hefty.Repo.one() do
-      nil -> %{}
-      result -> result
-    end
+  def fetch_naive_trader_settings(offset, limit, symbol \\ "") do
+    from(nts in Hefty.Repo.NaiveTraderSetting,
+       order_by: nts.symbol,
+       where: like(nts.symbol, ^"%#{symbol}%"),
+      limit: ^limit,
+      offset: ^offset
+    )
+    |> Hefty.Repo.all()
   end
 
-  def fetch_naive_trader_settings(offset, limit) do
-    query =
-      from(nts in Hefty.Repo.NaiveTraderSetting,
-        order_by: nts.symbol,
-        limit: ^limit,
-        offset: ^offset
-      )
-
-    Hefty.Repo.all(query)
-  end
-
-  def fetch_symbols() do
-    query =
-      from(p in Hefty.Repo.Binance.Pair,
-        select: %{symbol: p.symbol},
-        order_by: p.symbol
-      )
-
-    Hefty.Repo.all(query)
+  def count_naive_trader_settings(symbol \\ "") do
+    from(nts in Hefty.Repo.NaiveTraderSetting,
+      select: count(nts.id),
+      where: like(nts.symbol, ^"%#{symbol}%"),
+    )
+    |> Hefty.Repo.one()
   end
 
   def update_naive_trader_settings(data) do

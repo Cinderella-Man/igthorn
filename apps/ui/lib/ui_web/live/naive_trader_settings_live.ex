@@ -9,9 +9,9 @@ defmodule UiWeb.NaiveTraderSettingsLive do
           <div class="box-header">
             <h3 class="box-title">Naive trader settings</h3>
             <div class="box-tools">
-              <form>
+              <form phx_change="validate" phx-submit="validate">
                 <div class="input-group input-group-sm" style="width: 180px;">
-                  <input type="text" name="search" class="form-control pull-right" placeholder="Search">
+                  <input type="text" name="search" class="form-control pull-right" placeholder="Search" value="<%= @search %>">
                   <div class="input-group-btn">
                     <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
                   </div>
@@ -20,7 +20,7 @@ defmodule UiWeb.NaiveTraderSettingsLive do
             </div>
           </div>
           <!-- /.box-header -->
-          <%= if length(@naive_trader_settings_paginate.list) > 0 do %>
+          <%= if length(@naive_trader_settings_data.list) > 0 do %>
             <div class="box-body table-responsive no-padding">
               <div class="box-body">
                 <form phx_change="rows" phx-submit="rows">
@@ -54,7 +54,7 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                     <th></th>
                   </tbody>
                   <tbody>
-                    <%= for nts <- Keyword.values(@naive_trader_settings_paginate.list) do %>
+                    <%= for nts <- Keyword.values(@naive_trader_settings_data.list) do %>
                       <%= if @edit_row == nts.symbol do %>
                         <tr>
                           <td>
@@ -102,19 +102,21 @@ defmodule UiWeb.NaiveTraderSettingsLive do
               </form>
             </div>
             <div class="box-footer clearfix">
-              <span><%= @naive_trader_settings_paginate.total %> rows</span>
-              <ul class="pagination pagination-sm no-margin pull-right">
-                <li><a phx-click="pagination-1" href="#">«</a></li>
-                <%= for link <- @naive_trader_settings_paginate.links do %>
-                  <li <%= if link == @naive_trader_settings_paginate.page do %>
-                      class="active"
-                    <% end %>
-                  >
-                    <a phx-click="pagination-<%= link %>" href="#"><%= link %></a>
-                  </li>
-                <% end %>
-                <li><a phx-click="pagination-<%= @naive_trader_settings_paginate.pages %>" href="#">»</a></li>
-              </ul>
+              <span><%= @naive_trader_settings_data.total %> rows</span>
+              <%= if show_pagination?(@naive_trader_settings_data.limit, @naive_trader_settings_data.total) do %>
+                <ul class="pagination pagination-sm no-margin pull-right">
+                  <li><a phx-click="pagination-1" href="#">«</a></li>
+                  <%= for link <- @naive_trader_settings_data.pagination_links do %>
+                    <li <%= if link == @naive_trader_settings_data.page do %>
+                        class="active"
+                      <% end %>
+                    >
+                      <a phx-click="pagination-<%= link %>" href="#"><%= link %></a>
+                    </li>
+                  <% end %>
+                  <li><a phx-click="pagination-<%= @naive_trader_settings_data.pages %>" href="#">»</a></li>
+                </ul>
+              <% end %>
             </div>
           <% end %>
           <!-- /.box-body -->
@@ -128,40 +130,43 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   def mount(%{}, socket) do
     {:ok,
      assign(socket,
-       naive_trader_settings_paginate: pagination(10, 1),
+       naive_trader_settings_data: naive_trader_settings_data(10, 1, ""),
        rows_numbers: [10, 20, 30, 40, 50],
        set_rows: 10,
-       edit_row: nil
+       edit_row: nil,
+       search: "",
      )}
   end
 
-  defp trading_status(), do: %{true => "Trading", false => "Disabled"}
-  defp trading_decoration(), do: %{true => "success", false => "danger"}
-
-  defp trading_select(true), do: %{true => "selected"}
-  defp trading_select(false), do: %{false => "selected"}
-
   def handle_event("validate", %{"search" => search}, socket) do
-    result =
-      Hefty.fetch_naive_trader_settings(search)
-      |> Enum.into([], &{:"#{&1.symbol}", &1})
-
-    {:noreply, assign(socket, naive_trader_settings_paginate: %{:list => result})}
+    {:noreply, assign(socket,
+      naive_trader_settings_data: naive_trader_settings_data(
+        socket.assigns.naive_trader_settings_data.limit,
+        1,
+        search
+      ),
+      search: search
+    )}
   end
 
   def handle_event("rows", %{"rows_per_page" => limit}, socket) do
     {:noreply,
      assign(socket,
-       naive_trader_settings_paginate: pagination(String.to_integer(limit), 1),
-       set_rows: String.to_integer(limit)
+       naive_trader_settings_data: naive_trader_settings_data(String.to_integer(limit), 1, socket.assigns.search),
+       set_rows: String.to_integer(limit),
+       search: socket.assigns.search
      )}
   end
 
   def handle_event("pagination-" <> page, _, socket) do
     {:noreply,
-     assign(socket,
-       naive_trader_settings_paginate:
-         pagination(socket.assigns.naive_trader_settings_paginate.limit, String.to_integer(page))
+      assign(socket,
+        naive_trader_settings_data: naive_trader_settings_data(
+          socket.assigns.naive_trader_settings_data.limit,
+          String.to_integer(page),
+          socket.assigns.search
+        ),
+        search: socket.assigns.search
      )}
   end
 
@@ -174,36 +179,45 @@ defmodule UiWeb.NaiveTraderSettingsLive do
     {
       :noreply,
       assign(socket,
-        naive_trader_settings_paginate:
-          pagination(
-            socket.assigns.naive_trader_settings_paginate.limit,
-            socket.assigns.naive_trader_settings_paginate.page
+        naive_trader_settings_data:
+          naive_trader_settings_data(
+            socket.assigns.naive_trader_settings_data.limit,
+            socket.assigns.naive_trader_settings_data.page,
+            socket.assigns.search
           ),
         edit_row: nil
       )
     }
   end
 
-  defp pagination(limit, page) do
+  defp naive_trader_settings_data(limit, page, search) do
     pagination =
-      Hefty.fetch_naive_trader_settings((page - 1) * limit, limit)
+      Hefty.fetch_naive_trader_settings((page - 1) * limit, limit, search)
       |> Enum.into([], &{:"#{&1.symbol}", &1})
 
-    all = Hefty.fetch_naive_trader_settings()
+    all = Hefty.count_naive_trader_settings(search)
 
-    links =
+    pagination_links =
       Enum.filter(
         (page - 3)..(page + 3),
-        &(&1 >= 1 and &1 <= round(Float.ceil(length(all) / limit)))
+        &(&1 >= 1 and &1 <= round(Float.ceil(all / limit)))
       )
 
     %{
       :list => pagination,
-      :total => length(all),
-      :pages => round(Float.ceil(length(all) / limit)),
-      :links => links,
+      :total => all,
+      :pages => round(Float.ceil(all / limit)),
+      :pagination_links => pagination_links,
       :page => page,
       :limit => limit
     }
   end
+
+  defp show_pagination?(limit, total), do: limit < total
+
+  defp trading_status(), do: %{true => "Trading", false => "Disabled"}
+  defp trading_decoration(), do: %{true => "success", false => "danger"}
+
+  defp trading_select(true), do: %{true => "selected"}
+  defp trading_select(false), do: %{false => "selected"}
 end
