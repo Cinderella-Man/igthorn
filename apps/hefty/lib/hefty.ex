@@ -12,7 +12,17 @@ defmodule Hefty do
   def fetch_stream_settings() do
     query =
       from(ss in Hefty.Repo.StreamingSetting,
-        order_by: ss.symbol
+        order_by: [desc: ss.enabled, asc: ss.symbol]
+      )
+
+    Hefty.Repo.all(query)
+  end
+
+  def fetch_stream_settings(string) do
+    query =
+      from(ss in Hefty.Repo.StreamingSetting,
+        where: like(ss.symbol, ^"%#{string}%"),
+        order_by: [desc: ss.enabled, asc: ss.symbol]
       )
 
     Hefty.Repo.all(query)
