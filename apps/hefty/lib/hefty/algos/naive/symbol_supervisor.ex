@@ -14,7 +14,7 @@ defmodule Hefty.Algos.Naive.SymbolSupervisor do
       [
         {
           DynamicSupervisor,
-          strategy: :one_for_one, name: :"#{Hefty.Algos.Naive.DynamicSupervisor}-#{symbol}"
+          strategy: :one_for_one, name: :"Hefty.Algos.Naive.DynamicSupervisor-#{symbol}"
         },
         {Hefty.Algos.Naive.Leader, symbol}
       ],

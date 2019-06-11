@@ -14,7 +14,7 @@ defmodule Hefty.Algos.Naive.Leader do
   """
 
   defmodule State do
-    defstruct symbol: nil, budget: 0, traders: []
+    defstruct symbol: nil, budget: 0, chunks: 5, traders: []
   end
 
   def start_link(symbol) do
@@ -37,21 +37,25 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   # Safety fuse
-  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:trading => false}, state), do: {:noreply, state}
-  defp init_traders(settings, state) do
+  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:trading => false}, state),
+    do: {:noreply, state}
 
-    open_trades = state.symbol
-    |> fetch_open_trades()
+  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:chunks => chunks, :budget => budget}, %State{:symbol => symbol}) do
+    open_trades =
+      symbol
+      |> fetch_open_trades()
 
     case open_trades do
-      [] -> start_new_trader()
-      x  -> Enum.map(x, &(start_trader(&1)))
+      [] -> start_new_trader(symbol)
+      x -> Enum.map(x, &start_trader(&1))
     end
 
-    {:noreply, %State{
-      symbol: settings.symbol,
-      budget: settings.budget
-    }}
+    {:noreply,
+     %State{
+       symbol: symbol,
+       budget: budget,
+       chunks: chunks
+     }}
   end
 
   defp fetch_open_trades(symbol) do
@@ -64,17 +68,25 @@ defmodule Hefty.Algos.Naive.Leader do
   defp fetch_open_orders(symbol) do
     from(o in Hefty.Repo.Binance.Order,
       where: o.symbol == ^symbol,
-      where: (o.type == "BUY" and is_nil(o.matching_order)) or (o.type == "SELL")
+      where: (o.type == "BUY" and is_nil(o.matching_order)) or o.type == "SELL"
     )
     |> Hefty.Repo.all()
   end
 
-  defp start_new_trader() do
-    IO.inspect("Start new trader")
+  defp start_new_trader(symbol) do
+    {:ok, pid} =
+      DynamicSupervisor.start_child(
+        :"Hefty.Algos.Naive.DynamicSupervisor-#{symbol}",
+        {Hefty.Algos.Naive.Trader, {symbol, :blank}}
+      )
+
+    ref = Process.monitor(pid)
+
+    {pid, ref}
   end
 
   defp start_trader(orders) do
     IO.inspect("Starting trader for orders:")
-    Enum.map(orders, &(IO.puts(&1.id)))
+    Enum.map(orders, &IO.puts(&1.id))
   end
 end

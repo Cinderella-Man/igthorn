@@ -32,7 +32,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   end
 
   def init([]) do
-    {:ok, nil}
+    {:ok, %{}}
   end
 
   def start_streaming(pid, symbol, from, to, interval \\ 5) do
@@ -47,7 +47,6 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   @doc """
   Trade events coming from either db streamer
   """
-  @spec
   def handle_cast({:trade_event, trade_event}, state) do
     IO.puts("broadcasting event")
 

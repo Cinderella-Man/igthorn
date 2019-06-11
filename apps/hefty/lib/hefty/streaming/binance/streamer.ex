@@ -4,7 +4,7 @@ defmodule Hefty.Streaming.Binance.Streamer do
   require Logger
 
   defmodule State do
-    defstruct symbol: nil, subscribers: []
+    defstruct symbol: nil
   end
 
   def start_link(symbol) do
@@ -23,11 +23,6 @@ defmodule Hefty.Streaming.Binance.Streamer do
     )
   end
 
-  def subscribe(stream_pid, pid \\ self()) do
-    Logger.debug("Subscribing to stream pid #{inspect(stream_pid)}")
-    GenServer.cast(stream_pid, {:subscribe, pid})
-  end
-
   @doc """
   This function will be used to handle incoming trade events.
 
@@ -42,18 +37,6 @@ defmodule Hefty.Streaming.Binance.Streamer do
       {:ok, event} -> handle_event(event, state)
       _ -> throw("Unable to parse: " <> msg)
     end
-  end
-
-  # Custom protocol as websocketx is NOT using GenServer...
-  def handle_info({:"$gen_cast", {:subscribe, pid}}, state) do
-    Logger.debug("Subscribe called with pid #{inspect(pid)}")
-    Process.monitor(pid)
-    # {:ok, new_state} is expected as websocketx is NOT using GenServer...
-    {:ok, %{state | :subscribers => [pid | state.subscribers]}}
-  end
-
-  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
-    {:ok, %{state | :subscribers => List.delete(state.subscribers, pid)}}
   end
 
   defp handle_event(%{"e" => "trade"} = event, state) do
