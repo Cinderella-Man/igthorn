@@ -20,7 +20,15 @@ defmodule UiWeb.TransactionsLive do
             </div>
           </div>
           <!-- /.box-header -->
-          <%= @transactions_data.total %>
+          <div class="box-body table-responsive no-padding">
+            <form phx_change="save-row" phx-submit="save-row">
+              <table class="table table-hover">
+                <tbody>
+                    <th>Symbol</th>
+                  </tbody>
+              </table>
+            </form>
+          </div>
           <!-- /.box-body -->
         </div>
         <!-- /.box -->
