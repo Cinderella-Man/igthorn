@@ -35,7 +35,8 @@ defmodule Hefty.MixProject do
       {:flow, "~> 0.14"},
       {:json, "~> 1.3"},
       {:postgrex, ">= 0.0.0"},
-      {:websockex, "~> 0.4.0"}
+      {:websockex, "~> 0.4.0"},
+      {:ui, in_umbrella: true}
     ]
   end
 

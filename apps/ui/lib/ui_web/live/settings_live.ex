@@ -66,6 +66,7 @@ defmodule UiWeb.SettingsLive do
     settings =
       Hefty.fetch_stream_settings(search)
       |> Enum.into([], &{:"#{&1.symbol}", &1})
+
     {:noreply, assign(socket, settings: settings, search: search)}
   end
 

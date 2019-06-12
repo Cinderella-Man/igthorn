@@ -5,11 +5,8 @@ defmodule Hefty.Application do
     Supervisor.start_link(
       [
         {Hefty.Repo, []},
-        {Hefty.Streaming.Supervisor, []},
-        {
-          DynamicSupervisor,
-          strategy: :one_for_one, name: Hefty.Algos.Naive.Supervisor
-        }
+        {Hefty.Streaming.Binance.Supervisor, []},
+        {Hefty.Algos.Naive.Supervisor, []}
       ],
       strategy: :one_for_one,
       name: Hefty.Supervisor

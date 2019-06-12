@@ -82,7 +82,9 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                               <option value="false" <%= trading_select(nts.trading)[false] %>>Disabled</option>
                             </select>
                           </td>
-                          <td><button type="submit" class="btn btn-block btn-info btn-xs"><span class="fa fa-edit"></span>Save</button></td>
+                          <td>
+                            <button type="submit" class="btn btn-block btn-info btn-xs"><span class="fa fa-edit"></span>Save</button>
+                          </td>
                         </tr>
                       <% else %>
                         <tr>
@@ -92,8 +94,16 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                           <td><%= nts.buy_down_interval %></td>
                           <td><%= nts.chunks %></td>
                           <td><%= nts.stop_loss_interval %></td>
-                          <td><span class="label label-<%= trading_decoration()[nts.trading] %>"><%= trading_status()[nts.trading] %></span></td>
-                          <td><button phx-click="edit-row-<%= nts.symbol %>" type="button" class="btn btn-block btn-primary btn-xs"><span class="fa fa-edit"></span> Edit</button></td>
+                          <td>
+                            <a role="button" phx-click="trade-symbol-<%= nts.symbol %>">
+                              <span class="label label-<%= trading_decoration(nts.trading) %>">
+                                <%= trading_status(nts.trading) %>
+                              </span>
+                            </a>
+                          </td>
+                          <td>
+                            <button phx-click="edit-row-<%= nts.symbol %>" type="button" class="btn btn-block btn-primary btn-xs"><span class="fa fa-edit"></span> Edit</button>
+                          </td>
                         </tr>
                       <%end %>
                     <% end %>
@@ -135,8 +145,10 @@ defmodule UiWeb.NaiveTraderSettingsLive do
      )}
   end
 
-  defp trading_status(), do: %{true => "Trading", false => "Disabled"}
-  defp trading_decoration(), do: %{true => "success", false => "danger"}
+  defp trading_status(true), do: "Trading"
+  defp trading_status(false), do: "Disabled"
+  defp trading_decoration(true), do: "success"
+  defp trading_decoration(false), do: "danger"
 
   defp trading_select(true), do: %{true => "selected"}
   defp trading_select(false), do: %{false => "selected"}
@@ -165,8 +177,10 @@ defmodule UiWeb.NaiveTraderSettingsLive do
      )}
   end
 
-  def handle_event("edit-row-" <> symbol, _, socket),
-    do: {:noreply, assign(socket, edit_row: symbol)}
+  def handle_event("edit-row-" <> symbol, _, socket) do
+    IO.inspect("edit-row-#{symbol} triggered")
+    {:noreply, assign(socket, edit_row: symbol)}
+  end
 
   def handle_event("save-row", data, socket) do
     Hefty.update_naive_trader_settings(data)
@@ -184,23 +198,34 @@ defmodule UiWeb.NaiveTraderSettingsLive do
     }
   end
 
+  def handle_event("trade-symbol-" <> symbol, _, socket) do
+    IO.inspect("flip trading on " <> symbol)
+    # list = socket.naive_trader_settings_paginate.list
+
+    Hefty.flip_trading(symbol)
+
+    # TODO: Call hefty and update value here
+
+    {:noreply, socket}
+  end
+
   defp pagination(limit, page) do
-    pagination =
+    rows =
       Hefty.fetch_naive_trader_settings((page - 1) * limit, limit)
       |> Enum.into([], &{:"#{&1.symbol}", &1})
 
-    all = Hefty.fetch_naive_trader_settings()
+    total = Hefty.count_naive_trader_settings()
 
     links =
       Enum.filter(
         (page - 3)..(page + 3),
-        &(&1 >= 1 and &1 <= round(Float.ceil(length(all) / limit)))
+        &(&1 >= 1 and &1 <= round(Float.ceil(total / limit)))
       )
 
     %{
-      :list => pagination,
-      :total => length(all),
-      :pages => round(Float.ceil(length(all) / limit)),
+      :list => rows,
+      :total => total,
+      :pages => round(Float.ceil(total / limit)),
       :links => links,
       :page => page,
       :limit => limit

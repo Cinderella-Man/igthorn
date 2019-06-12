@@ -10,6 +10,7 @@ defmodule Hefty.Repo.Migrations.CreateNaiveTraderSettings do
       add(:buy_down_interval, :text)
       add(:chunks, :integer)
       add(:stop_loss_interval, :text)
+      add(:platform, :text, null: false, default: "Binance")
       add(:trading, :boolean)
 
       timestamps()
