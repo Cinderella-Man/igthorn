@@ -1,5 +1,9 @@
 defmodule Hefty.Algos.Naive.Trader do
   use GenServer
+  require Logger
+  import Ecto.Query, only: [from: 2]
+
+  @binance_client Application.get_env(:hefty, :exchanges).binance
 
   @moduledoc """
   Hefty.Algos.Naive.Trader module is responsible for making a trade(buy + sell)
@@ -34,27 +38,43 @@ defmodule Hefty.Algos.Naive.Trader do
   """
 
   defmodule State do
-    defstruct symbol: nil, budget: 0
+    defstruct symbol: nil, strategy: nil, budget: nil, buy_order: nil, sell_order: nil,
+              buy_down_interval: nil, profit_interval: nil, stop_loss_interval: nil
   end
 
-  def start_link(symbol, budget) do
-    GenServer.start_link(__MODULE__, {symbol, budget}, name: :"#{__MODULE__}-#{symbol}")
+  def start_link({symbol, strategy}) do
+    GenServer.start_link(__MODULE__, {symbol, strategy}, name: :"#{__MODULE__}-#{symbol}")
   end
 
-  def init({symbol, budget}) do
+  def init({symbol, strategy}) do
+    GenServer.cast(self(), {:init_strategy, strategy})
+    :ok = UiWeb.Endpoint.subscribe("stream-#{symbol}")
+
     {:ok,
      %State{
        :symbol => symbol,
-       :budget => budget
+       :strategy => strategy
      }}
   end
 
-  def handle_call(:state, _from, state) do
-    {:reply, state, state}
+  def handle_cast({:init_strategy, :blank}, state) do
+    _settings = fetch_settings(state.symbol)
+    
+
+    
+    IO.inspect("Init_strategy called")
+    {:noreply, state}
   end
 
-  def handle_cast({:trade_event, trade_event}, state) do
-    IO.inspect(trade_event, label: "NaiveTrader: Trade event received")
+  def handle_info(%{event: "trade_event", payload: event}, state) do
+    IO.inspect(event, label: "Trade event received by trader")
     {:noreply, state}
+  end
+
+  defp fetch_settings(symbol) do
+    from(nts in Hefty.Repo.NaiveTraderSetting,
+      where: nts.platform == "Binance" and nts.symbol == ^symbol
+    )
+    |> Hefty.Repo.one()
   end
 end

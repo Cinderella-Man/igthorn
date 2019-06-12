@@ -41,7 +41,7 @@ defmodule Hefty do
   end
 
   def fetch_streaming_symbols(symbol \\ "") do
-    symbols = Hefty.Streaming.Server.fetch_streaming_symbols()
+    symbols = Hefty.Streaming.Binance.Server.fetch_streaming_symbols()
 
     case symbol != "" do
       false ->
@@ -54,7 +54,11 @@ defmodule Hefty do
   end
 
   def flip_streamer(symbol) do
-    Hefty.Streaming.Server.flip_stream(symbol)
+    Hefty.Streaming.Binance.Server.flip_stream(symbol)
+  end
+
+  def flip_trading(symbol) do
+    Hefty.Algo.Naive.flip_trading(symbol)
   end
 
   def flip_trader(symbol) do
@@ -94,7 +98,7 @@ defmodule Hefty do
 
   def count_naive_trader_settings(symbol \\ "") do
     from(nts in Hefty.Repo.NaiveTraderSetting,
-      select: count(nts.id),
+      select: count("*"),
       where: like(nts.symbol, ^"%#{symbol}%"),
     )
     |> Hefty.Repo.one()

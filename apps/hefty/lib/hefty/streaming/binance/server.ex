@@ -1,4 +1,4 @@
-defmodule Hefty.Streaming.Server do
+defmodule Hefty.Streaming.Binance.Server do
   use GenServer
 
   import Ecto.Query, only: [from: 2]
@@ -31,8 +31,8 @@ defmodule Hefty.Streaming.Server do
 
   def handle_cast(:init_streams, _state) do
     workers =
-      from(nts in Hefty.Repo.StreamingSetting,
-        where: nts.platform == "Binance" and nts.enabled == true
+      from(ss in Hefty.Repo.StreamingSetting,
+        where: ss.platform == "Binance" and ss.enabled == true
       )
       |> Hefty.Repo.all()
       |> Enum.map(&{&1.symbol, start_streaming(&1.symbol)})
@@ -59,7 +59,7 @@ defmodule Hefty.Streaming.Server do
 
   defp flip_db_flag(symbol) do
     settings =
-      from(nts in Hefty.Repo.StreamingSetting, where: nts.symbol == ^symbol)
+      from(ss in Hefty.Repo.StreamingSetting, where: ss.symbol == ^symbol)
       |> Hefty.Repo.one()
 
     settings
@@ -70,8 +70,8 @@ defmodule Hefty.Streaming.Server do
   defp start_streaming(symbol) do
     {:ok, pid} =
       DynamicSupervisor.start_child(
-        Hefty.Streaming.DynamicStreamerSupervisor,
-        {Hefty.Streaming.Streamer, symbol}
+        Hefty.Streaming.Binance.DynamicStreamerSupervisor,
+        {Hefty.Streaming.Binance.Streamer, symbol}
       )
 
     ref = Process.monitor(pid)
@@ -84,7 +84,7 @@ defmodule Hefty.Streaming.Server do
 
     :ok =
       DynamicSupervisor.terminate_child(
-        Hefty.Streaming.DynamicStreamerSupervisor,
+        Hefty.Streaming.Binance.DynamicStreamerSupervisor,
         child_pid
       )
   end

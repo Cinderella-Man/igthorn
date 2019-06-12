@@ -82,7 +82,9 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                               <option value="false" <%= trading_select(nts.trading)[false] %>>Disabled</option>
                             </select>
                           </td>
-                          <td><button type="submit" class="btn btn-block btn-info btn-xs"><span class="fa fa-edit"></span>Save</button></td>
+                          <td>
+                            <button type="submit" class="btn btn-block btn-info btn-xs"><span class="fa fa-edit"></span>Save</button>
+                          </td>
                         </tr>
                       <% else %>
                         <tr>
@@ -92,8 +94,16 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                           <td><%= nts.buy_down_interval %></td>
                           <td><%= nts.chunks %></td>
                           <td><%= nts.stop_loss_interval %></td>
-                          <td><span class="label label-<%= trading_decoration()[nts.trading] %>"><%= trading_status()[nts.trading] %></span></td>
-                          <td><button phx-click="edit-row-<%= nts.symbol %>" type="button" class="btn btn-block btn-primary btn-xs"><span class="fa fa-edit"></span> Edit</button></td>
+                          <td>
+                            <a role="button" phx-click="trade-symbol-<%= nts.symbol %>">
+                              <span class="label label-<%= trading_decoration(nts.trading) %>">
+                                <%= trading_status(nts.trading) %>
+                              </span>
+                            </a>
+                          </td>
+                          <td>
+                            <button phx-click="edit-row-<%= nts.symbol %>" type="button" class="btn btn-block btn-primary btn-xs"><span class="fa fa-edit"></span> Edit</button>
+                          </td>
                         </tr>
                       <%end %>
                     <% end %>
@@ -138,6 +148,17 @@ defmodule UiWeb.NaiveTraderSettingsLive do
      )}
   end
 
+<<<<<<< HEAD
+=======
+  defp trading_status(true), do: "Trading"
+  defp trading_status(false), do: "Disabled"
+  defp trading_decoration(true), do: "success"
+  defp trading_decoration(false), do: "danger"
+
+  defp trading_select(true), do: %{true => "selected"}
+  defp trading_select(false), do: %{false => "selected"}
+
+>>>>>>> v0.0.2
   def handle_event("validate", %{"search" => search}, socket) do
     {:noreply, assign(socket,
       naive_trader_settings_data: naive_trader_settings_data(
