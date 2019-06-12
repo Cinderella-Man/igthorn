@@ -25,6 +25,10 @@ defmodule UiWeb.TransactionsLive do
               <table class="table table-hover">
                 <tbody>
                     <th>Symbol</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Commission</th>
+                    <th>Commission asset</th>
                   </tbody>
               </table>
             </form>
@@ -39,7 +43,8 @@ defmodule UiWeb.TransactionsLive do
 
   def mount(_session, socket) do
     {:ok, assign(socket,
-      transactions_data: transactions_data(10, 1)
+      transactions_data: transactions_data(10, 1),
+      search: "",
     )}
   end
 
