@@ -88,8 +88,8 @@ defmodule Hefty do
 
   def fetch_naive_trader_settings(offset, limit, symbol \\ "") do
     from(nts in Hefty.Repo.NaiveTraderSetting,
-       order_by: nts.symbol,
-       where: like(nts.symbol, ^"%#{symbol}%"),
+      order_by: nts.symbol,
+      where: like(nts.symbol, ^"%#{symbol}%"),
       limit: ^limit,
       offset: ^offset
     )
@@ -99,7 +99,7 @@ defmodule Hefty do
   def count_naive_trader_settings(symbol \\ "") do
     from(nts in Hefty.Repo.NaiveTraderSetting,
       select: count("*"),
-      where: like(nts.symbol, ^"%#{symbol}%"),
+      where: like(nts.symbol, ^"%#{symbol}%")
     )
     |> Hefty.Repo.one()
   end
@@ -133,6 +133,8 @@ defmodule Hefty do
   def fetch_transactions(offset, limit) do
     query =
       from(t in Hefty.Repo.Transaction,
+        left_join: o in Hefty.Repo.Order,
+        on: t.order_id == o.id,
         order_by: [desc: t.inserted_at],
         limit: ^limit,
         offset: ^offset

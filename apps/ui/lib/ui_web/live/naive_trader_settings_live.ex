@@ -144,12 +144,10 @@ defmodule UiWeb.NaiveTraderSettingsLive do
        rows_numbers: [10, 20, 30, 40, 50],
        set_rows: 10,
        edit_row: nil,
-       search: "",
+       search: ""
      )}
   end
 
-<<<<<<< HEAD
-=======
   defp trading_status(true), do: "Trading"
   defp trading_status(false), do: "Disabled"
   defp trading_decoration(true), do: "success"
@@ -158,22 +156,24 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   defp trading_select(true), do: %{true => "selected"}
   defp trading_select(false), do: %{false => "selected"}
 
->>>>>>> v0.0.2
   def handle_event("validate", %{"search" => search}, socket) do
-    {:noreply, assign(socket,
-      naive_trader_settings_data: naive_trader_settings_data(
-        socket.assigns.naive_trader_settings_data.limit,
-        1,
-        search
-      ),
-      search: search
-    )}
+    {:noreply,
+     assign(socket,
+       naive_trader_settings_data:
+         naive_trader_settings_data(
+           socket.assigns.naive_trader_settings_data.limit,
+           1,
+           search
+         ),
+       search: search
+     )}
   end
 
   def handle_event("rows", %{"rows_per_page" => limit}, socket) do
     {:noreply,
      assign(socket,
-       naive_trader_settings_data: naive_trader_settings_data(String.to_integer(limit), 1, socket.assigns.search),
+       naive_trader_settings_data:
+         naive_trader_settings_data(String.to_integer(limit), 1, socket.assigns.search),
        set_rows: String.to_integer(limit),
        search: socket.assigns.search
      )}
@@ -181,13 +181,14 @@ defmodule UiWeb.NaiveTraderSettingsLive do
 
   def handle_event("pagination-" <> page, _, socket) do
     {:noreply,
-      assign(socket,
-        naive_trader_settings_data: naive_trader_settings_data(
-          socket.assigns.naive_trader_settings_data.limit,
-          String.to_integer(page),
-          socket.assigns.search
-        ),
-        search: socket.assigns.search
+     assign(socket,
+       naive_trader_settings_data:
+         naive_trader_settings_data(
+           socket.assigns.naive_trader_settings_data.limit,
+           String.to_integer(page),
+           socket.assigns.search
+         ),
+       search: socket.assigns.search
      )}
   end
 
@@ -235,10 +236,4 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   end
 
   defp show_pagination?(limit, total), do: limit < total
-
-  defp trading_status(), do: %{true => "Trading", false => "Disabled"}
-  defp trading_decoration(), do: %{true => "success", false => "danger"}
-
-  defp trading_select(true), do: %{true => "selected"}
-  defp trading_select(false), do: %{false => "selected"}
 end

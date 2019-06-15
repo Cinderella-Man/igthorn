@@ -66,7 +66,7 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   defp fetch_open_orders(symbol) do
-    from(o in Hefty.Repo.Binance.Order,
+    from(o in Hefty.Repo.Order,
       where: o.symbol == ^symbol,
       where: (o.type == "BUY" and is_nil(o.matching_order)) or o.type == "SELL"
     )
