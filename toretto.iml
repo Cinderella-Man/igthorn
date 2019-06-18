@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="ELIXIR_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <output url="file://$MODULE_DIR$/_build/dev/lib/toretto/ebin" />
+    <output-test url="file://$MODULE_DIR$/_build/test/lib/toretto/ebin" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/lib" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/spec" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/binance" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/certifi" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/connection" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/cowboy" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/cowlib" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/csv" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/db_connection" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/decimal" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/ecto" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/ecto_sql" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/exconstructor" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/file_system" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/flow" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/gen_stage" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/gettext" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/hackney" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/httpoison" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/idna" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/jason" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/json" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/metrics" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/mime" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/mimerl" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/parallel_stream" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/parse_trans" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/phoenix" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/phoenix_html" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/phoenix_live_reload" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/phoenix_live_view" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/phoenix_pubsub" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/plug" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/plug_cowboy" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/plug_crypto" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/poison" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/postgrex" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/ranch" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/ssl_verify_fun" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/telemetry" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/unicode_util_compat" />
+      <excludeFolder url="file://$MODULE_DIR$/_build/dev/lib/websockex" />
+      <excludeFolder url="file://$MODULE_DIR$/assets/node_modules/phoenix" />
+      <excludeFolder url="file://$MODULE_DIR$/assets/node_modules/phoenix_html" />
+      <excludeFolder url="file://$MODULE_DIR$/cover" />
+      <excludeFolder url="file://$MODULE_DIR$/deps" />
+      <excludeFolder url="file://$MODULE_DIR$/doc" />
+      <excludeFolder url="file://$MODULE_DIR$/logs" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

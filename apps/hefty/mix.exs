@@ -19,7 +19,7 @@ defmodule Hefty.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :binance],
+      extra_applications: [:logger, :binance, :timex],
       mod: {Hefty.Application, []}
     ]
   end
@@ -35,6 +35,7 @@ defmodule Hefty.MixProject do
       {:flow, "~> 0.14"},
       {:json, "~> 1.3"},
       {:postgrex, ">= 0.0.0"},
+      {:timex, "~> 3.5"},
       {:websockex, "~> 0.4.0"},
       {:ui, in_umbrella: true}
     ]

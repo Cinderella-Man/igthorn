@@ -76,6 +76,16 @@ defmodule Hefty do
     Hefty.Repo.all(query)
   end
 
+  def fetch_trade_events_prices(symbol) do
+    from(te in Hefty.Repo.Binance.TradeEvent,
+      select: [te.price, te.inserted_at],
+      order_by: [desc: te.trade_time],
+      limit: 50,
+      where: te.symbol == ^symbol,
+    )
+    |> Hefty.Repo.all()
+  end
+
   # NAIVE TRADER SETTINGS
   def fetch_naive_trader_settings() do
     query =
