@@ -67,10 +67,10 @@ defmodule Hefty.Repo.Migrations.CreatePairs do
       # filters related stuff
       add(:min_price, :text)
       add(:max_price, :text)
-      add(:tick_size, :text)
+      add(:price_tick_size, :text)
       add(:min_quantity, :text)
       add(:max_quantity, :text)
-      add(:step_size, :text)
+      add(:quantity_step_size, :text)
 
       timestamps()
     end

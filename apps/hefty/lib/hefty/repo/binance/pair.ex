@@ -19,12 +19,12 @@ defmodule Hefty.Repo.Binance.Pair do
     # parts of price filter
     field(:min_price, :string)
     field(:max_price, :string)
-    field(:tick_size, :string)
+    field(:price_tick_size, :string)
 
     # lot size filter
     field(:min_quantity, :string)
     field(:max_quantity, :string)
-    field(:step_size, :string)
+    field(:quantity_step_size, :string)
 
     field(:status, :string)
 

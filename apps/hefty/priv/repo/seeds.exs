@@ -42,10 +42,10 @@ defmodule Helpers do
       quote_asset_id: balances_map[symbol["quoteAsset"]].id,
       max_quantity: max_quantity,
       min_quantity: min_quantity,
-      step_size: step_size,
+      quantity_step_size: step_size,
       max_price: max_price,
       min_price: min_price,
-      tick_size: tick_size
+      price_tick_size: tick_size
     }
   end
 

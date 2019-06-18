@@ -46,7 +46,8 @@ defmodule Hefty.Algos.Naive.Trader do
               sell_order: nil,
               buy_down_interval: nil,
               profit_interval: nil,
-              stop_loss_interval: nil
+              stop_loss_interval: nil,
+              pair: nil
   end
 
   def start_link({symbol, strategy}) do
@@ -128,13 +129,15 @@ defmodule Hefty.Algos.Naive.Trader do
 
   defp prepare_state(symbol) do
     settings = fetch_settings(symbol)
+    pair = fetch_pair(symbol)
 
     %State{
       symbol: settings.symbol,
       budget: settings.budget,
       buy_down_interval: settings.buy_down_interval,
       profit_interval: settings.profit_interval,
-      stop_loss_interval: settings.stop_loss_interval
+      stop_loss_interval: settings.stop_loss_interval,
+      pair: pair
     }
   end
 
@@ -143,5 +146,14 @@ defmodule Hefty.Algos.Naive.Trader do
       where: nts.platform == "Binance" and nts.symbol == ^symbol
     )
     |> Hefty.Repo.one()
+  end
+
+  defp fetch_pair(symbol) do
+    query =
+      from(p in Hefty.Repo.Binance.Pair,
+        where: p.symbol == ^symbol
+      )
+
+    Hefty.Repo.one(query)
   end
 end
