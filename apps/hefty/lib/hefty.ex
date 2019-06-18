@@ -10,6 +10,8 @@ defmodule Hefty do
   require Logger
 
   def fetch_stream_settings() do
+    Logger.debug("Fetching streams' settings")
+
     query =
       from(ss in Hefty.Repo.StreamingSetting,
         order_by: [desc: ss.enabled, asc: ss.symbol]
@@ -18,10 +20,12 @@ defmodule Hefty do
     Hefty.Repo.all(query)
   end
 
-  def fetch_stream_settings(string) do
+  def fetch_stream_settings(symbol) do
+    Logger.debug("Fetching stream settings for a symbol", symbol: symbol)
+
     query =
       from(ss in Hefty.Repo.StreamingSetting,
-        where: like(ss.symbol, ^"%#{string}%"),
+        where: like(ss.symbol, ^"%#{symbol}%"),
         order_by: [desc: ss.enabled, asc: ss.symbol]
       )
 
@@ -29,6 +33,8 @@ defmodule Hefty do
   end
 
   def fetch_tick(symbol) do
+    Logger.debug("Fetching last tick for a symbol", symbol: symbol)
+
     case from(te in Hefty.Repo.Binance.TradeEvent,
            order_by: [desc: te.trade_time],
            where: te.symbol == ^symbol,
@@ -41,6 +47,7 @@ defmodule Hefty do
   end
 
   def fetch_streaming_symbols(symbol \\ "") do
+    Logger.debug("Fetching currently streaming symbols", symbol: symbol)
     symbols = Hefty.Streaming.Binance.Server.fetch_streaming_symbols()
 
     case symbol != "" do
@@ -54,19 +61,18 @@ defmodule Hefty do
   end
 
   def flip_streamer(symbol) do
+    Logger.info("Flip streaming for a symbol", symbol: symbol)
     Hefty.Streaming.Binance.Server.flip_stream(symbol)
   end
 
   def flip_trading(symbol) do
+    Logger.info("Flip trading for a symbol", symbol: symbol)
     Hefty.Algo.Naive.flip_trading(symbol)
   end
 
-  def flip_trader(symbol) do
-    # Hefty.Trading.Server.flip_trading(symbol)
-    {:ok, symbol}
-  end
-
   def count_naive_trader_settings() do
+    Logger.debug("Counting number of naive trader settings")
+
     from(nts in Hefty.Repo.NaiveTraderSetting,
       select: count("*")
     )
@@ -74,6 +80,8 @@ defmodule Hefty do
   end
 
   def fetch_naive_trader_settings(symbol) do
+    Logger.debug("Fetching naive trader settings for a symbol", symbol: symbol)
+
     case from(nts in Hefty.Repo.NaiveTraderSetting,
            order_by: nts.symbol,
            where: nts.symbol == ^symbol,

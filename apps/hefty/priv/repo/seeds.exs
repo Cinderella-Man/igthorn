@@ -18,6 +18,7 @@ require Logger
 binance_client = Application.get_env(:hefty, :exchanges).binance
 
 defmodule Helpers do
+
   def create_balance({asset, precision}) do
     %Balance{
       asset: asset,
@@ -26,12 +27,54 @@ defmodule Helpers do
   end
 
   def create_pair(symbol, balances_map) do
+    filters = symbol["filters"]
+
+    {max_quantity, min_quantity, step_size} = filters
+    |> fetch_lot_size_filter()
+
+    {max_price, min_price, tick_size} = filters
+    |> fetch_price_filter()
+
     %Pair{
       symbol: symbol["symbol"],
       status: symbol["status"],
       base_asset_id: balances_map[symbol["baseAsset"]].id,
-      quote_asset_id: balances_map[symbol["quoteAsset"]].id
+      quote_asset_id: balances_map[symbol["quoteAsset"]].id,
+      max_quantity: max_quantity,
+      min_quantity: min_quantity,
+      step_size: step_size,
+      max_price: max_price,
+      min_price: min_price,
+      tick_size: tick_size
     }
+  end
+
+  defp fetch_lot_size_filter(filters) do
+    res = filters
+    |> Enum.find(nil, &(&1["filterType"] == "LOT_SIZE"))
+
+    case res do
+      %{
+      "maxQty" => max_quantity,
+      "minQty" => min_quantity,
+      "stepSize" => step_size
+      } -> { max_quantity, min_quantity, step_size }
+      _ -> throw("Unable to retrieve lot size information")
+    end
+  end
+
+  defp fetch_price_filter(filters) do
+    res = filters
+    |> Enum.find(nil, &(&1["filterType"] == "PRICE_FILTER"))
+
+    case res do
+      %{
+        "maxPrice" => max_price,
+        "minPrice" => min_price,
+        "tickSize" => tick_size
+      } -> { max_price, min_price, tick_size }
+      _ -> throw("Unable to retrieve price information")
+    end
   end
 
   def empty_balance(%{"free" => "0.00000000", "locked" => "0.00000000"}), do: true

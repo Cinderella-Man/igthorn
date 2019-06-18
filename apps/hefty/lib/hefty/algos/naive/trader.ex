@@ -2,6 +2,7 @@ defmodule Hefty.Algos.Naive.Trader do
   use GenServer
   require Logger
   import Ecto.Query, only: [from: 2]
+  alias Decimal, as: D
 
   @binance_client Application.get_env(:hefty, :exchanges).binance
 
@@ -38,8 +39,14 @@ defmodule Hefty.Algos.Naive.Trader do
   """
 
   defmodule State do
-    defstruct symbol: nil, strategy: nil, budget: nil, buy_order: nil, sell_order: nil,
-              buy_down_interval: nil, profit_interval: nil, stop_loss_interval: nil
+    defstruct symbol: nil,
+              strategy: nil,
+              budget: nil,
+              buy_order: nil,
+              sell_order: nil,
+              buy_down_interval: nil,
+              profit_interval: nil,
+              stop_loss_interval: nil
   end
 
   def start_link({symbol, strategy}) do
@@ -47,6 +54,7 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   def init({symbol, strategy}) do
+    Logger.info("Trader starting", symbol: symbol, strategy: strategy)
     GenServer.cast(self(), {:init_strategy, strategy})
     :ok = UiWeb.Endpoint.subscribe("stream-#{symbol}")
 
@@ -57,18 +65,77 @@ defmodule Hefty.Algos.Naive.Trader do
      }}
   end
 
+  @doc """
+  Blank strategy called when on init.
+  """
   def handle_cast({:init_strategy, :blank}, state) do
-    _settings = fetch_settings(state.symbol)
-    
-
-    
-    IO.inspect("Init_strategy called")
+    state = %State{prepare_state(state.symbol) | :strategy => :blank}
     {:noreply, state}
   end
 
-  def handle_info(%{event: "trade_event", payload: event}, state) do
-    IO.inspect(event, label: "Trade event received by trader")
+  @doc """
+  Most basic case - no trades ongoing so it will try to make limit buy order based
+  on current price (from event) and substracting `buy_down_interval`
+  """
+  def handle_info(
+        %{
+          event: "trade_event",
+          payload: %Hefty.Repo.Binance.TradeEvent{price: price, symbol: symbol}
+        },
+        %State{
+          strategy: :blank,
+          buy_order: nil,
+          symbol: symbol,
+          buy_down_interval: buy_down_interval,
+          budget: budget
+        } = state
+      ) do
+    current_price = D.new(price)
+    buy_down_interval_d = D.new(buy_down_interval)
+
+    D.set_context(%D.Context{D.get_context() | rounding: :floor, precision: 7})
+
+    target_price = D.sub(current_price, D.mult(current_price, buy_down_interval_d))
+    quantity = D.div(D.new(budget), target_price)
+
+    # hack - to be deleted
+    target_price = D.sub(target_price, D.mult(target_price, D.from_float(0.01)))
+
+    Logger.info(
+      "Placing order for #{symbol} @ #{D.to_float(target_price)},
+      quantity: #{D.to_float(quantity)}"
+    )
+
+    # IO.inspect(Application.get_env(:binance, :secret_key))
+
+    # start transaction here
+    # insert new order
+
+    {:ok, res} =
+      @binance_client.order_limit_buy(
+        symbol,
+        D.to_float(quantity),
+        D.to_float(target_price),
+        "GTC"
+      )
+
+    # IO.inspect(D.to_float(target_price))
+    # IO.inspect(quantity)
+    IO.inspect(res, label: "Result from order placement - Binance")
+
     {:noreply, state}
+  end
+
+  defp prepare_state(symbol) do
+    settings = fetch_settings(symbol)
+
+    %State{
+      symbol: settings.symbol,
+      budget: settings.budget,
+      buy_down_interval: settings.buy_down_interval,
+      profit_interval: settings.profit_interval,
+      stop_loss_interval: settings.stop_loss_interval
+    }
   end
 
   defp fetch_settings(symbol) do

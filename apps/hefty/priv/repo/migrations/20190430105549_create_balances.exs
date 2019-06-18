@@ -18,7 +18,6 @@ defmodule Hefty.Repo.Migrations.CreateBalances do
       add(:free, :text, default: "0.00000000")
       add(:locked, :text, default: "0.00000000")
       add(:precision, :integer)
-
       timestamps()
     end
   end

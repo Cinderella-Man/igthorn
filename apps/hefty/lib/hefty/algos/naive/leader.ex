@@ -1,5 +1,6 @@
 defmodule Hefty.Algos.Naive.Leader do
   use GenServer
+  require Logger
 
   import Ecto.Query, only: [from: 2]
   # import Ecto.Changeset, only: [cast: 3]
@@ -40,14 +41,24 @@ defmodule Hefty.Algos.Naive.Leader do
   defp init_traders(%Hefty.Repo.NaiveTraderSetting{:trading => false}, state),
     do: {:noreply, state}
 
-  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:chunks => chunks, :budget => budget}, %State{:symbol => symbol}) do
+  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:chunks => chunks, :budget => budget}, %State{
+         :symbol => symbol
+       }) do
     open_trades =
       symbol
       |> fetch_open_trades()
 
     case open_trades do
-      [] -> start_new_trader(symbol)
-      x -> Enum.map(x, &start_trader(&1))
+      [] ->
+        Logger.info("No open trades so starting :blank trader", symbol: symbol)
+        start_new_trader(symbol)
+
+      x ->
+        Logger.info("There's some exisitng trades ongoing - starting trader for each",
+          symbol: symbol
+        )
+
+        Enum.map(x, &start_trader(&1))
     end
 
     {:noreply,
