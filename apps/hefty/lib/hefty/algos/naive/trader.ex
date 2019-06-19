@@ -88,43 +88,47 @@ defmodule Hefty.Algos.Naive.Trader do
           buy_order: nil,
           symbol: symbol,
           buy_down_interval: buy_down_interval,
-          budget: budget
+          budget: budget,
+          pair: %Hefty.Repo.Binance.Pair{price_tick_size: tick_size, quantity_step_size: quantity_step_size}
         } = state
       ) do
-    current_price = D.new(price)
-    buy_down_interval_d = D.new(buy_down_interval)
 
-    D.set_context(%D.Context{D.get_context() | rounding: :floor, precision: 7})
+    target_price = calculate_target_price(price, buy_down_interval, tick_size)
+    quantity = calculate_quantity(budget, target_price, quantity_step_size)
 
-    target_price = D.sub(current_price, D.mult(current_price, buy_down_interval_d))
-    quantity = D.div(D.new(budget), target_price)
-
-    # hack - to be deleted
-    target_price = D.sub(target_price, D.mult(target_price, D.from_float(0.01)))
-
-    Logger.info(
-      "Placing order for #{symbol} @ #{D.to_float(target_price)},
-      quantity: #{D.to_float(quantity)}"
-    )
-
-    # IO.inspect(Application.get_env(:binance, :secret_key))
-
-    # start transaction here
-    # insert new order
+    Logger.info("Placing order for #{symbol} @ #{target_price}, quantity: #{quantity}")
 
     {:ok, res} =
       @binance_client.order_limit_buy(
         symbol,
-        D.to_float(quantity),
-        D.to_float(target_price),
+        quantity,
+        target_price,
         "GTC"
       )
 
-    # IO.inspect(D.to_float(target_price))
-    # IO.inspect(quantity)
-    IO.inspect(res, label: "Result from order placement - Binance")
+    Logger.info("Successfully placed an order #{res.order_id}")
 
-    {:noreply, state}
+    order = store_order(res)
+
+    {:noreply, %State{state | :buy_order => order}}
+  end
+
+  @doc """
+  Blank strategy will try to catch up to growing price so this is the code responsible for that.
+  It checks that buy order is already placed, checks has price moved up enough to cancel current order
+  and put another order at higher price
+  """
+  def handle_info(
+        %{
+          event: "trade_event",
+          payload: %Hefty.Repo.Binance.TradeEvent{}
+        },
+        %State{} = state
+      ) do
+
+  Logger.debug("Another trade event received - TBFixed")
+  {:noreply, state}
+
   end
 
   defp prepare_state(symbol) do
@@ -155,5 +159,52 @@ defmodule Hefty.Algos.Naive.Trader do
       )
 
     Hefty.Repo.one(query)
+  end
+
+  defp calculate_target_price(price, buy_down_interval, tick_size) do
+    current_price = D.new(price)
+    interval = D.new(buy_down_interval)
+    tick = D.new(tick_size)
+
+    # not necessarily legal price
+    exact_target_price = D.sub(current_price, D.mult(current_price, interval))
+
+    D.to_float(D.mult(D.div_int(exact_target_price, tick), tick))
+  end
+
+  defp calculate_quantity(budget, price, quantity_step_size) do
+    budget = D.new(budget)
+    step = D.new(quantity_step_size)
+    price = D.from_float(price)
+
+    # not necessarily legal quantity
+    exact_target_quantity = D.div(budget, price)
+
+    D.to_float(D.mult(D.div_int(exact_target_quantity, step), step))
+  end
+
+  defp store_order(%Binance.OrderResponse{} = response) do
+    Logger.info("Storing order #{response.order_id} to db")
+    %Hefty.Repo.Binance.Order{
+      :order_id => response.order_id,
+      :symbol => response.symbol,
+      :client_order_id => response.client_order_id,
+      :price => response.client_order_id,
+      :original_quantity => response.orig_qty,
+      :executed_quantity => response.executed_qty,
+      # :cummulative_quote_quantity => response.X, # missing??
+      :status => response.status,
+      :time_in_force => response.time_in_force,
+      :type => response.type,
+      :side => response.side,
+      # :stop_price => response.X, # missing ??
+      # :iceberg_quantity => response.X, # missing ??
+      :time => response.transact_time,
+      # :update_time => response.X, # missing ??
+      # :is_working => response.X, # gave up on this
+      :strategy => "#{__MODULE__}",
+      # :matching_order => null, # ignored here as it's a buy order
+    }
+    |> Hefty.Repo.insert() |> elem(1)
   end
 end

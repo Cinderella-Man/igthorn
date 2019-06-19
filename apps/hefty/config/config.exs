@@ -36,9 +36,9 @@ config :hefty,
     :defaults => %{
       # 0.25%
       :profit_interval => "0.0025",
-      # 0.20%
-      :buy_down_interval => "0.0020",
-      :chunks => 5,
+      # 5.0%
+      :buy_down_interval => "0.0500",
+      :chunks => 1,
       # 5%
       :stop_loss_interval => "0.05"
     }

@@ -46,9 +46,9 @@ defmodule Hefty.Repo.Migrations.CreateOrders do
       add(:side, :text)
       add(:stop_price, :text)
       add(:iceberg_quantity, :text)
-      add(:time, :integer)
-      add(:update_time, :integer)
-      add(:is_working, :boolean)
+      add(:time, :bigint)
+      add(:update_time, :bigint)
+      # add(:is_working, :boolean) # gave up on this
       add(:strategy, :text)
       add(:matching_order, :text) # Sell order pointing to buy order
 
