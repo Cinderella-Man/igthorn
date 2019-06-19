@@ -46,7 +46,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
 
   def handle_cast({:start_streaming, symbol, from, to, interval}, state) do
     task = DbStreamer.start_link(symbol, from, to, self(), interval)
-    {:noreply, { state | db_streamer_task => task }}
+    {:noreply, %{ state | :db_streamer_task => task }}
   end
 
   @doc """
@@ -74,14 +74,14 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   @doc """
   Handles buy orders coming from Binance Mock
   """
-  def handle_cast({:order, %Binance.OrderResponse{side => "BUY"}}, state) do
-    {:noreply, { state | :buy_stack => [order | state.buy_stack]}}
+  def handle_cast({:order, %Binance.OrderResponse{:side => "BUY"} = order}, state) do
+    {:noreply, %{ state | :buy_stack => [order | state.buy_stack]}}
   end
 
   @doc """
   Handles sell orders coming from Binance Mock
   """
-  def handle_cast({:order, %Binance.OrderResponse{side => "SELL"}}, state) do
-    {:noreply, { state | :sell_stack => [order | state.sell_stack]}}
+  def handle_cast({:order, %Binance.OrderResponse{:side => "SELL"} = order}, state) do
+    {:noreply, %{ state | :sell_stack => [order | state.sell_stack]}}
   end
 end
