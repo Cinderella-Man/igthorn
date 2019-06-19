@@ -28,7 +28,7 @@ defmodule Hefty.MixProject do
   defp deps do
     [
       # {:binance, "~> 0.6.0"}
-      {:binance, git: "https://github.com/dvcrn/binance.ex.git"},
+      {:binance, git: "https://github.com/Cinderella-Man/binance.ex.git"},
       {:csv, "~> 2.3"},
       {:decimal, "~> 1.0"},
       {:ecto_sql, "~> 3.0"},
