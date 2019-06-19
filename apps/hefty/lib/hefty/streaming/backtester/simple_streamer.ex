@@ -26,13 +26,18 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   trade event that already got pulled out from stream - it needs to
   be put on top of stack and taken out in next iteration.
   """
+  defmodule State do
+    defstruct db_streamer: nil,
+              buy_stack: [],
+              sell_stack: []
+  end
 
   def start_link() do
-    GenServer.start_link(__MODULE__, [])
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   def init([]) do
-    {:ok, %{}}
+    {:ok, %State{}}
   end
 
   def start_streaming(pid, symbol, from, to, interval \\ 5) do
@@ -41,15 +46,13 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
 
   def handle_cast({:start_streaming, symbol, from, to, interval}, state) do
     task = DbStreamer.start_link(symbol, from, to, self(), interval)
-    {:noreply, Map.put(state, :db_streamer_task, task)}
+    {:noreply, { state | db_streamer_task => task }}
   end
 
   @doc """
   Trade events coming from either db streamer
   """
   def handle_cast({:trade_event, trade_event}, state) do
-    IO.puts("broadcasting event")
-
     UiWeb.Endpoint.broadcast_from(
       self(),
       "stream-#{trade_event.symbol}",
@@ -69,9 +72,16 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   end
 
   @doc """
-  Those should be coming from Binance Mock
+  Handles buy orders coming from Binance Mock
   """
-  def handle_cast({:order, order}, state) do
-    {:noreply, Map.get_and_update(state, :temp_stack, fn stack -> [order | stack] end)}
+  def handle_cast({:order, %Binance.OrderResponse{side => "BUY"}}, state) do
+    {:noreply, { state | :buy_stack => [order | state.buy_stack]}}
+  end
+
+  @doc """
+  Handles sell orders coming from Binance Mock
+  """
+  def handle_cast({:order, %Binance.OrderResponse{side => "SELL"}}, state) do
+    {:noreply, { state | :sell_stack => [order | state.sell_stack]}}
   end
 end
