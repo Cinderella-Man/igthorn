@@ -2,10 +2,15 @@ language: elixir
 
 elixir:
   - '1.8.2'
+
 otp_release: '21.3'
+
 services:
   - postgresql
-env:
-  global:
-  - POSTGRES_PASSWORD=postgres
-  - MIX_ENV=travis  
+
+matrix:
+  include:
+    - env: 'travis'
+
+before_install:
+  - cd apps/hefty && mix ecto.reset
