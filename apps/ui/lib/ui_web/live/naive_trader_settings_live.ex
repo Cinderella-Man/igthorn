@@ -23,7 +23,7 @@ defmodule UiWeb.NaiveTraderSettingsLive do
           <%= if length(@naive_trader_settings_data.list) > 0 do %>
             <div class="box-body table-responsive no-padding">
               <div class="box-body">
-                <form phx_change="rows" phx-submit="rows">
+                <form phx_change="rows" phx-submit="rows" id="rows">
                   <div class="input-group input-group-sm col-xs-1">
                     <select class="form-control" name="rows_per_page">
                       <%= for row <- @rows_numbers do %>

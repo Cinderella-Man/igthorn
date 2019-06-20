@@ -32,6 +32,8 @@
   <!-- <link rel="stylesheet" href="../../dist/css/skins/_all-skins.min.css"> -->
   <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/dist/css/skins/_all-skins.min.css") %>">
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
   <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
   <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
   <!--[if lt IE 9]>
@@ -394,7 +396,7 @@
 <!-- <script src="../../dist/js/adminlte.min.js"></script> -->
 <script src="<%= Routes.static_path(@conn, "/dist/js/adminlte.min.js") %>"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
 
 <!-- AdminLTE for demo purposes -->
 <!-- <script src="../../dist/js/demo.js"></script> -->

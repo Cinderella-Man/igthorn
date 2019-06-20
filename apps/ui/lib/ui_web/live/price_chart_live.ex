@@ -29,9 +29,7 @@ defmodule UiWeb.PriceChartLive do
                   <script src="/dist/js/chart.js"></script>
                   <canvas id="lineChart" style="height: 250; width: 788;" width="788" height="250"></canvas>
                   <script id="chart-<%= Base.encode64(:erlang.md5(@data.prices)) %>">
-                    setTimeout(function() {
                       renderChart([<%= for l <- @data.labels do %>"<%= l %>",<% end %>], "<%= @data.symbol %>", <%= @data.prices %>)
-                    }, 400);
                   </script>
                 </div>
               </div>
@@ -49,6 +47,8 @@ defmodule UiWeb.PriceChartLive do
       |> Map.keys
     symbol = symbols
       |> List.first
+
+    UiWeb.Endpoint.subscribe("stream-#{symbol}")
 
     {:ok, assign(socket, data: price_chart_data(symbol), symbols: symbols)}
   end

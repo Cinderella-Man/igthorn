@@ -21,7 +21,7 @@ defmodule Hefty do
   def fetch_stream_settings(string) do
     query =
       from(ss in Hefty.Repo.StreamingSetting,
-        where: like(ss.symbol, ^"%#{string}%"),
+        where: like(ss.symbol, ^"%#{String.upcase(string)}%"),
         order_by: [desc: ss.enabled, asc: ss.symbol]
       )
 
@@ -99,7 +99,7 @@ defmodule Hefty do
   def fetch_naive_trader_settings(offset, limit, symbol \\ "") do
     from(nts in Hefty.Repo.NaiveTraderSetting,
       order_by: nts.symbol,
-      where: like(nts.symbol, ^"%#{symbol}%"),
+      where: like(nts.symbol, ^"%#{String.upcase(symbol)}%"),
       limit: ^limit,
       offset: ^offset
     )
@@ -109,7 +109,7 @@ defmodule Hefty do
   def count_naive_trader_settings(symbol \\ "") do
     from(nts in Hefty.Repo.NaiveTraderSetting,
       select: count("*"),
-      where: like(nts.symbol, ^"%#{symbol}%")
+      where: like(nts.symbol, ^"%#{String.upcase(symbol)}%")
     )
     |> Hefty.Repo.one()
   end
