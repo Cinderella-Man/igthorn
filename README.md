@@ -1,6 +1,6 @@
 # Igthorn
 
-[![Build Status](https://travis-ci.org/HedonSoftware/Igthorn.svg?branch=v0.0.2)](https://travis-ci.org/HedonSoftware/Igthorn)
+[![Build Status](https://travis-ci.com/HedonSoftware/Igthorn.svg?branch=v0.0.2)](https://travis-ci.com/HedonSoftware/Igthorn)
 
 This is still work in progress(it fully works but could be greatly extended). I would love to get some help either graphics or code.
 
