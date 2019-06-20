@@ -24,7 +24,8 @@ defmodule Hefty.Exchanges.BinanceMock do
     Binance.get_exchange_info()
   end
 
-  @spec order_limit_buy(String.t, float(), float(), String.t) :: {:ok, %Binance.OrderResponse{}}
+  @spec order_limit_buy(String.t(), float(), float(), String.t()) ::
+          {:ok, %Binance.OrderResponse{}}
   def order_limit_buy(symbol, quantity, price, "GTC") do
     fake_order = %{generate_fake_order(symbol, quantity, price) | :side => "BUY"}
 
