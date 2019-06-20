@@ -24,6 +24,7 @@ defmodule Hefty.Exchanges.BinanceMock do
     Binance.get_exchange_info()
   end
 
+  @spec order_limit_buy(String.t, float(), float(), String.t) :: {:ok, %Binance.OrderResponse{}}
   def order_limit_buy(symbol, quantity, price, "GTC") do
     fake_order = %{generate_fake_order(symbol, quantity, price) | :side => "BUY"}
 
@@ -37,7 +38,7 @@ defmodule Hefty.Exchanges.BinanceMock do
       {:add_order, fake_order}
     )
 
-    fake_order
+    {:ok, fake_order}
   end
 
   def order_limit_sell(symbol, quantity, price, "GTC") do
@@ -53,7 +54,7 @@ defmodule Hefty.Exchanges.BinanceMock do
       {:add_order, fake_order}
     )
 
-    fake_order
+    {:ok, fake_order}
   end
 
   def get_order(symbol, time, order_id) do
@@ -65,7 +66,7 @@ defmodule Hefty.Exchanges.BinanceMock do
     order_id = :rand.uniform(1_000_000)
 
     Binance.OrderResponse.new(%{
-      client_order_id: :crypto.hash(:md5, order_id) |> Base.encode16(),
+      client_order_id: :crypto.hash(:md5, "#{order_id}") |> Base.encode16(),
       executed_qty: "0.00000",
       order_id: order_id,
       orig_qty: quantity,
