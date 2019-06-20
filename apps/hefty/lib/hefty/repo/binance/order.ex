@@ -20,7 +20,6 @@ defmodule Hefty.Repo.Binance.Order do
     field(:iceberg_quantity, :string)
     field(:time, :integer)
     field(:update_time, :integer)
-    field(:is_working, :boolean)
     field(:strategy, :string)
     field(:matching_order, :string)
 

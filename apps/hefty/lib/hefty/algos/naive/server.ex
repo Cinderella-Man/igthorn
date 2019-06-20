@@ -1,5 +1,6 @@
 defmodule Hefty.Algos.Naive.Server do
   use GenServer
+  require Logger
 
   @doc """
   This is server that tracks which symbols are traded
@@ -50,11 +51,13 @@ defmodule Hefty.Algos.Naive.Server do
 
     case Map.get(state.symbol_supervisors, symbol, false) do
       false ->
+        Logger.info("Starting new supervision tree to trade on symbol", symbol: symbol)
         result = start_symbol_supervisor(symbol)
         symbol_supervisors = Map.put(state.symbol_supervisors, symbol, result)
         {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
 
       result ->
+        Logger.info("Stopping supervision tree to cancel trading on symbol", symbol: symbol)
         stop_child(result)
         symbol_supervisors = Map.delete(state.symbol_supervisors, symbol)
         {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}

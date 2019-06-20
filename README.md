@@ -1,5 +1,7 @@
 # Igthorn
 
+[![Build Status](https://travis-ci.org/HedonSoftware/Igthorn.svg?branch=v0.0.2)](https://travis-ci.org/HedonSoftware/Igthorn)
+
 This is still work in progress(it fully works but could be greatly extended). I would love to get some help either graphics or code.
 
 Igthorn is an Elixir boilerplate for kick-starting your crypto bot project. It contains everything you need to immediately focus on writing algo instead of worrying about streaming and backoffice in general.

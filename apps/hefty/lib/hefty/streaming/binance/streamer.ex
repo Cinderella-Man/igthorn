@@ -40,7 +40,7 @@ defmodule Hefty.Streaming.Binance.Streamer do
   end
 
   defp handle_event(%{"e" => "trade"} = event, state) do
-    Logger.debug("Getting event - #{event["symbol"]}")
+    Logger.debug("Getting event - #{event["e"]}")
 
     {:ok, trade_event} =
       %Hefty.Repo.Binance.TradeEvent{

@@ -138,9 +138,9 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   def mount(%{}, socket) do
     {:ok,
      assign(socket,
-       naive_trader_settings_paginate: pagination(10, 1),
-       rows_numbers: [10, 20, 30, 40, 50],
-       set_rows: 10,
+       naive_trader_settings_paginate: pagination(50, 1),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: 50,
        edit_row: nil
      )}
   end
@@ -199,14 +199,18 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   end
 
   def handle_event("trade-symbol-" <> symbol, _, socket) do
-    IO.inspect("flip trading on " <> symbol)
-    # list = socket.naive_trader_settings_paginate.list
-
     Hefty.flip_trading(symbol)
 
-    # TODO: Call hefty and update value here
-
-    {:noreply, socket}
+    {
+      :noreply,
+      assign(socket,
+        naive_trader_settings_paginate:
+          pagination(
+            socket.assigns.naive_trader_settings_paginate.limit,
+            socket.assigns.naive_trader_settings_paginate.page
+          )
+      )
+    }
   end
 
   defp pagination(limit, page) do

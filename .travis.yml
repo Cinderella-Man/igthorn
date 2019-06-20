@@ -1,0 +1,16 @@
+language: elixir
+
+elixir:
+  - '1.8.2'
+
+otp_release: '21.3'
+
+services:
+  - postgresql
+
+matrix:
+  include:
+    - env: 'travis'
+
+before_script:
+  - cd apps/hefty && mix ecto.reset
