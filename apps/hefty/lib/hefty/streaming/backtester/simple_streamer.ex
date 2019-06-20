@@ -27,7 +27,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   be put on top of stack and taken out in next iteration.
   """
   defmodule State do
-    defstruct db_streamer: nil,
+    defstruct db_streamer_task: nil,
               buy_stack: [],
               sell_stack: []
   end
