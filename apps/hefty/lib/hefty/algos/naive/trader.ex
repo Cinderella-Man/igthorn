@@ -142,7 +142,7 @@ defmodule Hefty.Algos.Naive.Trader do
     current_buy_order = @binance_client.get_order(symbol, time, matching_order_id)
 
     {:ok, new_state} =
-      case current_buy_order.executed_quantity == current_buy_order.original_quantity do
+      case current_buy_order.executed_qty == current_buy_order.orig_qty do
         true ->
           Logger.info("Current buy order has been filled. Submitting sell order")
 

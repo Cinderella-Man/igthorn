@@ -65,9 +65,20 @@ defmodule Hefty do
     Hefty.Streaming.Binance.Server.flip_stream(symbol)
   end
 
+  @spec flip_trading(any) :: :ok
   def flip_trading(symbol) do
     Logger.info("Flip trading for a symbol", symbol: symbol)
     Hefty.Algo.Naive.flip_trading(symbol)
+  end
+
+  def turn_off_trading(symbol) do
+    Logger.info("Turn off trading for a symbol", symbol: symbol)
+    Hefty.Algo.Naive.turn_off(symbol)
+  end
+
+  def turn_on_trading(symbol) do
+    Logger.info("Turn on trading for a symbol", symbol: symbol)
+    Hefty.Algo.Naive.turn_on(symbol)
   end
 
   def count_naive_trader_settings() do
