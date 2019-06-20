@@ -64,15 +64,19 @@ defmodule Hefty.Algos.Naive.Server do
         symbol_supervisors = Map.put(state.symbol_supervisors, symbol, result)
         {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
 
-      result -> stop_trading(symbol, result, state)
-
+      result ->
+        stop_trading(symbol, result, state)
     end
   end
 
   def handle_cast({:turn_off, symbol}, state) do
     case Map.get(state.symbol_supervisors, symbol, false) do
-      false -> {:noreply, state}
-      result -> stop_trading(symbol, result, state)
+      false ->
+        {:noreply, state}
+
+      result ->
+        flip_db_flag(symbol)
+        stop_trading(symbol, result, state)
     end
   end
 
