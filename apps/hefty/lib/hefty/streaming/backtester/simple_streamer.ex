@@ -62,13 +62,19 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
 
   Simplest case - no hanging orders
   """
-  def handle_cast({:trade_event, trade_event}, %State{:buy_stack => [], :sell_stack => []}=state) do
+  def handle_cast(
+        {:trade_event, trade_event},
+        %State{:buy_stack => [], :sell_stack => []} = state
+      ) do
     Logger.debug("Streaming trade event #{trade_event.trade_id}")
     broadcast_trade_event(trade_event)
     {:noreply, state}
   end
 
-  def handle_cast({:trade_event, trade_event}, %State{:buy_stack => buy_stack, :sell_stack => sell_stack}=state) do
+  def handle_cast(
+        {:trade_event, trade_event},
+        %State{:buy_stack => buy_stack, :sell_stack => sell_stack} = state
+      ) do
     Logger.debug("Streaming trade event #{trade_event.trade_id}")
 
     buy_stack
@@ -81,15 +87,17 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     |> Enum.map(&convert_order_to_event(&1, trade_event.event_time))
     |> Enum.map(&broadcast_trade_event(&1))
 
-    new_buy_stack = buy_stack
-    |> Enum.drop_while(&(&1.price < trade_event.price))
+    new_buy_stack =
+      buy_stack
+      |> Enum.drop_while(&(&1.price < trade_event.price))
 
-    new_sell_stack = sell_stack
-    |> Enum.drop_while(&(&1.price > trade_event.price))
+    new_sell_stack =
+      sell_stack
+      |> Enum.drop_while(&(&1.price > trade_event.price))
 
     broadcast_trade_event(trade_event)
 
-    {:noreply, %{ state | :buy_stack => new_buy_stack, :sell_stack => new_sell_stack}}
+    {:noreply, %{state | :buy_stack => new_buy_stack, :sell_stack => new_sell_stack}}
   end
 
   @doc """
@@ -104,14 +112,16 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   Handles buy orders coming from Binance Mock
   """
   def handle_cast({:order, %Binance.OrderResponse{:side => "BUY"} = order}, state) do
-    {:noreply, %{state | :buy_stack => ([order | state.buy_stack] |> Enum.sort(&(&1.price > &2.price)))}}
+    {:noreply,
+     %{state | :buy_stack => [order | state.buy_stack] |> Enum.sort(&(&1.price > &2.price))}}
   end
 
   @doc """
   Handles sell orders coming from Binance Mock
   """
   def handle_cast({:order, %Binance.OrderResponse{:side => "SELL"} = order}, state) do
-    {:noreply, %{state | :sell_stack => ([order | state.sell_stack] |> Enum.sort(&(&1.price < &2.price)))}}
+    {:noreply,
+     %{state | :sell_stack => [order | state.sell_stack] |> Enum.sort(&(&1.price < &2.price))}}
   end
 
   # PRIVATE FUNCTIONS
@@ -135,8 +145,10 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
       :trade_id => "fake-#{time}",
       :price => order.price,
       :quantity => order.orig_qty,
-      :buyer_order_id => order.order_id,  # hack - it does not matter
-      :seller_order_id => order.order_id, # hack - it does not matter
+      # hack - it does not matter
+      :buyer_order_id => order.order_id,
+      # hack - it does not matter
+      :seller_order_id => order.order_id,
       :trade_time => time - 1,
       :buyer_market_maker => false
     }
