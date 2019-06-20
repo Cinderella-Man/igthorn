@@ -16,6 +16,16 @@ defmodule Hefty.Repo.Binance.Pair do
       type: :binary_id
     )
 
+    # parts of price filter
+    field(:min_price, :string)
+    field(:max_price, :string)
+    field(:price_tick_size, :string)
+
+    # lot size filter
+    field(:min_quantity, :string)
+    field(:max_quantity, :string)
+    field(:quantity_step_size, :string)
+
     field(:status, :string)
 
     timestamps()

@@ -3,6 +3,8 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
 
   alias Hefty.Streaming.Backtester.DbStreamer
 
+  require Logger
+
   @moduledoc """
   The SimpleStreamer module as the name implies is a responsible for
   streaming trade events of specified symbol between from date and
@@ -26,29 +28,38 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   trade event that already got pulled out from stream - it needs to
   be put on top of stack and taken out in next iteration.
   """
+  defmodule State do
+    defstruct db_streamer_task: nil,
+              buy_stack: [],
+              sell_stack: []
+  end
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, [])
+  def start_link(_args \\ nil) do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   def init([]) do
-    {:ok, %{}}
+    {:ok, %State{}}
   end
 
-  def start_streaming(pid, symbol, from, to, interval \\ 5) do
-    GenServer.cast(pid, {:start_streaming, symbol, from, to, interval})
+  def start_streaming(symbol, from, to, interval \\ 5) do
+    GenServer.cast(__MODULE__, {:start_streaming, symbol, from, to, interval})
+  end
+
+  def trade_event(event) do
+    GenServer.cast(__MODULE__, {:trade_event, event})
   end
 
   def handle_cast({:start_streaming, symbol, from, to, interval}, state) do
     task = DbStreamer.start_link(symbol, from, to, self(), interval)
-    {:noreply, Map.put(state, :db_streamer_task, task)}
+    {:noreply, %{state | :db_streamer_task => task}}
   end
 
   @doc """
   Trade events coming from either db streamer
   """
   def handle_cast({:trade_event, trade_event}, state) do
-    IO.puts("broadcasting event")
+    Logger.debug("Streaming trade event #{trade_event.trade_id}")
 
     UiWeb.Endpoint.broadcast_from(
       self(),
@@ -64,14 +75,21 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   This handle is used to notify test that all events already arrived
   """
   def handle_cast(:stream_finished, state) do
-    IO.puts("SimpleStream: Db stream finished")
+    Logger.info("Db stream has finished")
     {:noreply, state}
   end
 
   @doc """
-  Those should be coming from Binance Mock
+  Handles buy orders coming from Binance Mock
   """
-  def handle_cast({:order, order}, state) do
-    {:noreply, Map.get_and_update(state, :temp_stack, fn stack -> [order | stack] end)}
+  def handle_cast({:order, %Binance.OrderResponse{:side => "BUY"} = order}, state) do
+    {:noreply, %{state | :buy_stack => [order | state.buy_stack]}}
+  end
+
+  @doc """
+  Handles sell orders coming from Binance Mock
+  """
+  def handle_cast({:order, %Binance.OrderResponse{:side => "SELL"} = order}, state) do
+    {:noreply, %{state | :sell_stack => [order | state.sell_stack]}}
   end
 end
