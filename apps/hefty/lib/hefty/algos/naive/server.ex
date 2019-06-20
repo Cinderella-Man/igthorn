@@ -26,6 +26,14 @@ defmodule Hefty.Algos.Naive.Server do
     GenServer.cast(__MODULE__, {:flip, symbol})
   end
 
+  def turn_off(symbol) do
+    GenServer.cast(__MODULE__, {:turn_off, symbol})
+  end
+
+  def turn_on(symbol) do
+    GenServer.cast(__MODULE__, {:turn_on, symbol})
+  end
+
   def fetch_trading_symbols() do
     GenServer.call(__MODULE__, :fetch_trading_symbols)
   end
@@ -56,12 +64,23 @@ defmodule Hefty.Algos.Naive.Server do
         symbol_supervisors = Map.put(state.symbol_supervisors, symbol, result)
         {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
 
-      result ->
-        Logger.info("Stopping supervision tree to cancel trading on symbol", symbol: symbol)
-        stop_child(result)
-        symbol_supervisors = Map.delete(state.symbol_supervisors, symbol)
-        {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
+      result -> stop_trading(symbol, result, state)
+
     end
+  end
+
+  def handle_cast({:turn_off, symbol}, state) do
+    case Map.get(state.symbol_supervisors, symbol, false) do
+      false -> {:noreply, state}
+      result -> stop_trading(symbol, result, state)
+    end
+  end
+
+  defp stop_trading(symbol, ref, state) do
+    Logger.info("Stopping supervision tree to cancel trading on symbol", symbol: symbol)
+    stop_child(ref)
+    symbol_supervisors = Map.delete(state.symbol_supervisors, symbol)
+    {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
   end
 
   defp flip_db_flag(symbol) do

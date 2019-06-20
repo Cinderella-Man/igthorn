@@ -38,7 +38,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  def init([]) do
+  def init(_args) do
     {:ok, %State{}}
   end
 
@@ -46,8 +46,8 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     GenServer.cast(__MODULE__, {:start_streaming, symbol, from, to, interval})
   end
 
-  def trade_event(event) do
-    GenServer.cast(__MODULE__, {:trade_event, event})
+  def add_order(%Binance.OrderResponse{} = order) do
+    GenServer.cast(__MODULE__, {:order, order})
   end
 
   def handle_cast({:start_streaming, symbol, from, to, interval}, state) do
@@ -55,20 +55,41 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     {:noreply, %{state | :db_streamer_task => task}}
   end
 
+  # CALLBACKS
+
   @doc """
-  Trade events coming from either db streamer
+  Trade events coming from db streamer
+
+  Simplest case - no hanging orders
   """
-  def handle_cast({:trade_event, trade_event}, state) do
+  def handle_cast({:trade_event, trade_event}, %State{:buy_stack => [], :sell_stack => []}=state) do
+    Logger.debug("Streaming trade event #{trade_event.trade_id}")
+    broadcast_trade_event(trade_event)
+    {:noreply, state}
+  end
+
+  def handle_cast({:trade_event, trade_event}, %State{:buy_stack => buy_stack, :sell_stack => sell_stack}=state) do
     Logger.debug("Streaming trade event #{trade_event.trade_id}")
 
-    UiWeb.Endpoint.broadcast_from(
-      self(),
-      "stream-#{trade_event.symbol}",
-      "trade_event",
-      trade_event
-    )
+    buy_stack
+    |> Enum.take_while(&(&1.price < trade_event.price))
+    |> Enum.map(&convert_order_to_event(&1, trade_event.event_time))
+    |> Enum.map(&broadcast_trade_event(&1))
 
-    {:noreply, state}
+    sell_stack
+    |> Enum.take_while(&(&1.price > trade_event.price))
+    |> Enum.map(&convert_order_to_event(&1, trade_event.event_time))
+    |> Enum.map(&broadcast_trade_event(&1))
+
+    new_buy_stack = buy_stack
+    |> Enum.drop_while(&(&1.price < trade_event.price))
+
+    new_sell_stack = sell_stack
+    |> Enum.drop_while(&(&1.price > trade_event.price))
+
+    broadcast_trade_event(trade_event)
+
+    {:noreply, %{ state | :buy_stack => new_buy_stack, :sell_stack => new_sell_stack}}
   end
 
   @doc """
@@ -83,13 +104,41 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   Handles buy orders coming from Binance Mock
   """
   def handle_cast({:order, %Binance.OrderResponse{:side => "BUY"} = order}, state) do
-    {:noreply, %{state | :buy_stack => [order | state.buy_stack]}}
+    {:noreply, %{state | :buy_stack => ([order | state.buy_stack] |> Enum.sort(&(&1.price > &2.price)))}}
   end
 
   @doc """
   Handles sell orders coming from Binance Mock
   """
   def handle_cast({:order, %Binance.OrderResponse{:side => "SELL"} = order}, state) do
-    {:noreply, %{state | :sell_stack => [order | state.sell_stack]}}
+    {:noreply, %{state | :sell_stack => ([order | state.sell_stack] |> Enum.sort(&(&1.price < &2.price)))}}
+  end
+
+  # PRIVATE FUNCTIONS
+
+  defp broadcast_trade_event(event) do
+    Logger.debug("Streaming trade event #{event.trade_id}")
+
+    UiWeb.Endpoint.broadcast_from(
+      self(),
+      "stream-#{event.symbol}",
+      "trade_event",
+      event
+    )
+  end
+
+  defp convert_order_to_event(%Binance.OrderResponse{} = order, time) do
+    %Hefty.Repo.Binance.TradeEvent{
+      :event_type => order.type,
+      :event_time => time - 1,
+      :symbol => order.symbol,
+      :trade_id => "fake-#{time}",
+      :price => order.price,
+      :quantity => order.orig_qty,
+      :buyer_order_id => order.order_id,  # hack - it does not matter
+      :seller_order_id => order.order_id, # hack - it does not matter
+      :trade_time => time - 1,
+      :buyer_market_maker => false
+    }
   end
 end
