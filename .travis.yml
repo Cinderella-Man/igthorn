@@ -12,5 +12,5 @@ matrix:
   include:
     - env: 'travis'
 
-before_install:
+before_script:
   - cd apps/hefty && mix ecto.reset
