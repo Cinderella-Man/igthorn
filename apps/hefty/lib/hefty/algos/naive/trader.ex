@@ -89,10 +89,12 @@ defmodule Hefty.Algos.Naive.Trader do
           symbol: symbol,
           buy_down_interval: buy_down_interval,
           budget: budget,
-          pair: %Hefty.Repo.Binance.Pair{price_tick_size: tick_size, quantity_step_size: quantity_step_size}
+          pair: %Hefty.Repo.Binance.Pair{
+            price_tick_size: tick_size,
+            quantity_step_size: quantity_step_size
+          }
         } = state
       ) do
-
     target_price = calculate_target_price(price, buy_down_interval, tick_size)
     quantity = calculate_quantity(budget, target_price, quantity_step_size)
 
@@ -118,42 +120,54 @@ defmodule Hefty.Algos.Naive.Trader do
   If buy order is now fully filled it will submit sell order.
   """
   def handle_info(
-    %{
-      event: "trade_event",
-      payload: %Hefty.Repo.Binance.TradeEvent{
-        buyer_order_id: matching_order_id
-      } = event
-    },
-    %State{
-      buy_order: %Hefty.Repo.Binance.Order{
-        order_id: matching_order_id,
-        symbol: symbol,
-        time: time
-      } = buy_order,
-      profit_interval: profit_interval,
-      pair: %Hefty.Repo.Binance.Pair{price_tick_size: tick_size}
-    } = state
-  ) do
+        %{
+          event: "trade_event",
+          payload:
+            %Hefty.Repo.Binance.TradeEvent{
+              buyer_order_id: matching_order_id
+            } = event
+        },
+        %State{
+          buy_order:
+            %Hefty.Repo.Binance.Order{
+              order_id: matching_order_id,
+              symbol: symbol,
+              time: time
+            } = buy_order,
+          profit_interval: profit_interval,
+          pair: %Hefty.Repo.Binance.Pair{price_tick_size: tick_size}
+        } = state
+      ) do
     Logger.info("Transaction of #{event.quantity} for order #{matching_order_id} received")
     current_buy_order = @binance_client.get_order(symbol, time, matching_order_id)
 
-    {:ok, new_state} = case current_buy_order.executed_quantity == current_buy_order.original_quantity do
-      true -> Logger.info("Current buy order has been filled. Submitting sell order")
-        Hefty.Repo.transaction fn ->
-          sell_order = create_sell_order(buy_order, profit_interval, tick_size)
-          new_buy_order = update_order(buy_order, %{
-            :matching_order => sell_order.order_id,
-            :executed_quantity => current_buy_order.executed_qty,
-            :status => current_buy_order.status
-          })
-          %{state | :buy_order => new_buy_order, :sell_order => sell_order}
-        end
-      false -> new_buy_order = update_order(buy_order, %{
-          :executed_quantity => current_buy_order.executed_qty,
-          :status => current_buy_order.status
-        })
-        %{state | :buy_order => new_buy_order}
-    end
+    {:ok, new_state} =
+      case current_buy_order.executed_quantity == current_buy_order.original_quantity do
+        true ->
+          Logger.info("Current buy order has been filled. Submitting sell order")
+
+          Hefty.Repo.transaction(fn ->
+            sell_order = create_sell_order(buy_order, profit_interval, tick_size)
+
+            new_buy_order =
+              update_order(buy_order, %{
+                :matching_order => sell_order.order_id,
+                :executed_quantity => current_buy_order.executed_qty,
+                :status => current_buy_order.status
+              })
+
+            %{state | :buy_order => new_buy_order, :sell_order => sell_order}
+          end)
+
+        false ->
+          new_buy_order =
+            update_order(buy_order, %{
+              :executed_quantity => current_buy_order.executed_qty,
+              :status => current_buy_order.status
+            })
+
+          %{state | :buy_order => new_buy_order}
+      end
 
     {:noreply, new_state}
   end
@@ -174,9 +188,8 @@ defmodule Hefty.Algos.Naive.Trader do
         },
         %State{} = state
       ) do
-  Logger.debug("Another trade event received - TBFixed")
-  {:noreply, state}
-
+    Logger.debug("Another trade event received - TBFixed")
+    {:noreply, state}
   end
 
   defp prepare_state(symbol) do
@@ -233,6 +246,7 @@ defmodule Hefty.Algos.Naive.Trader do
 
   defp store_order(%Binance.OrderResponse{} = response, matching_order \\ nil) do
     Logger.info("Storing order #{response.order_id} to db")
+
     %Hefty.Repo.Binance.Order{
       :order_id => response.order_id,
       :symbol => response.symbol,
@@ -253,11 +267,22 @@ defmodule Hefty.Algos.Naive.Trader do
       :strategy => "#{__MODULE__}",
       :matching_order => matching_order
     }
-    |> Hefty.Repo.insert() |> elem(1)
+    |> Hefty.Repo.insert()
+    |> elem(1)
   end
 
-   defp create_sell_order(%Hefty.Repo.Binance.Order{order_id: order_id, symbol: symbol, price: buy_price, original_quantity: quantity}, profit_interval, tick_size) do
-    sell_price = calculate_sell_price(buy_price, profit_interval, tick_size) # close enough
+  defp create_sell_order(
+         %Hefty.Repo.Binance.Order{
+           order_id: order_id,
+           symbol: symbol,
+           price: buy_price,
+           original_quantity: quantity
+         },
+         profit_interval,
+         tick_size
+       ) do
+    # close enough
+    sell_price = calculate_sell_price(buy_price, profit_interval, tick_size)
     quantity = D.to_float(D.new(quantity))
 
     Logger.info("Placing SELL order for #{symbol} @ #{sell_price}, quantity: #{quantity}")

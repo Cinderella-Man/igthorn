@@ -32,4 +32,4 @@ config :hefty, Hefty.Repo,
   username: "postgres",
   password: "",
   database: "hefty_test",
-  hostname: "postgres",
+  hostname: "postgres"

@@ -62,10 +62,10 @@ defmodule Hefty.Exchanges.BinanceMock do
 
   defp generate_fake_order(symbol, quantity, price) do
     current_timestamp = :os.system_time(:millisecond)
-    order_id = :rand.uniform(1000000)
+    order_id = :rand.uniform(1_000_000)
 
     Binance.OrderResponse.new(%{
-      client_order_id: (:crypto.hash(:md5, order_id) |> Base.encode16()),
+      client_order_id: :crypto.hash(:md5, order_id) |> Base.encode16(),
       executed_qty: "0.00000",
       order_id: order_id,
       orig_qty: quantity,
@@ -83,8 +83,9 @@ defmodule Hefty.Exchanges.BinanceMock do
   end
 
   def handle_call({:get_order, symbol, time, order_id}, _from, %State{:orders => orders} = state) do
-    result = orders
-    |> Enum.find(nil, &(&1.symbol == symbol and &1.time == time and &1.order_id == order_id))
+    result =
+      orders
+      |> Enum.find(nil, &(&1.symbol == symbol and &1.time == time and &1.order_id == order_id))
 
     {:reply, result, state}
   end
