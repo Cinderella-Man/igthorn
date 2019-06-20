@@ -166,7 +166,7 @@ defmodule Hefty.Algos.Naive.Trader do
               :status => current_buy_order.status
             })
 
-          %{state | :buy_order => new_buy_order}
+          {:ok, %{state | :buy_order => new_buy_order}}
       end
 
     {:noreply, new_state}

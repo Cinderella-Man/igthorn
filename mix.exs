@@ -15,6 +15,8 @@ defmodule Igthorn.MixProject do
   #
   # Run "mix help deps" for examples and options.
   defp deps do
-    []
+    [
+      {:dialyxir, "~> 0.5", runtime: false}
+    ]
   end
 end
