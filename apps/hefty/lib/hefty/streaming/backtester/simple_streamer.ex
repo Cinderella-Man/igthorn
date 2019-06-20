@@ -3,6 +3,8 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
 
   alias Hefty.Streaming.Backtester.DbStreamer
 
+  require Logger
+
   @moduledoc """
   The SimpleStreamer module as the name implies is a responsible for
   streaming trade events of specified symbol between from date and
@@ -32,7 +34,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
               sell_stack: []
   end
 
-  def start_link() do
+  def start_link(_args \\ nil) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
@@ -40,8 +42,12 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     {:ok, %State{}}
   end
 
-  def start_streaming(pid, symbol, from, to, interval \\ 5) do
-    GenServer.cast(pid, {:start_streaming, symbol, from, to, interval})
+  def start_streaming(symbol, from, to, interval \\ 5) do
+    GenServer.cast(__MODULE__, {:start_streaming, symbol, from, to, interval})
+  end
+
+  def trade_event(event) do
+    GenServer.cast(__MODULE__, {:trade_event, event})
   end
 
   def handle_cast({:start_streaming, symbol, from, to, interval}, state) do
@@ -53,6 +59,8 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   Trade events coming from either db streamer
   """
   def handle_cast({:trade_event, trade_event}, state) do
+    Logger.debug("Streaming trade event #{trade_event.trade_id}")
+
     UiWeb.Endpoint.broadcast_from(
       self(),
       "stream-#{trade_event.symbol}",
@@ -67,7 +75,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   This handle is used to notify test that all events already arrived
   """
   def handle_cast(:stream_finished, state) do
-    IO.puts("SimpleStream: Db stream finished")
+    Logger.info("Db stream has finished")
     {:noreply, state}
   end
 
