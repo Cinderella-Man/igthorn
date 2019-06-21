@@ -2,8 +2,8 @@ defmodule Hefty do
   @moduledoc """
   Documentation for Hefty.
 
-  Hefty comes from hftb
-  (high frequence trading backend)
+  Hefty comes from hft
+  (high frequence trading)
   """
 
   import Ecto.Query, only: [from: 2]
@@ -60,27 +60,31 @@ defmodule Hefty do
     end
   end
 
-  def flip_streamer(symbol) do
-    Logger.info("Flip streaming for a symbol", symbol: symbol)
+  @spec flip_streamer(String.t) :: :ok
+  def flip_streamer(symbol) when is_binary(symbol) do
+    Logger.info("Flip streaming for a symbol #{symbol}")
     Hefty.Streaming.Binance.Server.flip_stream(symbol)
   end
 
-  @spec flip_trading(any) :: :ok
-  def flip_trading(symbol) do
-    Logger.info("Flip trading for a symbol", symbol: symbol)
+  @spec flip_trading(String.t) :: :ok
+  def flip_trading(symbol) when is_binary(symbol) do
+    Logger.info("Flip trading for a symbol #{symbol}")
     Hefty.Algo.Naive.flip_trading(symbol)
   end
 
-  def turn_off_trading(symbol) do
-    Logger.info("Turn off trading for a symbol", symbol: symbol)
+  @spec turn_off_trading(String.t) :: :ok
+  def turn_off_trading(symbol) when is_binary(symbol) do
+    Logger.info("Turn off trading for a symbol #{symbol}")
     Hefty.Algo.Naive.turn_off(symbol)
   end
 
-  def turn_on_trading(symbol) do
-    Logger.info("Turn on trading for a symbol", symbol: symbol)
+  @spec turn_on_trading(String.t) :: :ok
+  def turn_on_trading(symbol) when is_binary(symbol) do
+    Logger.info("Turn on trading for a symbol #{symbol}")
     Hefty.Algo.Naive.turn_on(symbol)
   end
 
+  @spec count_naive_trader_settings :: number()
   def count_naive_trader_settings() do
     Logger.debug("Counting number of naive trader settings")
 
@@ -90,6 +94,7 @@ defmodule Hefty do
     |> Hefty.Repo.one()
   end
 
+  @spec fetch_naive_trader_settings(String.t) :: Hefty.Repo.NaiveTraderSetting | nil
   def fetch_naive_trader_settings(symbol) do
     Logger.debug("Fetching naive trader settings for a symbol", symbol: symbol)
 

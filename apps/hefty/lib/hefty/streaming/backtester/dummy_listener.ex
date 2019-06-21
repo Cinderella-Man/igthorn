@@ -6,12 +6,12 @@ defmodule Hefty.Streaming.Backtester.DummyListener do
   end
 
   def init(symbol) do
-    UiWeb.Endpoint.subscribe("stream-XRPUSDT")
+    UiWeb.Endpoint.subscribe("stream-#{symbol}")
     {:ok, []}
   end
 
   def handle_info(%{event: "trade_event", payload: event}, state) do
-    {:noreply, [ event | state ]}
+    {:noreply, [event | state]}
   end
 
   def fetch_streamed(pid) do

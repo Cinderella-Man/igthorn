@@ -14,75 +14,77 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamerTest do
 
     event_1 = %TradeEvent{
       :event_type => "trade",
-      :event_time => 1560941210010,
+      :event_time => 1_560_941_210_010,
       :symbol => "XRPUSDT",
-      :trade_id => 10000001,
-      :price => "0.43183010",
+      :trade_id => 10_000_001,
+      :price => "0.43183030",
       :quantity => "213.10000000",
-      :buyer_order_id => 20000001,
-      :seller_order_id => 20000002,
-      :trade_time => 1560941210010,
+      :buyer_order_id => 20_000_001,
+      :seller_order_id => 20_000_002,
+      :trade_time => 1_560_941_210_010,
       :buyer_market_maker => false
     }
 
     event_2 = %TradeEvent{
       :event_type => "trade",
-      :event_time => 1560941210020,
+      :event_time => 1_560_941_210_020,
       :symbol => "XRPUSDT",
-      :trade_id => 10000002,
+      :trade_id => 10_000_002,
       :price => "0.43183020",
       :quantity => "56.10000000",
-      :buyer_order_id => 20000003,
-      :seller_order_id => 20000004,
-      :trade_time => 1560941210020,
+      :buyer_order_id => 20_000_003,
+      :seller_order_id => 20_000_004,
+      :trade_time => 1_560_941_210_020,
       :buyer_market_maker => false
     }
 
     event_3 = %TradeEvent{
       :event_type => "trade",
-      :event_time => 1560941210030,
+      :event_time => 1_560_941_210_030,
       :symbol => "XRPUSDT",
-      :trade_id => 10000003,
-      :price => "0.43183030",
+      :trade_id => 10_000_003,
+      :price => "0.43183010",
       :quantity => "12.10000000",
-      :buyer_order_id => 20000005,
-      :seller_order_id => 20000006,
-      :trade_time => 1560941210030,
+      :buyer_order_id => 20_000_005,
+      :seller_order_id => 20_000_006,
+      :trade_time => 1_560_941_210_030,
       :buyer_market_maker => false
     }
 
-    [event_1, event_2, event_3] = [event_1, event_2, event_3]
+    [event_1, event_2, event_3] =
+      [event_1, event_2, event_3]
       |> Enum.map(&(Hefty.Repo.insert(&1) |> elem(1)))
 
     # start listening to
     {:ok, listener_pid} = DummyListener.start_link("XRPUSDT")
 
     # This will kick of streaming
-    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 1000)
+    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
 
     # let's put order after first event
-    :timer.sleep(1100)
+    :timer.sleep(120)
 
     fake_order = %Binance.OrderResponse{
       :client_order_id => "fake-doesnt-matter",
       :executed_qty => "0.00000000",
-      :order_id => 50000001,
+      :order_id => 50_000_001,
       :orig_qty => "123.72000000",
-      :price => "0.43183025",
+      :price => "0.43183015",
       :side => "BUY",
       :status => "NEW",
       :symbol => "XRPUSDT",
       :time_in_force => "GTC",
-      :transact_time => 1560941210025,
+      :transact_time => 1_560_941_210_025,
       :type => "LIMIT"
     }
 
     SimpleStreamer.add_order(fake_order)
 
     # let's allow the rest of the events to be broadcasted
-    :timer.sleep(3200);
+    :timer.sleep(300)
 
     # retrieve all streamed events from dummy listener
+
     streamed_events = DummyListener.fetch_streamed(listener_pid)
 
     # house keeping - this is how event should look like based on our fake order

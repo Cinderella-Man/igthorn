@@ -24,20 +24,19 @@ defmodule Hefty.Exchanges.BinanceMock do
     Binance.get_exchange_info()
   end
 
+  @spec order_limit_buy(String.t(), float(), float(), String.t()) ::
+          {:ok, %Binance.OrderResponse{}}
   def order_limit_buy(symbol, quantity, price, "GTC") do
     fake_order = %{generate_fake_order(symbol, quantity, price) | :side => "BUY"}
 
-    GenServer.cast(
-      Hefty.Streaming.Backtester.SimpleStreamer,
-      {:order, fake_order}
-    )
+    Hefty.Streaming.Backtester.SimpleStreamer.add_order(fake_order)
 
     GenServer.cast(
       __MODULE__,
       {:add_order, fake_order}
     )
 
-    fake_order
+    {:ok, fake_order}
   end
 
   def order_limit_sell(symbol, quantity, price, "GTC") do
@@ -53,7 +52,7 @@ defmodule Hefty.Exchanges.BinanceMock do
       {:add_order, fake_order}
     )
 
-    fake_order
+    {:ok, fake_order}
   end
 
   def get_order(symbol, time, order_id) do
@@ -65,10 +64,10 @@ defmodule Hefty.Exchanges.BinanceMock do
     order_id = :rand.uniform(1_000_000)
 
     Binance.OrderResponse.new(%{
-      client_order_id: :crypto.hash(:md5, order_id) |> Base.encode16(),
+      client_order_id: :crypto.hash(:md5, "#{order_id}") |> Base.encode16(),
       executed_qty: "0.00000",
       order_id: order_id,
-      orig_qty: quantity,
+      orig_qty: Float.to_string(quantity),
       price: Float.to_string(price),
       status: "NEW",
       symbol: symbol,
@@ -78,15 +77,15 @@ defmodule Hefty.Exchanges.BinanceMock do
     })
   end
 
-  def handle_call({:add_order, order}, %State{:orders => orders} = state) do
-    {:noreply, order, %{state | :orders => [order | orders]}}
+  def handle_cast({:add_order, order}, %State{:orders => orders} = state) do
+    {:noreply, %{state | :orders => [order | orders]}}
   end
 
   def handle_call({:get_order, symbol, time, order_id}, _from, %State{:orders => orders} = state) do
     result =
       orders
-      |> Enum.find(nil, &(&1.symbol == symbol and &1.time == time and &1.order_id == order_id))
+      |> Enum.find(nil, &(&1.symbol == symbol and &1.transact_time == time and &1.order_id == order_id))
 
-    {:reply, result, state}
+    {:reply, {:ok, result}, state}
   end
 end
