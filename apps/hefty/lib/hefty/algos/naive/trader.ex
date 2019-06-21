@@ -305,14 +305,13 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   defp calculate_sell_price(buy_price, profit_interval, tick_size) do
+    fee = 1.001
     buy_price = D.new(buy_price)
-    real_buy_price = D.mult(buy_price, D.from_float(1.1))
+    real_buy_price = D.mult(buy_price, D.from_float(fee))
     tick = D.new(tick_size)
 
     net_target_price = D.mult(real_buy_price, D.add(1, D.new(profit_interval)))
-
-    gross_target_price = D.add(net_target_price, D.mult(net_target_price, D.from_float(1.1)))
-
+    gross_target_price = D.mult(net_target_price, D.from_float(fee))
     D.to_float(D.mult(D.div_int(gross_target_price, tick), tick))
   end
 
