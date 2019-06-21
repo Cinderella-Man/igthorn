@@ -17,7 +17,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamerTest do
       :event_time => 1_560_941_210_010,
       :symbol => "XRPUSDT",
       :trade_id => 10_000_001,
-      :price => "0.43183010",
+      :price => "0.43183030",
       :quantity => "213.10000000",
       :buyer_order_id => 20_000_001,
       :seller_order_id => 20_000_002,
@@ -43,7 +43,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamerTest do
       :event_time => 1_560_941_210_030,
       :symbol => "XRPUSDT",
       :trade_id => 10_000_003,
-      :price => "0.43183030",
+      :price => "0.43183010",
       :quantity => "12.10000000",
       :buyer_order_id => 20_000_005,
       :seller_order_id => 20_000_006,
@@ -59,17 +59,17 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamerTest do
     {:ok, listener_pid} = DummyListener.start_link("XRPUSDT")
 
     # This will kick of streaming
-    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 1000)
+    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
 
     # let's put order after first event
-    :timer.sleep(1100)
+    :timer.sleep(120)
 
     fake_order = %Binance.OrderResponse{
       :client_order_id => "fake-doesnt-matter",
       :executed_qty => "0.00000000",
       :order_id => 50_000_001,
       :orig_qty => "123.72000000",
-      :price => "0.43183025",
+      :price => "0.43183015",
       :side => "BUY",
       :status => "NEW",
       :symbol => "XRPUSDT",
@@ -81,7 +81,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamerTest do
     SimpleStreamer.add_order(fake_order)
 
     # let's allow the rest of the events to be broadcasted
-    :timer.sleep(3200)
+    :timer.sleep(300)
 
     # retrieve all streamed events from dummy listener
 

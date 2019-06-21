@@ -55,8 +55,10 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   def init({symbol, strategy}) do
-    Logger.info("Trader starting", symbol: symbol, strategy: strategy)
+    Logger.info("Trader starting(symbol: #{symbol}, strategy: #{strategy})")
     GenServer.cast(self(), {:init_strategy, strategy})
+
+    Logger.debug("Trader subscribing to #{"stream-#{symbol}"}")
     :ok = UiWeb.Endpoint.subscribe("stream-#{symbol}")
 
     {:ok,
@@ -139,7 +141,7 @@ defmodule Hefty.Algos.Naive.Trader do
         } = state
       ) do
     Logger.info("Transaction of #{event.quantity} for order #{matching_order_id} received")
-    current_buy_order = @binance_client.get_order(symbol, time, matching_order_id)
+    {:ok, current_buy_order} = @binance_client.get_order(symbol, time, matching_order_id)
 
     {:ok, new_state} =
       case current_buy_order.executed_qty == current_buy_order.orig_qty do
@@ -196,6 +198,8 @@ defmodule Hefty.Algos.Naive.Trader do
     settings = fetch_settings(symbol)
     pair = fetch_pair(symbol)
 
+    Logger.debug("Starting trader on symbol #{settings.symbol} with budget of #{settings.budget}")
+
     %State{
       symbol: settings.symbol,
       budget: settings.budget,
@@ -251,7 +255,7 @@ defmodule Hefty.Algos.Naive.Trader do
       :order_id => response.order_id,
       :symbol => response.symbol,
       :client_order_id => response.client_order_id,
-      :price => response.client_order_id,
+      :price => response.price,
       :original_quantity => response.orig_qty,
       :executed_quantity => response.executed_qty,
       # :cummulative_quote_quantity => response.X, # missing??
