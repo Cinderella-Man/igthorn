@@ -34,11 +34,13 @@ defmodule Hefty.Algos.NaiveTest do
 
     current_settings = Hefty.fetch_naive_trader_settings(symbol)
 
-    changeset = Ecto.Changeset.change(current_settings, %{
+    new_settings = %{
       :profit_interval => "0.001",
       :buy_down_interval => "0.0025",
       :budget => "100.0"
-    })
+    }
+
+    changeset = Ecto.Changeset.change(current_settings, new_settings)
 
     case Hefty.Repo.update(changeset) do
       {:ok, struct} -> struct
@@ -94,7 +96,38 @@ defmodule Hefty.Algos.NaiveTest do
       :buyer_market_maker => false
     }
 
-    [event_1, event_2, event_3]
+    # event at expected buy price (0.43075)
+
+    event_4 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_040,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_004,
+      :price => "0.43075",
+      :quantity => "38.92000000",
+      :buyer_order_id => 20_000_007,
+      :seller_order_id => 20_000_008,
+      :trade_time => 1_560_941_210_040,
+      :buyer_market_maker => false
+    }
+
+    # event below expected price
+    # it should trigger fake fill of placed order
+
+    event_5 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_050,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_005,
+      :price => "0.43065",
+      :quantity => "126.53000000",
+      :buyer_order_id => 20_000_009,
+      :seller_order_id => 20_000_010,
+      :trade_time => 1_560_941_210_050,
+      :buyer_market_maker => false
+    }
+
+    [event_1, event_2, event_3, event_4, event_5]
       |> Enum.map(&(Hefty.Repo.insert(&1)))
 
     Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
@@ -103,13 +136,16 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
 
-    :timer.sleep(500)
+    :timer.sleep(600)
 
     result = Hefty.Orders.fetch_orders(symbol)
 
-    assert length(result) == 1
-    [order] = result
+    assert length(result) == 2
+    [_sell_order, buy_order] = result
 
-    assert D.cmp(D.new(order.price), D.new(event_1.price)) == :lt
+    IO.inspect(result)
+
+    assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
+    assert D.cmp(D.new(buy_order.original_quantity), D.div(D.new(new_settings.budget), D.new(buy_order.price))) == :lt
   end
 end
