@@ -59,10 +59,7 @@ defmodule Hefty.Algos.Naive.Server do
 
     case Map.get(state.symbol_supervisors, symbol, false) do
       false ->
-        Logger.info("Starting new supervision tree to trade on symbol", symbol: symbol)
-        result = start_symbol_supervisor(symbol)
-        symbol_supervisors = Map.put(state.symbol_supervisors, symbol, result)
-        {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
+        start_trading(symbol, state)
 
       result ->
         stop_trading(symbol, result, state)
@@ -80,10 +77,28 @@ defmodule Hefty.Algos.Naive.Server do
     end
   end
 
+  def handle_cast({:turn_on, symbol}, state) do
+    case Map.get(state.symbol_supervisors, symbol, false) do
+      false ->
+        flip_db_flag(symbol)
+        start_trading(symbol, state)
+
+      _result ->
+        {:noreply, state}
+    end
+  end
+
   defp stop_trading(symbol, ref, state) do
-    Logger.info("Stopping supervision tree to cancel trading on symbol", symbol: symbol)
+    Logger.info("Stopping supervision tree to cancel trading on symbol #{symbol}")
     stop_child(ref)
     symbol_supervisors = Map.delete(state.symbol_supervisors, symbol)
+    {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
+  end
+
+  defp start_trading(symbol, state) do
+    Logger.info("Starting new supervision tree to trade on symbol #{symbol}")
+    result = start_symbol_supervisor(symbol)
+    symbol_supervisors = Map.put(state.symbol_supervisors, symbol, result)
     {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
   end
 
