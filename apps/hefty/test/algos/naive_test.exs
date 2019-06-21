@@ -9,7 +9,6 @@ defmodule Hefty.Algos.NaiveTest do
   alias Decimal, as: D
 
   test "Naive trader full trade(buy + sell) test" do
-
     symbol = "XRPUSDT"
 
     Logger.debug("Step 1 - Stop any trading - it will get reconfigured and started again")
@@ -43,8 +42,11 @@ defmodule Hefty.Algos.NaiveTest do
     changeset = Ecto.Changeset.change(current_settings, new_settings)
 
     case Hefty.Repo.update(changeset) do
-      {:ok, struct} -> struct
-      {:error, _changeset} -> throw("Unable to update naive trader setting for symbol '#{symbol}'")
+      {:ok, struct} ->
+        struct
+
+      {:error, _changeset} ->
+        throw("Unable to update naive trader setting for symbol '#{symbol}'")
     end
 
     # makes sure that it's updated before starting trading process
@@ -128,7 +130,7 @@ defmodule Hefty.Algos.NaiveTest do
     }
 
     [event_1, event_2, event_3, event_4, event_5]
-      |> Enum.map(&(Hefty.Repo.insert(&1)))
+    |> Enum.map(&Hefty.Repo.insert(&1))
 
     Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
 
@@ -146,6 +148,10 @@ defmodule Hefty.Algos.NaiveTest do
     IO.inspect(result)
 
     assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
-    assert D.cmp(D.new(buy_order.original_quantity), D.div(D.new(new_settings.budget), D.new(buy_order.price))) == :lt
+
+    assert D.cmp(
+             D.new(buy_order.original_quantity),
+             D.div(D.new(new_settings.budget), D.new(buy_order.price))
+           ) == :lt
   end
 end
