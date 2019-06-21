@@ -60,25 +60,25 @@ defmodule Hefty do
     end
   end
 
-  @spec flip_streamer(String.t) :: :ok
+  @spec flip_streamer(String.t()) :: :ok
   def flip_streamer(symbol) when is_binary(symbol) do
     Logger.info("Flip streaming for a symbol #{symbol}")
     Hefty.Streaming.Binance.Server.flip_stream(symbol)
   end
 
-  @spec flip_trading(String.t) :: :ok
+  @spec flip_trading(String.t()) :: :ok
   def flip_trading(symbol) when is_binary(symbol) do
     Logger.info("Flip trading for a symbol #{symbol}")
     Hefty.Algo.Naive.flip_trading(symbol)
   end
 
-  @spec turn_off_trading(String.t) :: :ok
+  @spec turn_off_trading(String.t()) :: :ok
   def turn_off_trading(symbol) when is_binary(symbol) do
     Logger.info("Turn off trading for a symbol #{symbol}")
     Hefty.Algo.Naive.turn_off(symbol)
   end
 
-  @spec turn_on_trading(String.t) :: :ok
+  @spec turn_on_trading(String.t()) :: :ok
   def turn_on_trading(symbol) when is_binary(symbol) do
     Logger.info("Turn on trading for a symbol #{symbol}")
     Hefty.Algo.Naive.turn_on(symbol)
@@ -94,7 +94,7 @@ defmodule Hefty do
     |> Hefty.Repo.one()
   end
 
-  @spec fetch_naive_trader_settings(String.t) :: Hefty.Repo.NaiveTraderSetting | nil
+  @spec fetch_naive_trader_settings(String.t()) :: Hefty.Repo.NaiveTraderSetting | nil
   def fetch_naive_trader_settings(symbol) do
     Logger.debug("Fetching naive trader settings for a symbol", symbol: symbol)
 

@@ -21,7 +21,7 @@ defmodule Hefty.Repo.Binance.Order do
     field(:time, :integer)
     field(:update_time, :integer)
     field(:strategy, :string)
-    field(:matching_order, :string)
+    field(:matching_order, :integer)
 
     timestamps()
   end

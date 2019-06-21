@@ -1,11 +1,13 @@
 defmodule Hefty.Exchanges.BinanceMock do
   use GenServer
 
+  require Logger
+
   @doc """
   Holds a copy of all placed orders
   """
   defmodule State do
-    defstruct orders: []
+    defstruct orders: [], subscriptions: []
   end
 
   def start_link() do
@@ -77,15 +79,52 @@ defmodule Hefty.Exchanges.BinanceMock do
     })
   end
 
-  def handle_cast({:add_order, order}, %State{:orders => orders} = state) do
-    {:noreply, %{state | :orders => [order | orders]}}
+  def handle_cast(
+        {:add_order, order},
+        %State{:orders => orders, :subscriptions => subscriptions} = state
+      ) do
+    new_subscriptions =
+      case Enum.find(subscriptions, nil, &(&1 == order.symbol)) do
+        nil ->
+          Logger.debug("BinanceMock subscribing to #{"stream-#{order.symbol}"}")
+          :ok = UiWeb.Endpoint.subscribe("stream-#{order.symbol}")
+          [order.symbol | subscriptions]
+
+        _ ->
+          subscriptions
+      end
+
+    {:noreply, %{state | :orders => [order | orders], :subscriptions => new_subscriptions}}
   end
 
   def handle_call({:get_order, symbol, time, order_id}, _from, %State{:orders => orders} = state) do
     result =
       orders
-      |> Enum.find(nil, &(&1.symbol == symbol and &1.transact_time == time and &1.order_id == order_id))
+      |> Enum.find(
+        nil,
+        &(&1.symbol == symbol and &1.transact_time == time and &1.order_id == order_id)
+      )
 
     {:reply, {:ok, result}, state}
+  end
+
+  def handle_info(
+        %{
+          event: "trade_event",
+          payload: %Hefty.Repo.Binance.TradeEvent{:buyer_order_id => order_id}
+        },
+        %State{:orders => orders} = state
+      ) do
+    case Enum.find(orders, nil, &(&1.order_id == order_id)) do
+      nil ->
+        {:noreply, state}
+
+      order ->
+        Logger.debug("BinanceMock received trade event for fake order - updating order")
+        new_orders = Enum.reject(orders, &(&1.order_id == order_id))
+        # hack - assuming that one fake trade will fill whole order here - simplification
+        new_order = %{order | :executed_qty => order.orig_qty}
+        {:noreply, %{state | :orders => [new_order | new_orders]}}
+    end
   end
 end
