@@ -14,4 +14,4 @@ matrix:
 
 before_script:
   - mix dialyzer
-  - cd apps/hefty && mix ecto.reset
+  - cd apps/hefty && export MIX_ENV=test && mix ecto.reset
