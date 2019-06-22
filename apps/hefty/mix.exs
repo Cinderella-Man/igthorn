@@ -30,7 +30,7 @@ defmodule Hefty.MixProject do
       # {:binance, "~> 0.6.0"}
       {:binance, git: "https://github.com/Cinderella-Man/binance.ex.git"},
       {:csv, "~> 2.3"},
-      {:decimal, "~> 1.0"},
+      {:decimal, "~> 1.7"},
       {:ecto_sql, "~> 3.0"},
       {:flow, "~> 0.14"},
       {:json, "~> 1.3"},
