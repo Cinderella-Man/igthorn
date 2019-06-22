@@ -76,7 +76,6 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
         {:trade_event, trade_event},
         %State{:buy_stack => buy_stack, :sell_stack => sell_stack} = state
       ) do
-
     lt = &less_than/2
     gt = &greather_than/2
 
