@@ -129,7 +129,52 @@ defmodule Hefty.Algos.NaiveTest do
       :buyer_market_maker => false
     }
 
-    [event_1, event_2, event_3, event_4, event_5]
+    # from now on we should have sell order @ 0.43204
+
+    event_6 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_060,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_006,
+      # below
+      :price => "0.43200",
+      :quantity => "126.53000000",
+      :buyer_order_id => 20_000_011,
+      :seller_order_id => 20_000_012,
+      :trade_time => 1_560_941_210_060,
+      :buyer_market_maker => false
+    }
+
+    event_7 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_070,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_007,
+      # exact
+      :price => "0.43204",
+      :quantity => "126.53000000",
+      :buyer_order_id => 20_000_013,
+      :seller_order_id => 20_000_014,
+      :trade_time => 1_560_941_210_070,
+      :buyer_market_maker => false
+    }
+
+    # this one should push fake event to fulfil sell order
+    event_8 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_080,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_008,
+      # above
+      :price => "0.43205",
+      :quantity => "126.53000000",
+      :buyer_order_id => 20_000_015,
+      :seller_order_id => 20_000_016,
+      :trade_time => 1_560_941_210_080,
+      :buyer_market_maker => false
+    }
+
+    [event_1, event_2, event_3, event_4, event_5, event_6, event_7, event_8]
     |> Enum.map(&Hefty.Repo.insert(&1))
 
     Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
@@ -138,12 +183,12 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
 
-    :timer.sleep(600)
+    :timer.sleep(1100)
 
     result = Hefty.Orders.fetch_orders(symbol)
 
     assert length(result) == 2
-    [_sell_order, buy_order] = result
+    [buy_order, _sell_order] = result
 
     IO.inspect(result)
 

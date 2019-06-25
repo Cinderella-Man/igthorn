@@ -69,19 +69,19 @@ defmodule Hefty do
   @spec flip_trading(String.t()) :: :ok
   def flip_trading(symbol) when is_binary(symbol) do
     Logger.info("Flip trading for a symbol #{symbol}")
-    Hefty.Algo.Naive.flip_trading(symbol)
+    Hefty.Algos.Naive.flip_trading(symbol)
   end
 
   @spec turn_off_trading(String.t()) :: :ok
   def turn_off_trading(symbol) when is_binary(symbol) do
     Logger.info("Turn off trading for a symbol #{symbol}")
-    Hefty.Algo.Naive.turn_off(symbol)
+    Hefty.Algos.Naive.turn_off(symbol)
   end
 
   @spec turn_on_trading(String.t()) :: :ok
   def turn_on_trading(symbol) when is_binary(symbol) do
     Logger.info("Turn on trading for a symbol #{symbol}")
-    Hefty.Algo.Naive.turn_on(symbol)
+    Hefty.Algos.Naive.turn_on(symbol)
   end
 
   @spec count_naive_trader_settings :: number()
