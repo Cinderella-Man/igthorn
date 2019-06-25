@@ -7,6 +7,7 @@ defmodule UiWeb.DashboardLive do
       Current prices of streamed symbol
 
       <%= live_render(@socket, UiWeb.PriceFeedLive) %>
+      <%= live_render(@socket, UiWeb.PriceChartLive) %>
     </div>
     """
   end
