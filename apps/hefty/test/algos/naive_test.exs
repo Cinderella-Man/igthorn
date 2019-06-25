@@ -191,9 +191,7 @@ defmodule Hefty.Algos.NaiveTest do
     result = Hefty.Orders.fetch_orders(symbol)
 
     assert length(result) == 2
-    [buy_order, _sell_order] = result
-
-    IO.inspect(result)
+    [buy_order, sell_order] = result
 
     assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
 
@@ -201,5 +199,7 @@ defmodule Hefty.Algos.NaiveTest do
              D.new(buy_order.original_quantity),
              D.div(D.new(new_settings.budget), D.new(buy_order.price))
            ) == :lt
+
+    assert buy_order.original_quantity == sell_order.original_quantity
   end
 end

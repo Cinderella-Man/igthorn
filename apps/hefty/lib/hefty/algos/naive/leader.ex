@@ -46,6 +46,7 @@ defmodule Hefty.Algos.Naive.Leader do
       ) do
     Logger.info("Trade finished at price of #{sell_order_price}")
     # todo: start new non-blank trader here
+    {:noreply, state}
   end
 
   def handle_info({:DOWN, ref, :process, pid, :normal}, state) do
