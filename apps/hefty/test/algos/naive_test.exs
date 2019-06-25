@@ -10,6 +10,8 @@ defmodule Hefty.Algos.NaiveTest do
 
   test "Naive trader full trade(buy + sell) test" do
     symbol = "XRPUSDT"
+    limit = 50
+    offset = 0
 
     Logger.debug("Step 1 - Stop any trading - it will get reconfigured and started again")
 
@@ -31,7 +33,8 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 5 - configure naive trader for symbol")
 
-    current_settings = Hefty.fetch_naive_trader_settings(symbol)
+    current_settings = Hefty.fetch_naive_trader_settings(offset, limit, symbol)
+      |> List.first
 
     new_settings = %{
       :profit_interval => "0.001",

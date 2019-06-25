@@ -84,42 +84,6 @@ defmodule Hefty do
     Hefty.Algos.Naive.turn_on(symbol)
   end
 
-  @spec count_naive_trader_settings :: number()
-  def count_naive_trader_settings() do
-    Logger.debug("Counting number of naive trader settings")
-
-    from(nts in Hefty.Repo.NaiveTraderSetting,
-      select: count("*")
-    )
-    |> Hefty.Repo.one()
-  end
-
-  @spec fetch_naive_trader_settings(String.t()) :: Hefty.Repo.NaiveTraderSetting | nil
-  def fetch_naive_trader_settings(symbol) do
-    Logger.debug("Fetching naive trader settings for a symbol", symbol: symbol)
-
-    case from(nts in Hefty.Repo.NaiveTraderSetting,
-           order_by: nts.symbol,
-           where: nts.symbol == ^symbol,
-           limit: 1
-         )
-         |> Hefty.Repo.one() do
-      nil -> %{}
-      result -> result
-    end
-  end
-
-  def fetch_naive_trader_settings(offset, limit) do
-    query =
-      from(nts in Hefty.Repo.NaiveTraderSetting,
-        order_by: nts.symbol,
-        limit: ^limit,
-        offset: ^offset
-      )
-
-    Hefty.Repo.all(query)
-  end
-
   def fetch_symbols() do
     query =
       from(p in Hefty.Repo.Binance.Pair,
@@ -128,6 +92,34 @@ defmodule Hefty do
       )
 
     Hefty.Repo.all(query)
+  end
+
+  def fetch_naive_trader_settings() do
+    query =
+      from(nts in Hefty.Repo.NaiveTraderSetting,
+        order_by: nts.symbol
+      )
+
+    Hefty.Repo.all(query)
+  end
+
+  def fetch_naive_trader_settings(offset, limit, symbol \\ "") do
+    from(nts in Hefty.Repo.NaiveTraderSetting,
+      order_by: nts.symbol,
+      where: like(nts.symbol, ^"%#{String.upcase(symbol)}%"),
+      limit: ^limit,
+      offset: ^offset
+    )
+    |> Hefty.Repo.all()
+  end
+
+  @spec count_naive_trader_settings :: number()
+  def count_naive_trader_settings(symbol \\ "") do
+    from(nts in Hefty.Repo.NaiveTraderSetting,
+      select: count("*"),
+      where: like(nts.symbol, ^"%#{String.upcase(symbol)}%")
+    )
+    |> Hefty.Repo.one()
   end
 
   def update_naive_trader_settings(data) do
@@ -154,4 +146,5 @@ defmodule Hefty do
         throw("Unable to update " <> data["symbol"] <> " naive trader settings")
     end
   end
+
 end
