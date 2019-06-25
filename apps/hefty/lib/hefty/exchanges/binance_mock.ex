@@ -111,10 +111,24 @@ defmodule Hefty.Exchanges.BinanceMock do
   def handle_info(
         %{
           event: "trade_event",
+          payload: %Hefty.Repo.Binance.TradeEvent{:seller_order_id => order_id}
+        },
+        %State{} = state
+      ) do
+    update_orders(state, order_id)
+  end
+
+  def handle_info(
+        %{
+          event: "trade_event",
           payload: %Hefty.Repo.Binance.TradeEvent{:buyer_order_id => order_id}
         },
-        %State{:orders => orders} = state
+        %State{} = state
       ) do
+    update_orders(state, order_id)
+  end
+
+  defp update_orders(%State{:orders => orders} = state, order_id) do
     case Enum.find(orders, nil, &(&1.order_id == order_id)) do
       nil ->
         {:noreply, state}

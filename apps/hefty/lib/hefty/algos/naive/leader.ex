@@ -37,9 +37,36 @@ defmodule Hefty.Algos.Naive.Leader do
     init_traders(settings, state)
   end
 
+  def handle_cast(
+        {:trade_finished,
+         %Hefty.Algos.Naive.Trader.State{
+           :sell_order => %Hefty.Repo.Binance.Order{:price => sell_order_price}
+         }},
+        state
+      ) do
+    Logger.info("Trade finished at price of #{sell_order_price}")
+    # todo: start new non-blank trader here
+    {:noreply, state}
+  end
+
+  def handle_info({:DOWN, ref, :process, pid, :normal}, state) do
+    new_traders =
+      case Enum.find(state.traders, nil, fn t -> t == {pid, ref} end) do
+        nil ->
+          Logger.warn("Something gone wrong - received :normal :DOWN from unknown process")
+          state.traders
+        _ ->
+          Enum.reject(state.traders, fn t -> t == {pid, ref} end)
+      end
+
+    {:noreply, %{state | :traders => new_traders}}
+  end
+
   # Safety fuse
-  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:trading => false}, state),
-    do: {:noreply, state}
+  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:trading => false}, state) do
+    Logger.warn("Safety fuse triggered - trying to start non traded symbol")
+    {:noreply, state}
+  end
 
   defp init_traders(%Hefty.Repo.NaiveTraderSetting{:chunks => chunks, :budget => budget}, %State{
          :symbol => symbol
@@ -48,24 +75,26 @@ defmodule Hefty.Algos.Naive.Leader do
       symbol
       |> fetch_open_trades()
 
-    case open_trades do
-      [] ->
-        Logger.info("No open trades so starting :blank trader", symbol: symbol)
-        start_new_trader(symbol)
+    traders =
+      case open_trades do
+        [] ->
+          Logger.info("No open trades so starting :blank trader", symbol: symbol)
+          [start_new_trader(symbol)]
 
-      x ->
-        Logger.info("There's some exisitng trades ongoing - starting trader for each",
-          symbol: symbol
-        )
+        x ->
+          Logger.info("There's some exisitng trades ongoing - starting trader for each",
+            symbol: symbol
+          )
 
-        Enum.map(x, &start_trader(&1))
-    end
+          Enum.map(x, &start_trader(&1))
+      end
 
     {:noreply,
      %State{
        symbol: symbol,
        budget: budget,
-       chunks: chunks
+       chunks: chunks,
+       traders: traders
      }}
   end
 
