@@ -211,6 +211,20 @@ defmodule UiWeb.NaiveTraderSettingsLive do
       )}
   end
 
+  def handle_event("trade-symbol-" <> symbol, "", socket) do
+    Hefty.flip_trading(symbol)
+    {:noreply,
+      assign(socket,
+        naive_trader_settings_data:
+          naive_trader_settings_data(
+            socket.assigns.naive_trader_settings_data.limit,
+            socket.assigns.naive_trader_settings_data.page,
+            socket.assigns.search
+          ),
+        edit_row: nil
+      )}
+  end
+
   defp naive_trader_settings_data(limit, page, search) do
     pagination =
       Hefty.fetch_naive_trader_settings((page - 1) * limit, limit, search)

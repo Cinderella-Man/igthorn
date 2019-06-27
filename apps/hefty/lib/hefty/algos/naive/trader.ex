@@ -230,7 +230,8 @@ defmodule Hefty.Algos.Naive.Trader do
         },
         %State{} = state
       ) do
-    Logger.debug("Another trade event received - TBFixed")
+    # removed as confusing
+    # Logger.debug("Another trade event received - TBFixed")
     {:noreply, state}
   end
 
