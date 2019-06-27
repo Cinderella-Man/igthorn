@@ -203,12 +203,12 @@ defmodule Hefty.Algos.Naive.Trader do
 
     new_state = %{state | :sell_order => new_sell_order}
 
-    GenServer.cast(:"Hefty.Algos.Naive.Leader-#{symbol}", {:trade_finished, new_state})
-
     case current_sell_order.executed_qty == current_sell_order.orig_qty do
       true ->
         Logger.info("Current sell order has been filled. Process can terminate")
-        {:stop, :normal, new_state}
+        IO.inspect(Process.whereis(:"Hefty.Algos.Naive.Leader-#{symbol}"))
+        GenServer.cast(:"Hefty.Algos.Naive.Leader-#{symbol}", {:trade_finished, self(), new_state})
+        {:noreply, new_state}
 
       false ->
         {:noreply, new_state}

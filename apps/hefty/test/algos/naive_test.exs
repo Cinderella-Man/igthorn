@@ -186,7 +186,7 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
 
-    :timer.sleep(1100)
+    :timer.sleep(1800)
 
     result = Hefty.Orders.fetch_orders(symbol)
 
