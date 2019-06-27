@@ -11,7 +11,7 @@ defmodule UiWeb.SettingsLive do
               <h3 class="box-title">Streaming settings</h3>
 
               <div class="box-tools">
-                <form phx_change="validate" phx-submit="validate">
+                <form phx-change="search" phx-submit="search">
                   <div class="input-group input-group-sm" style="width: 180px;">
                     <input type="text" name="search" class="form-control pull-right" placeholder="Search" value="<%= @search %>">
                     <div class="input-group-btn">
@@ -62,7 +62,7 @@ defmodule UiWeb.SettingsLive do
     {:noreply, assign(socket, settings: settings)}
   end
 
-  def handle_event("validate", %{"search" => search}, socket) do
+  def handle_event("search", %{"search" => search}, socket) do
     settings =
       Hefty.fetch_stream_settings(search)
       |> Enum.into([], &{:"#{&1.symbol}", &1})

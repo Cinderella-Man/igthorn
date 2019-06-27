@@ -25,7 +25,7 @@ defmodule Hefty do
 
     query =
       from(ss in Hefty.Repo.StreamingSetting,
-        where: like(ss.symbol, ^"%#{symbol}%"),
+        where: like(ss.symbol, ^"%#{String.upcase(symbol)}%"),
         order_by: [desc: ss.enabled, asc: ss.symbol]
       )
 
@@ -94,6 +94,17 @@ defmodule Hefty do
     Hefty.Repo.all(query)
   end
 
+  # TODO - make unique time (group by time)
+  def fetch_trade_events_prices(symbol) do
+    from(te in Hefty.Repo.Binance.TradeEvent,
+      select: [te.price, te.inserted_at],
+      order_by: [desc: te.trade_time],
+      limit: 50,
+      where: te.symbol == ^symbol,
+    )
+    |> Hefty.Repo.all()
+  end
+
   def fetch_naive_trader_settings() do
     query =
       from(nts in Hefty.Repo.NaiveTraderSetting,
@@ -104,6 +115,8 @@ defmodule Hefty do
   end
 
   def fetch_naive_trader_settings(offset, limit, symbol \\ "") do
+    Logger.debug("Fetching naive trader settings for a symbol", symbol: symbol)
+
     from(nts in Hefty.Repo.NaiveTraderSetting,
       order_by: nts.symbol,
       where: like(nts.symbol, ^"%#{String.upcase(symbol)}%"),
