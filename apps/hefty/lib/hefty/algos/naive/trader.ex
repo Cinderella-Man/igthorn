@@ -50,13 +50,13 @@ defmodule Hefty.Algos.Naive.Trader do
               pair: nil
   end
 
-  def start_link({symbol, strategy}) do
-    GenServer.start_link(__MODULE__, {symbol, strategy}, name: :"#{__MODULE__}-#{symbol}")
+  def start_link({symbol, strategy, data}) do
+    GenServer.start_link(__MODULE__, {symbol, strategy, data}, name: :"#{__MODULE__}-#{symbol}")
   end
 
-  def init({symbol, strategy}) do
+  def init({symbol, strategy, data}) do
     Logger.info("Trader starting(symbol: #{symbol}, strategy: #{strategy})")
-    GenServer.cast(self(), {:init_strategy, strategy})
+    GenServer.cast(self(), {:init_strategy, strategy, data})
 
     Logger.debug("Trader subscribing to #{"stream-#{symbol}"}")
     :ok = UiWeb.Endpoint.subscribe("stream-#{symbol}")
@@ -71,8 +71,18 @@ defmodule Hefty.Algos.Naive.Trader do
   @doc """
   Blank strategy called when on init.
   """
-  def handle_cast({:init_strategy, :blank}, state) do
+  def handle_cast({:init_strategy, :blank, []}, state) do
     state = %State{prepare_state(state.symbol) | :strategy => :blank}
+    {:noreply, state}
+  end
+
+  @doc """
+  Blank strategy called when on init.
+  """
+  def handle_cast({:init_strategy, :rebuy, %{:sell_price => sell_price}}, state) do
+    base_state = prepare_state(state.symbol)
+    buy_order = place_buy_order(sell_price, base_state)
+    state = %State{base_state | :strategy => :blank, :buy_order => buy_order}
     {:noreply, state}
   end
 
@@ -83,37 +93,13 @@ defmodule Hefty.Algos.Naive.Trader do
   def handle_info(
         %{
           event: "trade_event",
-          payload: %Hefty.Repo.Binance.TradeEvent{price: price, symbol: symbol}
+          payload: %Hefty.Repo.Binance.TradeEvent{price: price}
         },
         %State{
-          strategy: :blank,
-          buy_order: nil,
-          symbol: symbol,
-          buy_down_interval: buy_down_interval,
-          budget: budget,
-          pair: %Hefty.Repo.Binance.Pair{
-            price_tick_size: tick_size,
-            quantity_step_size: quantity_step_size
-          }
+          buy_order: nil
         } = state
       ) do
-    target_price = calculate_target_price(price, buy_down_interval, tick_size)
-    quantity = calculate_quantity(budget, target_price, quantity_step_size)
-
-    Logger.info("Placing BUY order for #{symbol} @ #{target_price}, quantity: #{quantity}")
-
-    {:ok, res} =
-      @binance_client.order_limit_buy(
-        symbol,
-        quantity,
-        target_price,
-        "GTC"
-      )
-
-    Logger.info("Successfully placed an BUY order #{res.order_id}")
-
-    order = store_order(res)
-
+    order = place_buy_order(price, state)
     {:noreply, %State{state | :buy_order => order}}
   end
 
@@ -206,8 +192,8 @@ defmodule Hefty.Algos.Naive.Trader do
     case current_sell_order.executed_qty == current_sell_order.orig_qty do
       true ->
         Logger.info("Current sell order has been filled. Process can terminate")
-        IO.inspect(Process.whereis(:"Hefty.Algos.Naive.Leader-#{symbol}"))
-        GenServer.cast(:"Hefty.Algos.Naive.Leader-#{symbol}", {:trade_finished, self(), new_state})
+        IO.inspect(Process.whereis(:"Hefty.Algos.Naive.Leader-#{symbol}"), label: "Where is leader")
+        GenServer.cast(:"#{Hefty.Algos.Naive.Leader}-#{symbol}", {:trade_finished, self(), new_state})
         {:noreply, new_state}
 
       false ->
@@ -230,8 +216,36 @@ defmodule Hefty.Algos.Naive.Trader do
         },
         %State{} = state
       ) do
-    Logger.debug("Another trade event received - TBFixed")
+    # Logger.debug("Another trade event received - TBFixed")
     {:noreply, state}
+  end
+
+  defp place_buy_order(price, %State{
+      buy_order: nil,
+      symbol: symbol,
+      buy_down_interval: buy_down_interval,
+      budget: budget,
+      pair: %Hefty.Repo.Binance.Pair{
+        price_tick_size: tick_size,
+        quantity_step_size: quantity_step_size
+      }
+    }) do
+    target_price = calculate_target_price(price, buy_down_interval, tick_size)
+    quantity = calculate_quantity(budget, target_price, quantity_step_size)
+
+    Logger.info("Placing BUY order for #{symbol} @ #{target_price}, quantity: #{quantity}")
+
+    {:ok, res} =
+      @binance_client.order_limit_buy(
+        symbol,
+        quantity,
+        target_price,
+        "GTC"
+      )
+
+    Logger.info("Successfully placed an BUY order #{res.order_id}")
+
+    store_order(res)
   end
 
   defp prepare_state(symbol) do

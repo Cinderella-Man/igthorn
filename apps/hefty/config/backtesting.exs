@@ -22,6 +22,7 @@ use Mix.Config
 #
 
 config :hefty,
+  env: "backtesting",
   exchanges: %{
     binance: Hefty.Exchanges.BinanceMock
   }

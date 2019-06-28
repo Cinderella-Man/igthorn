@@ -19,7 +19,7 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 2 - start BinanceMock process")
 
-    Hefty.Exchanges.BinanceMock.start_link()
+    Hefty.Exchanges.BinanceMock.start_link([])
 
     Logger.debug("Step 3 - clear trade_events table")
 
@@ -190,8 +190,8 @@ defmodule Hefty.Algos.NaiveTest do
 
     result = Hefty.Orders.fetch_orders(symbol)
 
-    assert length(result) == 2
-    [buy_order, sell_order] = result
+    assert length(result) == 3
+    [buy_order, sell_order, _new_buy_order] = result
 
     assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
 
