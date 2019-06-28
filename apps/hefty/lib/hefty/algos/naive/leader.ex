@@ -38,28 +38,32 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def handle_cast(
-        {:trade_finished,
+        {:trade_finished, pid,
          %Hefty.Algos.Naive.Trader.State{
-           :sell_order => %Hefty.Repo.Binance.Order{:price => sell_order_price}
+           :sell_order => %Hefty.Repo.Binance.Order{:price => sell_order_price},
+           :symbol => symbol
          }},
         state
       ) do
     Logger.info("Trade finished at price of #{sell_order_price}")
-    # todo: start new non-blank trader here
-    {:noreply, state}
-  end
 
-  def handle_info({:DOWN, ref, :process, pid, :normal}, state) do
-    new_traders =
-      case Enum.find(state.traders, nil, fn t -> t == {pid, ref} end) do
-        nil ->
-          Logger.warn("Something gone wrong - received :normal :DOWN from unknown process")
-          state.traders
-        _ ->
-          Enum.reject(state.traders, fn t -> t == {pid, ref} end)
-      end
+    :ok =
+      DynamicSupervisor.terminate_child(
+        :"Hefty.Algos.Naive.DynamicSupervisor-#{symbol}",
+        pid
+      )
+
+    new_traders = [
+      start_new_trader(symbol, :rebuy, %{:sell_price => sell_order_price})
+      | Enum.reject(state.traders, fn t -> elem(t, 0) == pid end)
+    ]
 
     {:noreply, %{state | :traders => new_traders}}
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, :shutdown}, state) do
+    Logger.info("Ignoring the fact that process died as it died normally")
+    {:noreply, state}
   end
 
   # Safety fuse
@@ -79,7 +83,7 @@ defmodule Hefty.Algos.Naive.Leader do
       case open_trades do
         [] ->
           Logger.info("No open trades so starting :blank trader", symbol: symbol)
-          [start_new_trader(symbol)]
+          [start_new_trader(symbol, :blank, [])]
 
         x ->
           Logger.info("There's some exisitng trades ongoing - starting trader for each",
@@ -113,11 +117,11 @@ defmodule Hefty.Algos.Naive.Leader do
     |> Hefty.Repo.all()
   end
 
-  defp start_new_trader(symbol) do
+  defp start_new_trader(symbol, strategy, data) do
     {:ok, pid} =
       DynamicSupervisor.start_child(
         :"Hefty.Algos.Naive.DynamicSupervisor-#{symbol}",
-        {Hefty.Algos.Naive.Trader, {symbol, :blank}}
+        {Hefty.Algos.Naive.Trader, {symbol, strategy, data}}
       )
 
     ref = Process.monitor(pid)
@@ -126,7 +130,7 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   defp start_trader(orders) do
-    IO.inspect("Starting trader for orders:")
+    IO.inspect("Would be starting trader for orders(still TODO):")
     Enum.map(orders, &IO.puts(&1.id))
   end
 end

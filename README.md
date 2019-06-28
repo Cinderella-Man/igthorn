@@ -79,3 +79,47 @@ Naive strategy described in video called "[My Adventures in Automated Crypto Tra
 - implement naive trader algo
 - dashboard screen to allow people to have strategies that flag "interesting" symbols (for example [volume trading](https://www.investopedia.com/articles/technical/02/010702.asp))
 - possibly implement different exchanges to allow for strategies like [arbitrage](https://www.investopedia.com/terms/a/arbitrage.asp) and others.
+
+## Backtesting
+
+Step 1 - Initialize empty database
+
+```
+export MIX_ENV=backtesting && cd apps/hefty && mix ecto.reset && cd ../..
+```
+
+Step 2 - Database needs to be filled with some data:
+
+```
+git clone https://github.com/Cinderella-Man/binance-trade-events.git /tmp/trade-events
+gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-03.csv.gz
+gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-04.csv.gz
+gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-05.csv.gz
+gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-06.csv.gz
+gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-07.csv.gz
+gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-08.csv.gz
+gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-09.csv.gz
+psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-01.csv' WITH (FORMAT csv, delimiter ';');"
+psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-02.csv' WITH (FORMAT csv, delimiter ';');"
+psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-03.csv' WITH (FORMAT csv, delimiter ';');"
+psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-04.csv' WITH (FORMAT csv, delimiter ';');"
+psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-05.csv' WITH (FORMAT csv, delimiter ';');"
+psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-06.csv' WITH (FORMAT csv, delimiter ';');"
+psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-07.csv' WITH (FORMAT csv, delimiter ';');"
+psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-08.csv' WITH (FORMAT csv, delimiter ';');"
+psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-09.csv' WITH (FORMAT csv, delimiter ';');"
+```
+
+This will give you a little bit over 1 million events or one full week of trading data.
+
+Step 3 - Start application in backtesting environment
+
+```
+export MIX_ENV=backtesting && iex -S mix phx.server
+```
+
+Step 4 - Enable trading on `XRPUSDT` pair - go to "Naive trader settings" and search for the symbol. Click on "Edit" set budget to some decent amount like 1000 and click "Save". Now click on "Disabled" button to enable trading. At this moment system will listen to XRPUSDT stream. 
+
+Step 5 - 
+
+Now go to `Backtesting` section chose "XRPUSDT" symbol, select 2 dates (2019-06-03 and 2019-06-09) and click "Submit" which will send all 1 million events through naive strategy trader(s).

@@ -19,7 +19,7 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 2 - start BinanceMock process")
 
-    Hefty.Exchanges.BinanceMock.start_link()
+    Hefty.Exchanges.BinanceMock.start_link([])
 
     Logger.debug("Step 3 - clear trade_events table")
 
@@ -33,8 +33,9 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 5 - configure naive trader for symbol")
 
-    current_settings = Hefty.fetch_naive_trader_settings(offset, limit, symbol)
-      |> List.first
+    current_settings =
+      Hefty.fetch_naive_trader_settings(offset, limit, symbol)
+      |> List.first()
 
     new_settings = %{
       :profit_interval => "0.001",
@@ -186,12 +187,12 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
 
-    :timer.sleep(1100)
+    :timer.sleep(1800)
 
     result = Hefty.Orders.fetch_orders(symbol)
 
-    assert length(result) == 2
-    [buy_order, sell_order] = result
+    assert length(result) == 3
+    [buy_order, sell_order, _new_buy_order] = result
 
     assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
 
