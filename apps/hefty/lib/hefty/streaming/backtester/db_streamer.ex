@@ -32,7 +32,7 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
         :timer.sleep(interval)
         GenServer.cast(streamer_pid, {:trade_event, row})
       end)
-    end)
+    end, timeout: :infinity)
 
     GenServer.cast(streamer_pid, :stream_finished)
   end

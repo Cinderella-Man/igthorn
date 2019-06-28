@@ -100,7 +100,7 @@ defmodule Hefty do
       select: [te.price, te.inserted_at],
       order_by: [desc: te.trade_time],
       limit: 50,
-      where: te.symbol == ^symbol,
+      where: te.symbol == ^symbol
     )
     |> Hefty.Repo.all()
   end
@@ -126,7 +126,7 @@ defmodule Hefty do
     |> Hefty.Repo.all()
   end
 
-  @spec count_naive_trader_settings :: number()
+  @spec count_naive_trader_settings(String.t()) :: number()
   def count_naive_trader_settings(symbol \\ "") do
     from(nts in Hefty.Repo.NaiveTraderSetting,
       select: count("*"),

@@ -129,7 +129,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   # PRIVATE FUNCTIONS
 
   defp broadcast_trade_event(event) do
-    Logger.debug("Streaming trade event #{event.trade_id} for symbol #{event.symbol}")
+    # Logger.debug("Streaming trade event #{event.trade_id} for symbol #{event.symbol}")
 
     UiWeb.Endpoint.broadcast_from(
       self(),

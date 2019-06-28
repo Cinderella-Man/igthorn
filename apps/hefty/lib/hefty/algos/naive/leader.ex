@@ -19,6 +19,9 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def start_link(symbol) do
+    IO.inspect :"#{__MODULE__}-#{symbol}"
+
+
     GenServer.start_link(__MODULE__, symbol, name: :"#{__MODULE__}-#{symbol}")
   end
 
@@ -54,12 +57,14 @@ defmodule Hefty.Algos.Naive.Leader do
         pid
       )
 
-    new_traders = Enum.reject(state.traders, fn(t) -> elem(t, 0) == pid end)
+    new_traders = [
+      start_new_trader(symbol, :rebuy, %{:sell_price => sell_order_price}) | Enum.reject(state.traders, fn(t) -> elem(t, 0) == pid end)
+    ]
 
     {:noreply, %{state | :traders => new_traders}}
   end
 
-  def handle_info({:DOWN, _ref, :process, _pid, :normal}, state) do
+  def handle_info({:DOWN, _ref, :process, _pid, :shutdown}, state) do
     Logger.info("Ignoring the fact that process died as it died normally")
     {:noreply, state}
   end
@@ -81,7 +86,7 @@ defmodule Hefty.Algos.Naive.Leader do
       case open_trades do
         [] ->
           Logger.info("No open trades so starting :blank trader", symbol: symbol)
-          [start_new_trader(symbol)]
+          [start_new_trader(symbol, :blank, [])]
 
         x ->
           Logger.info("There's some exisitng trades ongoing - starting trader for each",
@@ -115,11 +120,11 @@ defmodule Hefty.Algos.Naive.Leader do
     |> Hefty.Repo.all()
   end
 
-  defp start_new_trader(symbol) do
+  defp start_new_trader(symbol, strategy, data) do
     {:ok, pid} =
       DynamicSupervisor.start_child(
         :"Hefty.Algos.Naive.DynamicSupervisor-#{symbol}",
-        {Hefty.Algos.Naive.Trader, {symbol, :blank}}
+        {Hefty.Algos.Naive.Trader, {symbol, strategy, data}}
       )
 
     ref = Process.monitor(pid)
