@@ -43,39 +43,50 @@ defmodule UiWeb.PriceChartLive do
   end
 
   def mount(%{}, socket) do
-    symbols = Hefty.fetch_streaming_symbols()
-              |> Map.keys
-    symbol = symbols
-             |> List.first
+    symbols =
+      Hefty.fetch_streaming_symbols()
+      |> Map.keys()
+
+    symbol =
+      symbols
+      |> List.first()
+
     symbols
-      |> Enum.map(&UiWeb.Endpoint.subscribe("stream-#{&1}"))
+    |> Enum.map(&UiWeb.Endpoint.subscribe("stream-#{&1}"))
 
     {:ok, assign(socket, data: price_chart_data(symbol), symbols: symbols)}
   end
 
   def handle_info(%{event: "trade_event", payload: event}, socket) do
-    {:noreply, assign(socket, data: price_chart_data(socket.assigns.data.symbol), symbols: socket.assigns.symbols)}
+    {:noreply,
+     assign(socket,
+       data: price_chart_data(socket.assigns.data.symbol),
+       symbols: socket.assigns.symbols
+     )}
   end
 
   defp price_chart_data(symbol) when is_nil(symbol), do: %{:symbol => nil}
 
   def handle_event("change-symbol", %{"selected_symbol" => selected_symbol}, socket) do
-    {:noreply, assign(socket, data: price_chart_data(selected_symbol), symbols: socket.assigns.symbols)}
+    {:noreply,
+     assign(socket, data: price_chart_data(selected_symbol), symbols: socket.assigns.symbols)}
   end
-
 
   defp price_chart_data(symbol) do
     data = Hefty.fetch_trade_events_prices(symbol)
-    prices = data
-             |> Enum.map(&List.first/1)
-             |> Enum.reverse
-             |> Enum.map(&String.to_float/1)
-             |> Jason.encode!
 
-    labels = data
-             |> Enum.map(&List.last/1)
-             |> Enum.reverse
-             |> Enum.map(&T.format!(&1, "{h24}:{0m}:{0s}"))
+    prices =
+      data
+      |> Enum.map(&List.first/1)
+      |> Enum.reverse()
+      |> Enum.map(&String.to_float/1)
+      |> Jason.encode!()
+
+    labels =
+      data
+      |> Enum.map(&List.last/1)
+      |> Enum.reverse()
+      |> Enum.map(&T.format!(&1, "{h24}:{0m}:{0s}"))
 
     %{
       :labels => labels,

@@ -10,7 +10,7 @@ defmodule Hefty.Exchanges.BinanceMock do
     defstruct orders: [], subscriptions: []
   end
 
-  def start_link() do
+  def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
