@@ -192,8 +192,16 @@ defmodule Hefty.Algos.Naive.Trader do
     case current_sell_order.executed_qty == current_sell_order.orig_qty do
       true ->
         Logger.info("Current sell order has been filled. Process can terminate")
-        IO.inspect(Process.whereis(:"Hefty.Algos.Naive.Leader-#{symbol}"), label: "Where is leader")
-        GenServer.cast(:"#{Hefty.Algos.Naive.Leader}-#{symbol}", {:trade_finished, self(), new_state})
+
+        IO.inspect(Process.whereis(:"Hefty.Algos.Naive.Leader-#{symbol}"),
+          label: "Where is leader"
+        )
+
+        GenServer.cast(
+          :"#{Hefty.Algos.Naive.Leader}-#{symbol}",
+          {:trade_finished, self(), new_state}
+        )
+
         {:noreply, new_state}
 
       false ->
@@ -221,15 +229,15 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   defp place_buy_order(price, %State{
-      buy_order: nil,
-      symbol: symbol,
-      buy_down_interval: buy_down_interval,
-      budget: budget,
-      pair: %Hefty.Repo.Binance.Pair{
-        price_tick_size: tick_size,
-        quantity_step_size: quantity_step_size
-      }
-    }) do
+         buy_order: nil,
+         symbol: symbol,
+         buy_down_interval: buy_down_interval,
+         budget: budget,
+         pair: %Hefty.Repo.Binance.Pair{
+           price_tick_size: tick_size,
+           quantity_step_size: quantity_step_size
+         }
+       }) do
     target_price = calculate_target_price(price, buy_down_interval, tick_size)
     quantity = calculate_quantity(budget, target_price, quantity_step_size)
 

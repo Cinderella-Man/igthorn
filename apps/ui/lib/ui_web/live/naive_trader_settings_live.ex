@@ -139,13 +139,13 @@ defmodule UiWeb.NaiveTraderSettingsLive do
 
   def mount(%{}, socket) do
     {:ok,
-      assign(socket,
-        naive_trader_settings_data: naive_trader_settings_data(50, 1, ""),
-        rows_numbers: [10, 20, 30, 40, 50, 100, 200],
-        set_rows: 50,
-        edit_row: nil,
-        search: ""
-      )}
+     assign(socket,
+       naive_trader_settings_data: naive_trader_settings_data(50, 1, ""),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: 50,
+       edit_row: nil,
+       search: ""
+     )}
   end
 
   defp trading_status(true), do: "Trading"
@@ -158,38 +158,38 @@ defmodule UiWeb.NaiveTraderSettingsLive do
 
   def handle_event("search", %{"search" => search}, socket) do
     {:noreply,
-      assign(socket,
-        naive_trader_settings_data:
-          naive_trader_settings_data(
-            socket.assigns.naive_trader_settings_data.limit,
-            1,
-            search
-          ),
-        search: search
-      )}
+     assign(socket,
+       naive_trader_settings_data:
+         naive_trader_settings_data(
+           socket.assigns.naive_trader_settings_data.limit,
+           1,
+           search
+         ),
+       search: search
+     )}
   end
 
   def handle_event("rows", %{"rows_per_page" => limit}, socket) do
     {:noreply,
-      assign(socket,
-        naive_trader_settings_data:
-          naive_trader_settings_data(String.to_integer(limit), 1, socket.assigns.search),
-        set_rows: String.to_integer(limit),
-        search: socket.assigns.search
-      )}
+     assign(socket,
+       naive_trader_settings_data:
+         naive_trader_settings_data(String.to_integer(limit), 1, socket.assigns.search),
+       set_rows: String.to_integer(limit),
+       search: socket.assigns.search
+     )}
   end
 
   def handle_event("pagination-" <> page, _, socket) do
     {:noreply,
-      assign(socket,
-        naive_trader_settings_data:
-          naive_trader_settings_data(
-            socket.assigns.naive_trader_settings_data.limit,
-            String.to_integer(page),
-            socket.assigns.search
-          ),
-        search: socket.assigns.search
-      )}
+     assign(socket,
+       naive_trader_settings_data:
+         naive_trader_settings_data(
+           socket.assigns.naive_trader_settings_data.limit,
+           String.to_integer(page),
+           socket.assigns.search
+         ),
+       search: socket.assigns.search
+     )}
   end
 
   def handle_event("edit-row-" <> symbol, _, socket) do
@@ -199,30 +199,32 @@ defmodule UiWeb.NaiveTraderSettingsLive do
 
   def handle_event("save-row", data, socket) do
     Hefty.update_naive_trader_settings(data)
+
     {:noreply,
-      assign(socket,
-        naive_trader_settings_data:
-          naive_trader_settings_data(
-            socket.assigns.naive_trader_settings_data.limit,
-            socket.assigns.naive_trader_settings_data.page,
-            socket.assigns.search
-          ),
-        edit_row: nil
-      )}
+     assign(socket,
+       naive_trader_settings_data:
+         naive_trader_settings_data(
+           socket.assigns.naive_trader_settings_data.limit,
+           socket.assigns.naive_trader_settings_data.page,
+           socket.assigns.search
+         ),
+       edit_row: nil
+     )}
   end
 
   def handle_event("trade-symbol-" <> symbol, "", socket) do
     Hefty.flip_trading(symbol)
+
     {:noreply,
-      assign(socket,
-        naive_trader_settings_data:
-          naive_trader_settings_data(
-            socket.assigns.naive_trader_settings_data.limit,
-            socket.assigns.naive_trader_settings_data.page,
-            socket.assigns.search
-          ),
-        edit_row: nil
-      )}
+     assign(socket,
+       naive_trader_settings_data:
+         naive_trader_settings_data(
+           socket.assigns.naive_trader_settings_data.limit,
+           socket.assigns.naive_trader_settings_data.page,
+           socket.assigns.search
+         ),
+       edit_row: nil
+     )}
   end
 
   defp naive_trader_settings_data(limit, page, search) do

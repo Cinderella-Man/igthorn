@@ -23,16 +23,19 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
       |> NaiveDateTime.add(24 * 60 * 60, :second)
       |> Hefty.Utils.Date.naiveDateToTs()
 
-    Hefty.Repo.transaction(fn ->
-      from(te in Hefty.Repo.Binance.TradeEvent,
-        where: te.symbol == ^symbol and te.trade_time >= ^from_ts and te.trade_time < ^to_ts
-      )
-      |> Hefty.Repo.stream()
-      |> Enum.map(fn row ->
-        :timer.sleep(interval)
-        GenServer.cast(streamer_pid, {:trade_event, row})
-      end)
-    end, timeout: :infinity)
+    Hefty.Repo.transaction(
+      fn ->
+        from(te in Hefty.Repo.Binance.TradeEvent,
+          where: te.symbol == ^symbol and te.trade_time >= ^from_ts and te.trade_time < ^to_ts
+        )
+        |> Hefty.Repo.stream()
+        |> Enum.map(fn row ->
+          :timer.sleep(interval)
+          GenServer.cast(streamer_pid, {:trade_event, row})
+        end)
+      end,
+      timeout: :infinity
+    )
 
     GenServer.cast(streamer_pid, :stream_finished)
   end

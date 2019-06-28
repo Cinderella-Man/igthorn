@@ -159,5 +159,4 @@ defmodule Hefty do
         throw("Unable to update " <> data["symbol"] <> " naive trader settings")
     end
   end
-
 end

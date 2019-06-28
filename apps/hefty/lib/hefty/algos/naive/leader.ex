@@ -19,8 +19,7 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def start_link(symbol) do
-    IO.inspect :"#{__MODULE__}-#{symbol}"
-
+    IO.inspect(:"#{__MODULE__}-#{symbol}")
 
     GenServer.start_link(__MODULE__, symbol, name: :"#{__MODULE__}-#{symbol}")
   end
@@ -41,8 +40,7 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def handle_cast(
-        {:trade_finished,
-         pid,
+        {:trade_finished, pid,
          %Hefty.Algos.Naive.Trader.State{
            :sell_order => %Hefty.Repo.Binance.Order{:price => sell_order_price},
            :symbol => symbol
@@ -58,7 +56,8 @@ defmodule Hefty.Algos.Naive.Leader do
       )
 
     new_traders = [
-      start_new_trader(symbol, :rebuy, %{:sell_price => sell_order_price}) | Enum.reject(state.traders, fn(t) -> elem(t, 0) == pid end)
+      start_new_trader(symbol, :rebuy, %{:sell_price => sell_order_price})
+      | Enum.reject(state.traders, fn t -> elem(t, 0) == pid end)
     ]
 
     {:noreply, %{state | :traders => new_traders}}
