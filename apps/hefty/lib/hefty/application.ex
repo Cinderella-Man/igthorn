@@ -10,8 +10,6 @@ defmodule Hefty.Application do
       {Hefty.Algos.Naive.Supervisor, []}
     ]
 
-    IO.inspect(Application.get_env(:hefty, :env))
-
     backtesting_workers =
       case Application.get_env(:hefty, :env) == "backtesting" do
         false -> []

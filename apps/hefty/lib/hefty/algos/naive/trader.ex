@@ -193,10 +193,6 @@ defmodule Hefty.Algos.Naive.Trader do
       true ->
         Logger.info("Current sell order has been filled. Process can terminate")
 
-        IO.inspect(Process.whereis(:"Hefty.Algos.Naive.Leader-#{symbol}"),
-          label: "Where is leader"
-        )
-
         GenServer.cast(
           :"#{Hefty.Algos.Naive.Leader}-#{symbol}",
           {:trade_finished, self(), new_state}

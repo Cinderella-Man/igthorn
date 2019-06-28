@@ -19,8 +19,6 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def start_link(symbol) do
-    IO.inspect(:"#{__MODULE__}-#{symbol}")
-
     GenServer.start_link(__MODULE__, symbol, name: :"#{__MODULE__}-#{symbol}")
   end
 
@@ -132,7 +130,7 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   defp start_trader(orders) do
-    IO.inspect("Starting trader for orders:")
+    IO.inspect("Would be starting trader for orders(still TODO):")
     Enum.map(orders, &IO.puts(&1.id))
   end
 end
