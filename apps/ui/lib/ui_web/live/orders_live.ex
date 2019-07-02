@@ -1,6 +1,5 @@
 defmodule UiWeb.OrdersLive do
   use Phoenix.LiveView
-  alias Timex, as: T
 
   def render(assigns) do
     ~L"""
