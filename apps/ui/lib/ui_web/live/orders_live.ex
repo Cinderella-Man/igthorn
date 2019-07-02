@@ -90,55 +90,56 @@ defmodule UiWeb.OrdersLive do
     <% end %>
     """
   end
-  
+
   def mount(%{}, socket) do
-    {:ok, assign(socket,
-      orders_data: orders_data(50, 1, ""),
-      rows_numbers: [10, 20, 30, 40, 50, 100, 200],
-      set_rows: 50,
-      search: ""
-    )}
+    {:ok,
+     assign(socket,
+       orders_data: orders_data(50, 1, ""),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: 50,
+       search: ""
+     )}
   end
 
   def handle_event("search", %{"search" => search}, socket) do
     {:noreply,
-      assign(socket,
-        orders_data: orders_data(50, 1, search),
-        rows_numbers: [10, 20, 30, 40, 50, 100, 200],
-        set_rows: socket.assigns.set_rows,
-        search: search
-      )
-    }
+     assign(socket,
+       orders_data: orders_data(50, 1, search),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: socket.assigns.set_rows,
+       search: search
+     )}
   end
 
   def handle_event("rows", %{"rows_per_page" => limit}, socket) do
     {:noreply,
-      assign(socket,
-        orders_data: orders_data(String.to_integer(limit), 1, socket.assigns.search),
-        rows_numbers: [10, 20, 30, 40, 50, 100, 200],
-        set_rows: String.to_integer(limit),
-        search: socket.assigns.search
-      )
-    }
+     assign(socket,
+       orders_data: orders_data(String.to_integer(limit), 1, socket.assigns.search),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: String.to_integer(limit),
+       search: socket.assigns.search
+     )}
   end
 
   def handle_event("pagination-" <> page, _, socket) do
     {:noreply,
-      assign(socket,
-        orders_data: orders_data(socket.assigns.orders_data.limit, String.to_integer(page), socket.assigns.search),
-        rows_numbers: [10, 20, 30, 40, 50, 100, 200],
-        set_rows: socket.assigns.set_rows,
-        search: socket.assigns.search
-      )
-    }
+     assign(socket,
+       orders_data:
+         orders_data(
+           socket.assigns.orders_data.limit,
+           String.to_integer(page),
+           socket.assigns.search
+         ),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: socket.assigns.set_rows,
+       search: socket.assigns.search
+     )}
   end
 
   defp orders_data(limit, page, search) do
-    pagination =
-      Hefty.fetch_orders((page - 1) * limit, limit, search)
+    pagination = Hefty.fetch_orders((page - 1) * limit, limit, search)
 
-    all =
-      Hefty.count_orders(search)
+    all = Hefty.count_orders(search)
 
     pagination_links =
       Enum.filter(
