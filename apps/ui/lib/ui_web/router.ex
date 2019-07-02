@@ -19,6 +19,7 @@ defmodule UiWeb.Router do
 
     get("/", PageController, :index)
     get("/streaming-settings", StreamingSettingsController, :index)
+    get("/orders", OrdersController, :index)
     get("/backtesting", BacktestingController, :index)
     get("/naive-trader-settings", NaiveSettingsController, :index)
   end

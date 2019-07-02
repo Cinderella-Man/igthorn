@@ -65,12 +65,12 @@ defmodule UiWeb.PriceChartLive do
      )}
   end
 
-  defp price_chart_data(symbol) when is_nil(symbol), do: %{:symbol => nil}
-
   def handle_event("change-symbol", %{"selected_symbol" => selected_symbol}, socket) do
     {:noreply,
      assign(socket, data: price_chart_data(selected_symbol), symbols: socket.assigns.symbols)}
   end
+
+  defp price_chart_data(symbol) when is_nil(symbol), do: %{:symbol => nil}
 
   defp price_chart_data(symbol) do
     data = Hefty.fetch_trade_events_prices(symbol)
