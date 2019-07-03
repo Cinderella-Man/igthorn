@@ -2,14 +2,21 @@
 
 [![Build Status](https://travis-ci.com/HedonSoftware/Igthorn.svg?branch=v0.0.2)](https://travis-ci.com/HedonSoftware/Igthorn)
 
-This is still work in progress(it fully works but could be greatly extended). I would love to get some help either graphics or code.
+Igthorn is a batteries-included cryptocurrency trading environment written in Elixir.
 
-Igthorn is an Elixir boilerplate for kick-starting your crypto bot project. It contains everything you need to immediately focus on writing algo instead of worrying about streaming and backoffice in general.
+It contains a lot more than just a trading bot, it allows you to do much more. Non-comprehensive list:
+- naive strategy that trades based on assumption that price will have tendency to grow slowely
+- backtesting engine that allows to test your strategies against historical data
+- search and list current and historical orders and transactions
+- view chart representations of your trading
+
+Igthorn is a boilerplate for kick-starting your crypto bot project. It contains everything you need to immediately focus on writing algo instead of worrying about streaming and backoffice in general.
 
 It's structured as umbrella app that consist of:
-- `Hefty` - streaming backend supporting Binance, all done via supervision tree, resilient and prepared to shift data straight to your trading strategies
-- `Ui` - Phoenix frontend to modify things using browser instead of raw queries to db. Things that
-can be done via browser include: kicking off straming on symbol, modyfing naive strategy settings.
+- `Ui` - GUI - Phoenix frontend to modify things using browser instead of raw queries to db. Things that
+can be done via browser include: kicking off straming on symbol, modyfing naive strategy settings, starting trading, kicking of backtesting and others.
+- `Hefty` - Backend - streaming backend supporting Binance, naive trading strategy and others
+
 
 ## Limit of Liability/Disclaimer of Warranty
 
@@ -75,8 +82,6 @@ Naive strategy described in video called "[My Adventures in Automated Crypto Tra
 
 ## To do:
 
-- implement backtesting routine (possibly CLI)
-- implement naive trader algo
 - dashboard screen to allow people to have strategies that flag "interesting" symbols (for example [volume trading](https://www.investopedia.com/articles/technical/02/010702.asp))
 - possibly implement different exchanges to allow for strategies like [arbitrage](https://www.investopedia.com/terms/a/arbitrage.asp) and others.
 
@@ -123,3 +128,13 @@ Step 4 - Enable trading on `XRPUSDT` pair - go to "Naive trader settings" and se
 Step 5 - 
 
 Now go to `Backtesting` section chose "XRPUSDT" symbol, select 2 dates (2019-06-03 and 2019-06-09) and click "Submit" which will send all 1 million events through naive strategy trader(s).
+
+## Documentation
+
+Hosted at [docs.igthorn.com](http://docs.igthorn.com)
+
+To regenerate run:
+
+```
+mix docs
+```

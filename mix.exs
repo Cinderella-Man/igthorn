@@ -5,7 +5,16 @@ defmodule Igthorn.MixProject do
     [
       apps_path: "apps",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      # Docs
+      name: "Igthorn",
+      source_url: "https://github.com/HedonSoftware/Igthorn",
+      homepage_url: "http://igthorn.com/",
+      docs: [
+        main: "Hefty", # The main page in the docs
+        logo: "docs/logo.png",
+        extras: ["README.md"]
+      ]
     ]
   end
 
