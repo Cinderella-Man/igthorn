@@ -32,6 +32,7 @@ defmodule Hefty.MixProject do
       {:csv, "~> 2.3"},
       {:decimal, "~> 1.7"},
       {:ecto_sql, "~> 3.0"},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:flow, "~> 0.14"},
       {:json, "~> 1.3"},
       {:postgrex, ">= 0.0.0"},
