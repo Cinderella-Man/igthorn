@@ -136,6 +136,7 @@
       <ul class="sidebar-menu" data-widget="tree">
         <li class="header">MAIN NAVIGATION</li>
         <li><a href="/streaming-settings"><i class="fa fa-cog"></i> <span>Streaming settings</span></a></li>
+        <li><a href="/orders"><i class="fa fa-credit-card"></i> <span>Orders</span></a></li>
         <li><a href="/backtesting"><i class="fa fa-flask"></i> <span>Backtesting</span></a></li>
         <li><a href="/naive-trader-settings"><i class="fa fa-cog"></i> <span>Naive trader settings</span></a></li>
       </ul>
