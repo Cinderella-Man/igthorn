@@ -179,4 +179,24 @@ defmodule Hefty do
     )
     |> Hefty.Repo.one()
   end
+
+  def fetch_transactions(offset, limit, symbol \\ "") do
+    Logger.debug("Fetching transactions for a symbol", symbol: symbol)
+
+    from(t in Hefty.Repo.Transaction,
+      left_join: o in Hefty.Repo.Binance.Order, where: o.id == t.order_id,
+      select: %{price: t.price, quantity: t.quantity, symbol: o.symbol},
+      order_by: [desc: t.inserted_at],
+      limit: ^limit,
+      offset: ^offset
+    )
+    |> Hefty.Repo.all()
+  end
+
+  def count_transactions(symbol \\ "") do
+    from(t in Hefty.Repo.Transaction,
+      select: count("*")
+    )
+    |> Hefty.Repo.one()
+  end
 end
