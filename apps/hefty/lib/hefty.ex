@@ -184,7 +184,8 @@ defmodule Hefty do
     Logger.debug("Fetching transactions for a symbol", symbol: symbol)
 
     from(t in Hefty.Repo.Transaction,
-      left_join: o in Hefty.Repo.Binance.Order, where: o.id == t.order_id,
+      left_join: o in Hefty.Repo.Binance.Order,
+      where: o.id == t.order_id,
       select: %{price: t.price, quantity: t.quantity, symbol: o.symbol},
       order_by: [desc: t.inserted_at],
       limit: ^limit,

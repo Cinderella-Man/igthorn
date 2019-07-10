@@ -16,9 +16,10 @@ defmodule Hefty.Repo.Transaction do
   end
 
   def fetch_transaction(id) do
-    query = from(t in __MODULE__,
-      where: t.id == ^id
-    )
+    query =
+      from(t in __MODULE__,
+        where: t.id == ^id
+      )
 
     Hefty.Repo.one(query)
   end

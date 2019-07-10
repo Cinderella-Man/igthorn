@@ -87,52 +87,52 @@ defmodule UiWeb.TransactionsLive do
   end
 
   def mount(%{}, socket) do
-
     IO.inspect(transactions_data(50, 1, ""))
 
     {:ok,
-      assign(socket,
-      transactions_data: transactions_data(50, 1, ""),
-      rows_numbers: [10, 20, 30, 40, 50, 100, 200],
-      set_rows: 50,
-      search: ""
-    )}
+     assign(socket,
+       transactions_data: transactions_data(50, 1, ""),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: 50,
+       search: ""
+     )}
   end
 
   def handle_event("search", %{"search" => search}, socket) do
     {:noreply,
-      assign(socket,
-        transactions_data: transactions_data(50, 1, search),
-        rows_numbers: [10, 20, 30, 40, 50, 100, 200],
-        set_rows: socket.assigns.set_rows,
-        search: search
-      )}
+     assign(socket,
+       transactions_data: transactions_data(50, 1, search),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: socket.assigns.set_rows,
+       search: search
+     )}
   end
 
-   def handle_event("rows", %{"rows_per_page" => limit}, socket) do
-     IO.inspect(limit)
+  def handle_event("rows", %{"rows_per_page" => limit}, socket) do
+    IO.inspect(limit)
+
     {:noreply,
      assign(socket,
-      transactions_data: transactions_data(String.to_integer(limit), 1, socket.assigns.search),
-      rows_numbers: [10, 20, 30, 40, 50, 100, 200],
-      set_rows: String.to_integer(limit),
-      search: socket.assigns.search
+       transactions_data: transactions_data(String.to_integer(limit), 1, socket.assigns.search),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: String.to_integer(limit),
+       search: socket.assigns.search
      )}
   end
 
   def handle_event("pagination-" <> page, _, socket) do
     {:noreply,
-      assign(socket,
-        transactions_data:
-          transactions_data(
-            socket.assigns.orders_data.limit,
-            String.to_integer(page),
-            socket.assigns.search
-          ),
-        rows_numbers: [10, 20, 30, 40, 50, 100, 200],
-        set_rows: socket.assigns.set_rows,
-        search: socket.assigns.search
-      )}
+     assign(socket,
+       transactions_data:
+         transactions_data(
+           socket.assigns.orders_data.limit,
+           String.to_integer(page),
+           socket.assigns.search
+         ),
+       rows_numbers: [10, 20, 30, 40, 50, 100, 200],
+       set_rows: socket.assigns.set_rows,
+       search: socket.assigns.search
+     )}
   end
 
   defp transactions_data(limit, page, search) do
