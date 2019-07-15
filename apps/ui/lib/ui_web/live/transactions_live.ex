@@ -87,8 +87,6 @@ defmodule UiWeb.TransactionsLive do
   end
 
   def mount(%{}, socket) do
-    IO.inspect(transactions_data(50, 1, ""))
-
     {:ok,
      assign(socket,
        transactions_data: transactions_data(50, 1, ""),

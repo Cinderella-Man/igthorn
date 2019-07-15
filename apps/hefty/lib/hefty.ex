@@ -181,7 +181,7 @@ defmodule Hefty do
   end
 
   def fetch_transactions(offset, limit, symbol \\ "") do
-    Logger.debug("Fetching transactions for a symbol", symbol: symbol)
+    Logger.debug("Fetching transactions for a symbol(#{symbol})")
 
     from(t in Hefty.Repo.Transaction,
       left_join: o in Hefty.Repo.Binance.Order,
