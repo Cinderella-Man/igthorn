@@ -107,8 +107,6 @@ defmodule UiWeb.TransactionsLive do
   end
 
   def handle_event("rows", %{"rows_per_page" => limit}, socket) do
-    IO.inspect(limit)
-
     {:noreply,
      assign(socket,
        transactions_data: transactions_data(String.to_integer(limit), 1, socket.assigns.search),
