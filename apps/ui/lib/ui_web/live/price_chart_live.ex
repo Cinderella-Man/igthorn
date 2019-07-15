@@ -57,7 +57,7 @@ defmodule UiWeb.PriceChartLive do
     {:ok, assign(socket, data: price_chart_data(symbol), symbols: symbols)}
   end
 
-  def handle_info(%{event: "trade_event", payload: event}, socket) do
+  def handle_info(%{event: "trade_event"}, socket) do
     {:noreply,
      assign(socket,
        data: price_chart_data(socket.assigns.data.symbol),
