@@ -194,6 +194,7 @@ defmodule Hefty do
     |> Hefty.Repo.all()
   end
 
+  # TODO: Fix this!! 
   def count_transactions(symbol \\ "") do
     from(t in Hefty.Repo.Transaction,
       select: count("*")

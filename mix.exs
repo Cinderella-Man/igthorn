@@ -11,7 +11,8 @@ defmodule Igthorn.MixProject do
       source_url: "https://github.com/HedonSoftware/Igthorn",
       homepage_url: "http://igthorn.com/",
       docs: [
-        main: "Hefty", # The main page in the docs
+        # The main page in the docs
+        main: "Hefty",
         logo: "docs/logo.png",
         extras: ["README.md"]
       ]

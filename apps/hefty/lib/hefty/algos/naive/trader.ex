@@ -1,5 +1,5 @@
 defmodule Hefty.Algos.Naive.Trader do
-  use GenServer
+  use GenServer, restart: :temporary
   require Logger
   import Ecto.Query, only: [from: 2]
   alias Decimal, as: D
@@ -51,7 +51,7 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   def start_link({symbol, strategy, data}) do
-    GenServer.start_link(__MODULE__, {symbol, strategy, data}, name: :"#{__MODULE__}-#{symbol}")
+    GenServer.start_link(__MODULE__, {symbol, strategy, data})
   end
 
   def init({symbol, strategy, data}) do
@@ -73,7 +73,20 @@ defmodule Hefty.Algos.Naive.Trader do
   """
   def handle_cast({:init_strategy, :blank, []}, state) do
     state = %State{prepare_state(state.symbol) | :strategy => :blank}
+    Logger.debug("Trader initialized successfully")
     {:noreply, state}
+  end
+
+  @doc """
+  Continue strategy called when on init.
+  """
+  def handle_cast({:init_strategy, :continue, orders}, state) do
+    state = %State{prepare_state(state.symbol) | :strategy => :blank}
+    buy_order = Enum.find(orders, &(&1.side == "BUY"))
+    sell_order = Enum.find(orders, &(&1.side == "SELL"))
+
+    Logger.debug("Trader initialized successfully")
+    {:noreply, %{state | :buy_order => buy_order, :sell_order => sell_order}}
   end
 
   @doc """
@@ -83,6 +96,7 @@ defmodule Hefty.Algos.Naive.Trader do
     base_state = prepare_state(state.symbol)
     buy_order = place_buy_order(sell_price, base_state)
     state = %State{base_state | :strategy => :blank, :buy_order => buy_order}
+    Logger.debug("Trader initialized successfully")
     {:noreply, state}
   end
 
@@ -112,13 +126,13 @@ defmodule Hefty.Algos.Naive.Trader do
           event: "trade_event",
           payload:
             %Hefty.Repo.Binance.TradeEvent{
-              buyer_order_id: matching_order_id
+              buyer_order_id: order_id
             } = event
         },
         %State{
           buy_order:
             %Hefty.Repo.Binance.Order{
-              order_id: matching_order_id,
+              order_id: order_id,
               symbol: symbol,
               time: time
             } = buy_order,
@@ -126,8 +140,8 @@ defmodule Hefty.Algos.Naive.Trader do
           pair: %Hefty.Repo.Binance.Pair{price_tick_size: tick_size}
         } = state
       ) do
-    Logger.info("Transaction of #{event.quantity} for BUY order #{matching_order_id} received")
-    {:ok, current_buy_order} = @binance_client.get_order(symbol, time, matching_order_id)
+    Logger.info("Transaction of #{event.quantity} for BUY order #{order_id} received")
+    {:ok, current_buy_order} = @binance_client.get_order(symbol, time, order_id)
 
     {:ok, new_state} =
       case current_buy_order.executed_qty == current_buy_order.orig_qty do
@@ -139,7 +153,6 @@ defmodule Hefty.Algos.Naive.Trader do
 
             new_buy_order =
               update_order(buy_order, %{
-                :matching_order => sell_order.order_id,
                 :executed_quantity => current_buy_order.executed_qty,
                 :status => current_buy_order.status
               })
@@ -160,26 +173,30 @@ defmodule Hefty.Algos.Naive.Trader do
     {:noreply, new_state}
   end
 
+  @doc """
+  Updates sell order as incoming transaction is filling our sell order
+  If sell order is now fully filled it should stop trading.
+  """
   def handle_info(
         %{
           event: "trade_event",
           payload:
             %Hefty.Repo.Binance.TradeEvent{
-              buyer_order_id: matching_order_id
+              seller_order_id: order_id
             } = event
         },
         %State{
           sell_order:
             %Hefty.Repo.Binance.Order{
-              order_id: matching_order_id,
+              order_id: order_id,
               symbol: symbol,
               time: time
             } = sell_order
         } = state
       ) do
-    Logger.info("Transaction of #{event.quantity} for SELL order #{matching_order_id} received")
+    Logger.info("Transaction of #{event.quantity} for SELL order #{order_id} received")
 
-    {:ok, current_sell_order} = @binance_client.get_order(symbol, time, matching_order_id)
+    {:ok, current_sell_order} = @binance_client.get_order(symbol, time, order_id)
 
     new_sell_order =
       update_order(sell_order, %{
@@ -306,7 +323,7 @@ defmodule Hefty.Algos.Naive.Trader do
     D.to_float(D.mult(D.div_int(exact_target_quantity, step), step))
   end
 
-  defp store_order(%Binance.OrderResponse{} = response, matching_order \\ nil) do
+  defp store_order(%Binance.OrderResponse{} = response, trade_id \\ nil) do
     Logger.info("Storing order #{response.order_id} to db")
 
     %Hefty.Repo.Binance.Order{
@@ -327,7 +344,7 @@ defmodule Hefty.Algos.Naive.Trader do
       # :update_time => response.X, # missing ??
       # :is_working => response.X, # gave up on this
       :strategy => "#{__MODULE__}",
-      :matching_order => matching_order
+      :trade_id => trade_id || response.order_id
     }
     |> Hefty.Repo.insert()
     |> elem(1)
@@ -335,10 +352,10 @@ defmodule Hefty.Algos.Naive.Trader do
 
   defp create_sell_order(
          %Hefty.Repo.Binance.Order{
-           order_id: order_id,
            symbol: symbol,
            price: buy_price,
-           original_quantity: quantity
+           original_quantity: quantity,
+           trade_id: trade_id
          },
          profit_interval,
          tick_size
@@ -359,7 +376,7 @@ defmodule Hefty.Algos.Naive.Trader do
 
     Logger.info("Successfully placed an SELL order #{res.order_id}")
 
-    store_order(res, order_id)
+    store_order(res, trade_id)
   end
 
   defp calculate_sell_price(buy_price, profit_interval, tick_size) do

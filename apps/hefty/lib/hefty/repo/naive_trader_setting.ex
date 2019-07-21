@@ -8,10 +8,12 @@ defmodule Hefty.Repo.NaiveTraderSetting do
   schema "naive_trader_settings" do
     field(:symbol, :string)
     field(:budget, :string)
+    field(:retarget_interval, :string)
     field(:profit_interval, :string)
     field(:buy_down_interval, :string)
     field(:chunks, :integer)
     field(:stop_loss_interval, :string)
+    field(:rebuy_interval, :string)
     field(:platform, :string, default: "Binance")
     field(:trading, :boolean, default: false)
 
