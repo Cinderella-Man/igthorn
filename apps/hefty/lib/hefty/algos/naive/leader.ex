@@ -27,6 +27,10 @@ defmodule Hefty.Algos.Naive.Leader do
     {:ok, %State{symbol: symbol}}
   end
 
+  def fetch_traders(symbol) do
+    GenServer.call(:"#{__MODULE__}-#{symbol}", :fetch_traders)
+  end
+
   def handle_cast(:init_traders, state) do
     settings =
       from(nts in Hefty.Repo.NaiveTraderSetting,
@@ -62,8 +66,17 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :shutdown}, state) do
-    Logger.info("Ignoring the fact that process died as it died normally")
+    Logger.info("Leader ignoring the fact that process died as it died normally")
     {:noreply, state}
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, :killed}, state) do
+    Logger.info("Leader ignoring the fact that process died as it was killed")
+    {:noreply, state}
+  end
+
+  def handle_call(:fetch_traders, _from, state) do
+    {:reply, state.traders, state}
   end
 
   # Safety fuse
@@ -105,14 +118,14 @@ defmodule Hefty.Algos.Naive.Leader do
   defp fetch_open_trades(symbol) do
     symbol
     |> fetch_open_orders()
-    |> Enum.group_by(&(&1.matching_order || &1.id))
+    # |> IO.inspect(label: "Fetched trades")
+    |> Enum.group_by(&(&1.trade_id))
     |> Map.keys()
   end
 
   defp fetch_open_orders(symbol) do
     from(o in Hefty.Repo.Binance.Order,
       where: o.symbol == ^symbol,
-      where: (o.type == "BUY" and is_nil(o.matching_order)) or o.type == "SELL"
     )
     |> Hefty.Repo.all()
   end
@@ -131,6 +144,7 @@ defmodule Hefty.Algos.Naive.Leader do
 
   defp start_trader(orders) do
     IO.inspect("Would be starting trader for orders(still TODO):")
+    IO.inspect(orders)
     Enum.map(orders, &IO.puts(&1.id))
   end
 end

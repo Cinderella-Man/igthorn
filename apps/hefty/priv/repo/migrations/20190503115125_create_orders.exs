@@ -50,7 +50,7 @@ defmodule Hefty.Repo.Migrations.CreateOrders do
       add(:update_time, :bigint)
       # add(:is_working, :boolean) # gave up on this
       add(:strategy, :text)
-      add(:matching_order, :integer) # Sell order pointing to buy order
+      add(:trade_id, :integer) # To pair buy order and sell order
 
       timestamps()
     end
