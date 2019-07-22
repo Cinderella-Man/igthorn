@@ -103,7 +103,7 @@ defmodule Hefty.Algos.Naive.Leader do
             symbol: symbol
           )
 
-          Enum.map(x, &start_trader(&1))
+          Enum.map(x, &start_new_trader(symbol, :continue, &1))
       end
 
     {:noreply,
@@ -118,14 +118,13 @@ defmodule Hefty.Algos.Naive.Leader do
   defp fetch_open_trades(symbol) do
     symbol
     |> fetch_open_orders()
-    # |> IO.inspect(label: "Fetched trades")
-    |> Enum.group_by(&(&1.trade_id))
-    |> Map.keys()
+    |> Enum.group_by(& &1.trade_id)
+    |> Map.values()
   end
 
   defp fetch_open_orders(symbol) do
     from(o in Hefty.Repo.Binance.Order,
-      where: o.symbol == ^symbol,
+      where: o.symbol == ^symbol
     )
     |> Hefty.Repo.all()
   end
@@ -140,11 +139,5 @@ defmodule Hefty.Algos.Naive.Leader do
     ref = Process.monitor(pid)
 
     {pid, ref}
-  end
-
-  defp start_trader(orders) do
-    IO.inspect("Would be starting trader for orders(still TODO):")
-    IO.inspect(orders)
-    Enum.map(orders, &IO.puts(&1.id))
   end
 end

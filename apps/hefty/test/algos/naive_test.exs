@@ -135,7 +135,7 @@ defmodule Hefty.Algos.NaiveTest do
     qry = "TRUNCATE TABLE trade_events"
     Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
 
-    Logger.debug("Step 4 - clear trade_events table")
+    Logger.debug("Step 4 - clear orders table (cascade)")
 
     qry = "TRUNCATE TABLE orders CASCADE"
     Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
@@ -172,9 +172,9 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 7 - fill table with trade events that we will stream")
 
-    [event_1, event_2, event_3, event_4, event_5, event_6, event_7, event_8] = getTestEvents()
+    events = [event_1 | _rest] = getTestEvents()
 
-    getTestEvents()
+    events
     |> Enum.map(&Hefty.Repo.insert(&1))
 
     Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
@@ -379,11 +379,9 @@ defmodule Hefty.Algos.NaiveTest do
     # allow 5 events to be sent 
     :timer.sleep(720)
 
-    IO.inspect("Before killing")
-
     Hefty.turn_off_trading(symbol)
 
-    :timer.sleep(100)
+    :timer.sleep(200)
 
     qry = "TRUNCATE TABLE trade_events"
     Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
@@ -391,18 +389,14 @@ defmodule Hefty.Algos.NaiveTest do
     [event_6, event_7, event_8]
     |> Enum.map(&Hefty.Repo.insert(&1))
 
-    simple_streamer_pid = Process.whereis(:"Elixir.Hefty.Streaming.Backtester.SimpleStreamer")
-
-    Process.exit(simple_streamer_pid, :normal)
-
     Hefty.turn_on_trading(symbol)
 
-    :timer.sleep(200)
+    :timer.sleep(300)
 
     SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
 
     # allow rest of events to be sent 
-    :timer.sleep(500)
+    :timer.sleep(1000)
 
     result = Hefty.Orders.fetch_orders(symbol)
 
