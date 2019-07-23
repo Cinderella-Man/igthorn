@@ -1,5 +1,5 @@
 defmodule Hefty.Algos.Naive.Trader do
-  use GenServer
+  use GenServer, restart: :temporary
   require Logger
   import Ecto.Query, only: [from: 2]
   alias Decimal, as: D
@@ -367,7 +367,11 @@ defmodule Hefty.Algos.Naive.Trader do
     settings = fetch_settings(symbol)
     pair = fetch_pair(symbol)
 
-    Logger.debug("Starting trader on symbol #{settings.symbol} with budget of #{inspect D,div(D.new(settings.budget), D.new(settings.chunks))}")
+    Logger.debug(
+      "Starting trader on symbol #{settings.symbol} with budget of #{
+        inspect(D, div(D.new(settings.budget), D.new(settings.chunks)))
+      }"
+    )
 
     %State{
       symbol: settings.symbol,

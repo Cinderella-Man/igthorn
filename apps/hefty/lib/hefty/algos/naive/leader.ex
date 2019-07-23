@@ -90,24 +90,27 @@ defmodule Hefty.Algos.Naive.Leader do
   """
   def handle_cast({:notify, :state_update, pid, %Trader.State{} = trader_state}, state) do
     index = Enum.find_index(state.traders, &(&1.pid == pid))
+
     case index do
-      nil -> {:noreply, state}
-      _   -> {old_trader_state, rest_of_traders} = List.pop_at
-      
-      
-      # new_traders = List.replace_at(
-      #         state.traders,
-      #         index,
-      #         %TraderState{
-      #           pid: nil,
-      #           ref: nil,
-      #           buy_placed: false,
-      #           sell_placed: false,
-      #           buy_price: nil,
-      #           sell_price: nil,
-      #           rebuy_triggered: false                
-      #         }
-      #        )
+      nil ->
+        {:noreply, state}
+
+      _ ->
+        {old_trader_state, rest_of_traders} = List.pop_at()
+
+        # new_traders = List.replace_at(
+        #         state.traders,
+        #         index,
+        #         %TraderState{
+        #           pid: nil,
+        #           ref: nil,
+        #           buy_placed: false,
+        #           sell_placed: false,
+        #           buy_price: nil,
+        #           sell_price: nil,
+        #           rebuy_triggered: false                
+        #         }
+        #        )
     end
   end
 
@@ -115,7 +118,6 @@ defmodule Hefty.Algos.Naive.Leader do
   Handles `rebuy` notifications from traders. This should spin new trader
   """
   def handle_cast({:notify, :rebuy}, state) do
-    
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :shutdown}, state) do
