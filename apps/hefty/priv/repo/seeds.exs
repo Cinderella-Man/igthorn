@@ -99,6 +99,8 @@ defmodule Helpers do
       :buy_down_interval => default_settings.buy_down_interval,
       :chunks => default_settings.chunks,
       :stop_loss_interval => default_settings.stop_loss_interval,
+      :retarget_interval => default_settings.retarget_interval,
+      :rebuy_interval => default_settings.rebuy_interval,
       :trading => false
     }
   end

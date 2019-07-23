@@ -2,6 +2,8 @@ defmodule Hefty.Algos.Naive.Leader do
   use GenServer
   require Logger
 
+  alias Hefty.Algos.Naive.Trader
+
   import Ecto.Query, only: [from: 2]
   # import Ecto.Changeset, only: [cast: 3]
 
@@ -18,6 +20,16 @@ defmodule Hefty.Algos.Naive.Leader do
     defstruct symbol: nil, budget: 0, chunks: 5, traders: []
   end
 
+  defmodule TraderState do
+    defstruct pid: nil,
+              ref: nil,
+              buy_placed: false,
+              sell_placed: false,
+              buy_price: nil,
+              sell_price: nil,
+              rebuy_triggered: false
+  end
+
   def start_link(symbol) do
     GenServer.start_link(__MODULE__, symbol, name: :"#{__MODULE__}-#{symbol}")
   end
@@ -29,6 +41,14 @@ defmodule Hefty.Algos.Naive.Leader do
 
   def fetch_traders(symbol) do
     GenServer.call(:"#{__MODULE__}-#{symbol}", :fetch_traders)
+  end
+
+  def notify(symbol, :state, state) do
+    GenServer.cast(:"#{__MODULE__}-#{symbol}", {:notify, :state_update, state})
+  end
+
+  def notify(symbol, :rebuy) do
+    GenServer.cast(:"#{__MODULE__}-#{symbol}", {:notify, :rebuy})
   end
 
   def handle_cast(:init_traders, state) do
@@ -59,10 +79,43 @@ defmodule Hefty.Algos.Naive.Leader do
 
     new_traders = [
       start_new_trader(symbol, :rebuy, %{:sell_price => sell_order_price})
-      | Enum.reject(state.traders, fn t -> elem(t, 0) == pid end)
+      | Enum.reject(state.traders, &(&1.pid == pid))
     ]
 
     {:noreply, %{state | :traders => new_traders}}
+  end
+
+  @doc """
+  Handles change of state notifications from traders. This should update local cache of traders
+  """
+  def handle_cast({:notify, :state_update, pid, %Trader.State{} = trader_state}, state) do
+    index = Enum.find_index(state.traders, &(&1.pid == pid))
+    case index do
+      nil -> {:noreply, state}
+      _   -> {old_trader_state, rest_of_traders} = List.pop_at
+      
+      
+      # new_traders = List.replace_at(
+      #         state.traders,
+      #         index,
+      #         %TraderState{
+      #           pid: nil,
+      #           ref: nil,
+      #           buy_placed: false,
+      #           sell_placed: false,
+      #           buy_price: nil,
+      #           sell_price: nil,
+      #           rebuy_triggered: false                
+      #         }
+      #        )
+    end
+  end
+
+  @doc """
+  Handles `rebuy` notifications from traders. This should spin new trader
+  """
+  def handle_cast({:notify, :rebuy}, state) do
+    
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :shutdown}, state) do
@@ -138,6 +191,6 @@ defmodule Hefty.Algos.Naive.Leader do
 
     ref = Process.monitor(pid)
 
-    {pid, ref}
+    %TraderState{:pid => pid, :ref => ref}
   end
 end

@@ -37,7 +37,6 @@ defmodule Hefty.Algos.Naive.Trader do
   - stop loss order at
       `buy price` * (1 - `stop loss interval`)
   """
-
   defmodule State do
     defstruct symbol: nil,
               strategy: nil,
@@ -47,6 +46,9 @@ defmodule Hefty.Algos.Naive.Trader do
               buy_down_interval: nil,
               profit_interval: nil,
               stop_loss_interval: nil,
+              rebuy_interval: nil,
+              rebuy_notified: false,
+              retarget_interval: nil,
               pair: nil
   end
 
@@ -101,8 +103,12 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   @doc """
-  Most basic case - no trades ongoing so it will try to make limit buy order based
-  on current price (from event) and substracting `buy_down_interval`
+  Situation:
+
+  Clean slate - no buy trade placed
+
+  It will try to make limit buy order based on current price (from event) taking under
+  consideration substracting `buy_down_interval`
   """
   def handle_info(
         %{
@@ -118,6 +124,11 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   @doc """
+  Situation:
+
+  Buy order was placed but it didn't get filled yet. Incoming event
+  points to that buy order
+
   Updates buy order as incoming transaction is filling our buy order
   If buy order is now fully filled it will submit sell order.
   """
@@ -174,6 +185,11 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   @doc """
+  Situation:
+
+  Buy order and sell order are already placed. Incoming event points to
+  our sell order.
+
   Updates sell order as incoming transaction is filling our sell order
   If sell order is now fully filled it should stop trading.
   """
@@ -222,8 +238,86 @@ defmodule Hefty.Algos.Naive.Trader do
     end
   end
 
+  @doc """
+  Situation:
+
+  Buy order is placed and not filled, price is increasing so we need check did
+  it grow more than `retarget_interval`, then we need to cancel order and
+  place another one based on current value
+  """
+  def handle_info(
+        %{
+          event: "trade_event",
+          payload: %Hefty.Repo.Binance.TradeEvent{price: price}
+        },
+        %State{
+          buy_order:
+            %Hefty.Repo.Binance.Order{
+              price: order_price,
+              executed_quantity: "0.00000"
+            } = buy_order,
+          retarget_interval: retarget_interval
+        } = state
+      ) do
+    d_price = D.new(price)
+    d_order_price = D.new(order_price)
+
+    retarget_price = D.add(d_order_price, D.mult(d_order_price, D.new(retarget_interval)))
+
+    case D.comp(retarget_price, d_price) do
+      # retarget_price < current_price
+      1 ->
+        # cancel order in Binance
+        # update order in DB
+        {:noreply, %{state | :buy_order => nil}}
+
+      _ ->
+        {:noreply, state}
+    end
+  end
+
+  @doc """
+  Situation:
+
+  Buy and sell orders were placed, only buy got filled.
+  Price is dropping - stop loss should be triggered
+  """
+  def handle_info(
+        %{
+          event: "trade_event",
+          payload: %Hefty.Repo.Binance.TradeEvent{price: current_price}
+        },
+        %State{
+          buy_order:
+            %Hefty.Repo.Binance.Order{
+              price: buy_price,
+              executed_quantity: matching_quantity,
+              original_quantity: matching_quantity
+            } = buy_order,
+          sell_order: sell_order,
+          stop_loss_interval: stop_loss_interval
+        } = state
+      ) do
+    d_current_price = D.new(current_price)
+    d_buy_price = D.new(buy_price)
+
+    stop_loss_price = D.sub(d_buy_price, D.mult(d_buy_price, D.new(stop_loss_interval)))
+
+    case D.comp(stop_loss_price, d_current_price) do
+      # retarget_price >= current_price
+      -1 ->
+        # cancel SELL order in Binance
+        # update order in DB
+        # place new sell order
+        # "kill" process
+        {:noreply, %{state | :sell_order => new_sell_order}}
+
+      _ ->
+        {:noreply, state}
+    end
+  end
+
   # TO IMPLEMENT
-  # Chasing after price when buy order is there
   # Price went below buy order but no sell order neither quantity got updated - update record and possibly add sell order
   # Price went above sell order but quantity wasn't updated - update record and die
 
@@ -273,11 +367,11 @@ defmodule Hefty.Algos.Naive.Trader do
     settings = fetch_settings(symbol)
     pair = fetch_pair(symbol)
 
-    Logger.debug("Starting trader on symbol #{settings.symbol} with budget of #{settings.budget}")
+    Logger.debug("Starting trader on symbol #{settings.symbol} with budget of #{inspect D,div(D.new(settings.budget), D.new(settings.chunks))}")
 
     %State{
       symbol: settings.symbol,
-      budget: settings.budget,
+      budget: D.div(D.new(settings.budget), D.new(settings.chunks)),
       buy_down_interval: settings.buy_down_interval,
       profit_interval: settings.profit_interval,
       stop_loss_interval: settings.stop_loss_interval,

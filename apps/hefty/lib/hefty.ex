@@ -6,6 +6,15 @@ defmodule Hefty do
   (high frequence trading)
   """
 
+  ###################################
+  #      TO DO                      #
+  ###################################
+  #                                 #
+  #  Split this fine into separate  #
+  #  domain specific files          #
+  #                                 #
+  ###################################
+
   import Ecto.Query, only: [from: 2]
   require Logger
 
