@@ -400,8 +400,6 @@ defmodule Hefty.Algos.NaiveTest do
 
     result = Hefty.Orders.fetch_orders(symbol)
 
-    IO.inspect(result)
-
     assert length(result) == 3
     [buy_order, sell_order, _new_buy_order] = result
 

@@ -34,12 +34,11 @@ config :hefty,
   },
   trading: %{
     :defaults => %{
+      :chunks => 5,
       # 0.25%
       :profit_interval => "0.0025",
       # 2.0%
       :buy_down_interval => "0.02",
-      # string just for sake of consistency
-      :chunks => "5.0",
       # 10%
       :stop_loss_interval => "0.1",
       # 1%

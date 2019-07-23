@@ -255,7 +255,7 @@ defmodule Hefty.Algos.Naive.Trader do
             %Hefty.Repo.Binance.Order{
               price: order_price,
               executed_quantity: "0.00000"
-            } = buy_order,
+            } = _buy_order,
           retarget_interval: retarget_interval
         } = state
       ) do
@@ -264,9 +264,9 @@ defmodule Hefty.Algos.Naive.Trader do
 
     retarget_price = D.add(d_order_price, D.mult(d_order_price, D.new(retarget_interval)))
 
-    case D.comp(retarget_price, d_price) do
+    case D.cmp(retarget_price, d_price) do
       # retarget_price < current_price
-      1 ->
+      :lt ->
         # cancel order in Binance
         # update order in DB
         {:noreply, %{state | :buy_order => nil}}
@@ -293,8 +293,8 @@ defmodule Hefty.Algos.Naive.Trader do
               price: buy_price,
               executed_quantity: matching_quantity,
               original_quantity: matching_quantity
-            } = buy_order,
-          sell_order: sell_order,
+            } = _buy_order,
+          sell_order: _sell_order,
           stop_loss_interval: stop_loss_interval
         } = state
       ) do
@@ -303,14 +303,14 @@ defmodule Hefty.Algos.Naive.Trader do
 
     stop_loss_price = D.sub(d_buy_price, D.mult(d_buy_price, D.new(stop_loss_interval)))
 
-    case D.comp(stop_loss_price, d_current_price) do
+    case D.cmp(d_current_price, stop_loss_price) do
       # retarget_price >= current_price
-      -1 ->
+      :lt ->
         # cancel SELL order in Binance
         # update order in DB
         # place new sell order
         # "kill" process
-        {:noreply, %{state | :sell_order => new_sell_order}}
+        {:noreply, state}#%{state | :sell_order => new_sell_order}}
 
       _ ->
         {:noreply, state}
@@ -369,16 +369,17 @@ defmodule Hefty.Algos.Naive.Trader do
 
     Logger.debug(
       "Starting trader on symbol #{settings.symbol} with budget of #{
-        inspect(D, div(D.new(settings.budget), D.new(settings.chunks)))
+        inspect(D.div(D.new(settings.budget), settings.chunks))
       }"
     )
 
     %State{
       symbol: settings.symbol,
-      budget: D.div(D.new(settings.budget), D.new(settings.chunks)),
+      budget: D.div(D.new(settings.budget), settings.chunks),
       buy_down_interval: settings.buy_down_interval,
       profit_interval: settings.profit_interval,
       stop_loss_interval: settings.stop_loss_interval,
+      retarget_interval: settings.retarget_interval,
       pair: pair
     }
   end

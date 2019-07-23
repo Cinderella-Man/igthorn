@@ -88,7 +88,7 @@ defmodule Hefty.Algos.Naive.Leader do
   @doc """
   Handles change of state notifications from traders. This should update local cache of traders
   """
-  def handle_cast({:notify, :state_update, pid, %Trader.State{} = trader_state}, state) do
+  def handle_cast({:notify, :state_update, pid, %Trader.State{} = _trader_state}, state) do
     index = Enum.find_index(state.traders, &(&1.pid == pid))
 
     case index do
@@ -96,7 +96,8 @@ defmodule Hefty.Algos.Naive.Leader do
         {:noreply, state}
 
       _ ->
-        {old_trader_state, rest_of_traders} = List.pop_at()
+        {:noreply, state}
+        # {old_trader_state, rest_of_traders} = List.pop_at()
 
         # new_traders = List.replace_at(
         #         state.traders,
@@ -118,6 +119,7 @@ defmodule Hefty.Algos.Naive.Leader do
   Handles `rebuy` notifications from traders. This should spin new trader
   """
   def handle_cast({:notify, :rebuy}, state) do
+    {:noreply, state}
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :shutdown}, state) do
