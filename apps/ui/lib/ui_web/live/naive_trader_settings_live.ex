@@ -200,22 +200,22 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   def handle_event("save-row", data, socket) do
     Hefty.update_naive_trader_settings(data)
 
-    naive_trader_settings_data = Keyword.update!(
-        socket.assigns.naive_trader_settings_data.list,
+    list = socket.assigns.naive_trader_settings_data.list
+
+    new_list =
+      Keyword.get_and_update(
+        list,
         :"#{data["symbol"]}",
-        &%{&1 |
-          :budget => data["budget"],
-          :buy_down_interval => data["buy_down_interval"],
-          :chunks => String.to_integer(data["chunks"]),
-          :profit_interval => data["profit_interval"],
-          :stop_loss_interval => data["stop_loss_interval"],
-          :trading => String.to_existing_atom(data["trading"])
-        }
+        fn cur -> {cur, %{
+          :budget => data["chunks"]
+        }} end
       )
+
+    IO.inspect(new_list)
 
     {:noreply,
      assign(socket,
-       naive_trader_settings_data: naive_trader_settings_data,
+       naive_trader_settings_data: socket.assigns.naive_trader_settings_data.list,
        edit_row: nil
      )}
   end
