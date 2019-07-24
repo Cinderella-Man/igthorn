@@ -355,17 +355,25 @@ defmodule Hefty.Algos.NaiveTest do
 
     Hefty.Exchanges.BinanceMock.start_link([])
 
-    Logger.debug("Step 3 - clear trade_events table")
+    Logger.debug("Step 3 - reboot simple streamer")
+
+    # this is required as simple streamer holds stacks
+    # of buy and sell orders which will be persisted
+    # between tests
+    pid = Process.whereis(:"Elixir.Hefty.Streaming.Backtester.SimpleStreamer")
+    Process.exit(pid, :kill)
+
+    Logger.debug("Step 4 - clear trade_events table")
 
     qry = "TRUNCATE TABLE trade_events"
     Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
 
-    Logger.debug("Step 4 - clear orders table (cascade)")
+    Logger.debug("Step 5 - clear orders table (cascade)")
 
     qry = "TRUNCATE TABLE orders CASCADE"
     Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
 
-    Logger.debug("Step 5 - configure naive trader for symbol")
+    Logger.debug("Step 6 - configure naive trader for symbol")
 
     current_settings =
       Hefty.fetch_naive_trader_settings(0, 1, symbol)
@@ -384,7 +392,7 @@ defmodule Hefty.Algos.NaiveTest do
     # makes sure that it's updated before starting trading process
     :timer.sleep(50)
 
-    Logger.debug("Step 6 - start trading processes")
+    Logger.debug("Step 7 - start trading processes")
 
     Hefty.turn_on_trading(symbol)
 
@@ -394,16 +402,16 @@ defmodule Hefty.Algos.NaiveTest do
   def stream_events(symbol, settings, events) do
     setup_trading_environment(symbol, settings)
 
-    Logger.debug("Step 7 - fill table with trade events that we will stream")
+    Logger.debug("Step 8 - fill table with trade events that we will stream")
 
     events
     |> Enum.map(&Hefty.Repo.insert(&1))
 
-    Logger.debug("Step 8 - kick of streaming of trade events every 100ms")
+    Logger.debug("Step 9 - kick of streaming of trade events every 100ms")
 
     SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 120)
 
-    Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
+    Logger.debug("Step 10 - let's allow the rest of the events to be broadcasted")
 
     :timer.sleep((length(events) + 1) * 120)
   end
