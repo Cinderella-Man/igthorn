@@ -54,7 +54,7 @@ defmodule Hefty.Algos.NaiveTest do
   #   [event_1, event_2, event_3, event_4, event_5]
   #   |> Enum.map(&Hefty.Repo.insert(&1))
 
-  #   Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
+  #   Logger.debug("Step 8 - kick of streaming of trade events every 100ms")
 
   #   SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
 
@@ -117,24 +117,24 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 7 - fill table with trade events that we will stream")
 
-    events = [event_1 | _] = getTestEvents()
+    [event_1 | _] = events = getTestEvents()
 
     events
     |> Enum.take(5)
     |> Enum.map(&Hefty.Repo.insert(&1))
 
-    Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
+    Logger.debug("Step 8 - kick of streaming of trade events every 100ms")
 
     SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
 
     Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
 
     # allow 5 events to be sent 
-    :timer.sleep(720)
+    :timer.sleep(700)
 
     Hefty.turn_off_trading(symbol)
 
-    :timer.sleep(200)
+    :timer.sleep(300)
 
     qry = "TRUNCATE TABLE trade_events"
     Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
@@ -167,75 +167,75 @@ defmodule Hefty.Algos.NaiveTest do
     assert buy_order.original_quantity == sell_order.original_quantity
   end
 
-  # test "Naive trader stop loss test" do
-  #   symbol = "XRPUSDT"
+  test "Naive trader stop loss test" do
+    symbol = "XRPUSDT"
 
-  #   settings = %{
-  #     :profit_interval => "0.001",
-  #     :buy_down_interval => "0.0025",
-  #     :stop_loss_interval => "0.02",
-  #     :rebuy_interval => "0.2", # effectively disable rebuying
-  #     :budget => "100.0"
-  #   }
+    settings = %{
+      :profit_interval => "0.001",
+      :buy_down_interval => "0.0025",
+      :stop_loss_interval => "0.02",
+      # effectively disable rebuying
+      :rebuy_interval => "0.2",
+      :budget => "100.0"
+    }
 
-  #   sample_events = getTestEvents()
+    sample_events = getTestEvents()
 
-  #   events_up_to_buy_fulfilled = Enum.take(sample_events, 5)
+    events_up_to_buy_fulfilled = Enum.take(sample_events, 5)
 
-  #   event_6 = %TradeEvent{
-  #     :event_type => "trade",
-  #     :event_time => 1_560_941_210_060,
-  #     :symbol => "XRPUSDT",
-  #     :trade_id => 10_000_006,
-  #     # just shy of stop loss
-  #     :price => "0.4221360",
-  #     :quantity => "126.53000000",
-  #     :buyer_order_id => 20_000_011,
-  #     :seller_order_id => 20_000_012,
-  #     :trade_time => 1_560_941_210_060,
-  #     :buyer_market_maker => false
-  #   }
+    event_6 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_060,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_006,
+      # just shy of stop loss
+      :price => "0.4221360",
+      :quantity => "126.53000000",
+      :buyer_order_id => 20_000_011,
+      :seller_order_id => 20_000_012,
+      :trade_time => 1_560_941_210_060,
+      :buyer_market_maker => false
+    }
 
-  #   event_7 = %TradeEvent{
-  #     :event_type => "trade",
-  #     :event_time => 1_560_941_210_070,
-  #     :symbol => "XRPUSDT",
-  #     :trade_id => 10_000_007,
-  #     # exact stop loss
-  #     :price => "0.4221350",
-  #     :quantity => "126.53000000",
-  #     :buyer_order_id => 20_000_013,
-  #     :seller_order_id => 20_000_014,
-  #     :trade_time => 1_560_941_210_070,
-  #     :buyer_market_maker => false
-  #   }
+    event_7 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_070,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_007,
+      # exact stop loss
+      :price => "0.4221350",
+      :quantity => "126.53000000",
+      :buyer_order_id => 20_000_013,
+      :seller_order_id => 20_000_014,
+      :trade_time => 1_560_941_210_070,
+      :buyer_market_maker => false
+    }
 
-  #   # this one should trigger stop loss
-  #   event_8 = %TradeEvent{
-  #     :event_type => "trade",
-  #     :event_time => 1_560_941_210_080,
-  #     :symbol => "XRPUSDT",
-  #     :trade_id => 10_000_008,
-  #     # below
-  #     :price => "0.4221340",
-  #     :quantity => "126.53000000",
-  #     :buyer_order_id => 20_000_015,
-  #     :seller_order_id => 20_000_016,
-  #     :trade_time => 1_560_941_210_080,
-  #     :buyer_market_maker => false
-  #   }
+    # this one should trigger stop loss
+    event_8 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_080,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_008,
+      # below
+      :price => "0.4221340",
+      :quantity => "126.53000000",
+      :buyer_order_id => 20_000_015,
+      :seller_order_id => 20_000_016,
+      :trade_time => 1_560_941_210_080,
+      :buyer_market_maker => false
+    }
 
-  #   events = events_up_to_buy_fulfilled ++ [event_6, event_7, event_8]
+    events = events_up_to_buy_fulfilled ++ [event_6, event_7, event_8]
 
-  #   stream_events(symbol, settings, events)
+    stream_events(symbol, settings, events)
 
-  #   result = Hefty.Orders.fetch_orders(symbol)
+    result = Hefty.Orders.fetch_orders(symbol)
 
-  #   assert length(result) == 3
+    assert length(result) == 3
 
-  #   # TODO!
-
-  # end  
+    # TODO!
+  end
 
   def getTestEvents() do
     [
@@ -399,12 +399,12 @@ defmodule Hefty.Algos.NaiveTest do
     events
     |> Enum.map(&Hefty.Repo.insert(&1))
 
-    Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
+    Logger.debug("Step 8 - kick of streaming of trade events every 100ms")
 
-    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
+    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 120)
 
     Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
 
-    :timer.sleep((length(events) + 1) * 100)
+    :timer.sleep((length(events) + 1) * 120)
   end
 end

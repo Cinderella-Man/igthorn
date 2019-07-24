@@ -57,7 +57,7 @@ defmodule Hefty.Exchanges.BinanceMock do
   end
 
   def order_market_sell(symbol, quantity) do
-    order_limit_sell(symbol, quantity, 0, "GTC")
+    order_limit_sell(symbol, quantity, 0.0, "GTC")
   end
 
   def get_order(symbol, time, order_id) do
@@ -120,11 +120,11 @@ defmodule Hefty.Exchanges.BinanceMock do
     case index do
       nil ->
         Logger.error("Unable to find requested order to be cancelled")
-        {:reply, nil, state}
+        {:reply, {:error, :not_found}, state}
 
       _ ->
         {order, rest_of_orders} = List.pop_at(orders, index)
-        {:reply, %{order | :status => "CANCELLED"}, %{state | :orders => rest_of_orders}}
+        {:reply, {:ok, %{order | :status => "CANCELLED"}}, %{state | :orders => rest_of_orders}}
     end
   end
 

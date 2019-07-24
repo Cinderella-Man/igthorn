@@ -217,6 +217,8 @@ defmodule Hefty.Algos.Naive.Trader do
 
     new_sell_order =
       update_order(sell_order, %{
+        # To cover market orders
+        :price => current_sell_order.price,
         :executed_quantity => current_sell_order.executed_qty,
         :status => current_sell_order.status
       })
@@ -328,14 +330,32 @@ defmodule Hefty.Algos.Naive.Trader do
           }"
         )
 
-        cancelled_order = @binance_client.cancel_order(symbol, timestamp, order_id)
+        Logger.info("Cancelling BUY order #{order_id}")
 
-        update_order(sell_order, cancelled_order)
+        {:ok, cancelled_order} = @binance_client.cancel_order(symbol, timestamp, order_id)
+
+        Logger.info("Successfully cancelled BUY order #{order_id}")
+
+        update_order(sell_order, %{
+          executed_quantity: cancelled_order.executed_qty,
+          status: cancelled_order.status,
+          time: cancelled_order.transact_time
+        })
 
         # just in case of partially filled order
         remaining_quantity = D.to_float(D.sub(D.new(original_quantity), D.new(executed_quantity)))
 
-        market_sell_order = @binance_client.order_market_sell(symbol, remaining_quantity)
+        Logger.info(
+          "Placing stop loss MARKET SELL order for #{symbol} @ MARKET PRICE, quantity: #{
+            remaining_quantity
+          }"
+        )
+
+        {:ok, market_sell_order} = @binance_client.order_market_sell(symbol, remaining_quantity)
+
+        Logger.info(
+          "Successfully placed an stop loss market SELL order #{market_sell_order.order_id}"
+        )
 
         store_order(market_sell_order, trade_id)
 
