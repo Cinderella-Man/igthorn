@@ -8,6 +8,235 @@ defmodule Hefty.Algos.NaiveTest do
   alias Hefty.Repo.Binance.TradeEvent
   alias Decimal, as: D
 
+  test "Naive trader full trade(buy + sell) test" do
+    symbol = "XRPUSDT"
+
+    settings = %{
+      :profit_interval => "0.001",
+      :buy_down_interval => "0.0025",
+      :budget => "100.0"
+    }
+
+    events = [event_1 | _rest] = getTestEvents()
+
+    stream_events(symbol, settings, events)
+
+    result = Hefty.Orders.fetch_orders(symbol)
+
+    assert length(result) == 3
+    [buy_order, sell_order, _new_buy_order] = result
+
+    assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
+
+    assert D.cmp(
+             D.new(buy_order.original_quantity),
+             D.div(D.new(settings.budget), D.new(buy_order.price))
+           ) == :lt
+
+    assert buy_order.original_quantity == sell_order.original_quantity
+  end
+
+  # test "Naive trader partial trade(buy) and pick up and (sell) test (abnormal trader exit)" do
+  #   symbol = "XRPUSDT"
+
+  #   settings = %{
+  #     :profit_interval => "0.001",
+  #     :buy_down_interval => "0.0025",
+  #     :budget => "100.0"
+  #   }
+
+  #   setup_trading_environment(symbol, settings)
+
+  #   Logger.debug("Step 7 - fill table with trade events that we will stream")
+
+  #   [event_1, event_2, event_3, event_4, event_5, event_6, event_7, event_8] = getTestEvents()
+
+  #   [event_1, event_2, event_3, event_4, event_5]
+  #   |> Enum.map(&Hefty.Repo.insert(&1))
+
+  #   Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
+
+  #   SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
+
+  #   Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
+
+  #   # allow 5 events to be sent 
+  #   :timer.sleep(720)
+
+  #   IO.inspect("Before killing")
+
+  #   [{pid, _ref}] = Hefty.Algos.Naive.Leader.fetch_traders(symbol)
+  #   Process.exit(pid, :kill)
+
+  #   IO.inspect(pid, label: "Pid found")
+
+  #   :timer.sleep(100)
+
+  #   qry = "TRUNCATE TABLE trade_events"
+  #   Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
+
+  #   [event_6, event_7, event_8]
+  #   |> Enum.map(&Hefty.Repo.insert(&1))
+
+  #   simple_streamer_pid = Process.whereis(:"Elixir.Hefty.Streaming.Backtester.SimpleStreamer")
+
+  #   Process.exit(simple_streamer_pid, :normal)
+
+  #   SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
+
+  #   # allow rest of events to be sent 
+  #   :timer.sleep(500)
+
+  #   result = Hefty.Orders.fetch_orders(symbol)
+
+  #   IO.inspect(result)
+
+  #   assert length(result) == 3
+  #   [buy_order, sell_order, _new_buy_order] = result
+
+  #   assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
+
+  #   assert D.cmp(
+  #            D.new(buy_order.original_quantity),
+  #            D.div(D.new(new_settings.budget), D.new(buy_order.price))
+  #          ) == :lt
+
+  #   assert buy_order.original_quantity == sell_order.original_quantity
+  # end
+
+  test "Naive trader partial trade(buy) and pick up and (sell) test (graceful flip)" do
+    symbol = "XRPUSDT"
+
+    settings = %{
+      :profit_interval => "0.001",
+      :buy_down_interval => "0.0025",
+      :budget => "100.0"
+    }
+
+    setup_trading_environment(symbol, settings)
+
+    Logger.debug("Step 7 - fill table with trade events that we will stream")
+
+    events = [event_1 | _] = getTestEvents()
+
+    events
+    |> Enum.take(5)
+    |> Enum.map(&Hefty.Repo.insert(&1))
+
+    Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
+
+    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
+
+    Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
+
+    # allow 5 events to be sent 
+    :timer.sleep(720)
+
+    Hefty.turn_off_trading(symbol)
+
+    :timer.sleep(200)
+
+    qry = "TRUNCATE TABLE trade_events"
+    Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
+
+    events
+    |> Enum.drop(5)
+    |> Enum.map(&Hefty.Repo.insert(&1))
+
+    Hefty.turn_on_trading(symbol)
+
+    :timer.sleep(300)
+
+    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
+
+    # allow rest of events to be sent 
+    :timer.sleep(400)
+
+    result = Hefty.Orders.fetch_orders(symbol)
+
+    assert length(result) == 3
+    [buy_order, sell_order, _new_buy_order] = result
+
+    assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
+
+    assert D.cmp(
+             D.new(buy_order.original_quantity),
+             D.div(D.new(settings.budget), D.new(buy_order.price))
+           ) == :lt
+
+    assert buy_order.original_quantity == sell_order.original_quantity
+  end
+
+  # test "Naive trader stop loss test" do
+  #   symbol = "XRPUSDT"
+
+  #   settings = %{
+  #     :profit_interval => "0.001",
+  #     :buy_down_interval => "0.0025",
+  #     :stop_loss_interval => "0.02",
+  #     :rebuy_interval => "0.2", # effectively disable rebuying
+  #     :budget => "100.0"
+  #   }
+
+  #   sample_events = getTestEvents()
+
+  #   events_up_to_buy_fulfilled = Enum.take(sample_events, 5)
+
+  #   event_6 = %TradeEvent{
+  #     :event_type => "trade",
+  #     :event_time => 1_560_941_210_060,
+  #     :symbol => "XRPUSDT",
+  #     :trade_id => 10_000_006,
+  #     # just shy of stop loss
+  #     :price => "0.4221360",
+  #     :quantity => "126.53000000",
+  #     :buyer_order_id => 20_000_011,
+  #     :seller_order_id => 20_000_012,
+  #     :trade_time => 1_560_941_210_060,
+  #     :buyer_market_maker => false
+  #   }
+
+  #   event_7 = %TradeEvent{
+  #     :event_type => "trade",
+  #     :event_time => 1_560_941_210_070,
+  #     :symbol => "XRPUSDT",
+  #     :trade_id => 10_000_007,
+  #     # exact stop loss
+  #     :price => "0.4221350",
+  #     :quantity => "126.53000000",
+  #     :buyer_order_id => 20_000_013,
+  #     :seller_order_id => 20_000_014,
+  #     :trade_time => 1_560_941_210_070,
+  #     :buyer_market_maker => false
+  #   }
+
+  #   # this one should trigger stop loss
+  #   event_8 = %TradeEvent{
+  #     :event_type => "trade",
+  #     :event_time => 1_560_941_210_080,
+  #     :symbol => "XRPUSDT",
+  #     :trade_id => 10_000_008,
+  #     # below
+  #     :price => "0.4221340",
+  #     :quantity => "126.53000000",
+  #     :buyer_order_id => 20_000_015,
+  #     :seller_order_id => 20_000_016,
+  #     :trade_time => 1_560_941_210_080,
+  #     :buyer_market_maker => false
+  #   }
+
+  #   events = events_up_to_buy_fulfilled ++ [event_6, event_7, event_8]
+
+  #   stream_events(symbol, settings, events)
+
+  #   result = Hefty.Orders.fetch_orders(symbol)
+
+  #   assert length(result) == 3
+
+  #   # TODO!
+
+  # end  
+
   def getTestEvents() do
     [
       %TradeEvent{
@@ -117,11 +346,7 @@ defmodule Hefty.Algos.NaiveTest do
     ]
   end
 
-  test "Naive trader full trade(buy + sell) test" do
-    symbol = "XRPUSDT"
-    limit = 50
-    offset = 0
-
+  def setup_trading_environment(symbol, settings) do
     Logger.debug("Step 1 - Stop any trading - it will get reconfigured and started again")
 
     Hefty.turn_off_trading(symbol)
@@ -143,16 +368,10 @@ defmodule Hefty.Algos.NaiveTest do
     Logger.debug("Step 5 - configure naive trader for symbol")
 
     current_settings =
-      Hefty.fetch_naive_trader_settings(offset, limit, symbol)
+      Hefty.fetch_naive_trader_settings(0, 1, symbol)
       |> List.first()
 
-    new_settings = %{
-      :profit_interval => "0.001",
-      :buy_down_interval => "0.0025",
-      :budget => "100.0"
-    }
-
-    changeset = Ecto.Changeset.change(current_settings, new_settings)
+    changeset = Ecto.Changeset.change(current_settings, settings)
 
     case Hefty.Repo.update(changeset) do
       {:ok, struct} ->
@@ -163,16 +382,19 @@ defmodule Hefty.Algos.NaiveTest do
     end
 
     # makes sure that it's updated before starting trading process
-    :timer.sleep(10)
+    :timer.sleep(50)
 
     Logger.debug("Step 6 - start trading processes")
 
     Hefty.turn_on_trading(symbol)
-    :timer.sleep(30)
+
+    :timer.sleep(50)
+  end
+
+  def stream_events(symbol, settings, events) do
+    setup_trading_environment(symbol, settings)
 
     Logger.debug("Step 7 - fill table with trade events that we will stream")
-
-    events = [event_1 | _rest] = getTestEvents()
 
     events
     |> Enum.map(&Hefty.Repo.insert(&1))
@@ -183,233 +405,6 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
 
-    :timer.sleep(1800)
-
-    result = Hefty.Orders.fetch_orders(symbol)
-
-    assert length(result) == 3
-    [buy_order, sell_order, _new_buy_order] = result
-
-    assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
-
-    assert D.cmp(
-             D.new(buy_order.original_quantity),
-             D.div(D.new(new_settings.budget), D.new(buy_order.price))
-           ) == :lt
-
-    assert buy_order.original_quantity == sell_order.original_quantity
-  end
-
-  # test "Naive trader partial trade(buy) and pick up and (sell) test" do
-  #   symbol = "XRPUSDT"
-  #   limit = 50
-  #   offset = 0
-
-  #   Logger.debug("Step 1 - Stop any trading - it will get reconfigured and started again")
-
-  #   Hefty.turn_off_trading(symbol)
-
-  #   Logger.debug("Step 2 - start BinanceMock process")
-
-  #   Hefty.Exchanges.BinanceMock.start_link([])
-
-  #   Logger.debug("Step 3 - clear trade_events table")
-
-  #   qry = "TRUNCATE TABLE trade_events"
-  #   Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
-
-  #   Logger.debug("Step 4 - clear trade_events table")
-
-  #   qry = "TRUNCATE TABLE orders CASCADE"
-  #   Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
-
-  #   Logger.debug("Step 5 - configure naive trader for symbol")
-
-  #   current_settings =
-  #     Hefty.fetch_naive_trader_settings(offset, limit, symbol)
-  #     |> List.first()
-
-  #   new_settings = %{
-  #     :profit_interval => "0.001",
-  #     :buy_down_interval => "0.0025",
-  #     :budget => "100.0"
-  #   }
-
-  #   changeset = Ecto.Changeset.change(current_settings, new_settings)
-
-  #   case Hefty.Repo.update(changeset) do
-  #     {:ok, struct} ->
-  #       struct
-
-  #     {:error, _changeset} ->
-  #       throw("Unable to update naive trader setting for symbol '#{symbol}'")
-  #   end
-
-  #   # makes sure that it's updated before starting trading process
-  #   :timer.sleep(10)
-
-  #   Logger.debug("Step 6 - start trading processes")
-
-  #   Hefty.turn_on_trading(symbol)
-  #   :timer.sleep(30)
-
-  #   Logger.debug("Step 7 - fill table with trade events that we will stream")
-
-  #   [event_1, event_2, event_3, event_4, event_5, event_6, event_7, event_8] = getTestEvents()
-
-  #   [event_1, event_2, event_3, event_4, event_5]
-  #   |> Enum.map(&Hefty.Repo.insert(&1))
-
-  #   Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
-
-  #   SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
-
-  #   Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
-
-  #   # allow 5 events to be sent 
-  #   :timer.sleep(720)
-
-  #   IO.inspect("Before killing")
-
-  #   [{pid, _ref}] = Hefty.Algos.Naive.Leader.fetch_traders(symbol)
-  #   Process.exit(pid, :kill)
-
-  #   IO.inspect(pid, label: "Pid found")
-
-  #   :timer.sleep(100)
-
-  #   qry = "TRUNCATE TABLE trade_events"
-  #   Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
-
-  #   [event_6, event_7, event_8]
-  #   |> Enum.map(&Hefty.Repo.insert(&1))
-
-  #   simple_streamer_pid = Process.whereis(:"Elixir.Hefty.Streaming.Backtester.SimpleStreamer")
-
-  #   Process.exit(simple_streamer_pid, :normal)
-
-  #   SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
-
-  #   # allow rest of events to be sent 
-  #   :timer.sleep(500)
-
-  #   result = Hefty.Orders.fetch_orders(symbol)
-
-  #   IO.inspect(result)
-
-  #   assert length(result) == 3
-  #   [buy_order, sell_order, _new_buy_order] = result
-
-  #   assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
-
-  #   assert D.cmp(
-  #            D.new(buy_order.original_quantity),
-  #            D.div(D.new(new_settings.budget), D.new(buy_order.price))
-  #          ) == :lt
-
-  #   assert buy_order.original_quantity == sell_order.original_quantity
-  # end
-
-  test "Naive trader partial trade(buy) and pick up and (sell) test" do
-    symbol = "XRPUSDT"
-    limit = 50
-    offset = 0
-
-    Logger.debug("Step 1 - Stop any trading - it will get reconfigured and started again")
-
-    Hefty.turn_off_trading(symbol)
-
-    Logger.debug("Step 2 - start BinanceMock process")
-
-    Hefty.Exchanges.BinanceMock.start_link([])
-
-    Logger.debug("Step 3 - clear trade_events table")
-
-    qry = "TRUNCATE TABLE trade_events"
-    Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
-
-    Logger.debug("Step 4 - clear trade_events table")
-
-    qry = "TRUNCATE TABLE orders CASCADE"
-    Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
-
-    Logger.debug("Step 5 - configure naive trader for symbol")
-
-    current_settings =
-      Hefty.fetch_naive_trader_settings(offset, limit, symbol)
-      |> List.first()
-
-    new_settings = %{
-      :profit_interval => "0.001",
-      :buy_down_interval => "0.0025",
-      :budget => "100.0"
-    }
-
-    changeset = Ecto.Changeset.change(current_settings, new_settings)
-
-    case Hefty.Repo.update(changeset) do
-      {:ok, struct} ->
-        struct
-
-      {:error, _changeset} ->
-        throw("Unable to update naive trader setting for symbol '#{symbol}'")
-    end
-
-    # makes sure that it's updated before starting trading process
-    :timer.sleep(10)
-
-    Logger.debug("Step 6 - start trading processes")
-
-    Hefty.turn_on_trading(symbol)
-    :timer.sleep(30)
-
-    Logger.debug("Step 7 - fill table with trade events that we will stream")
-
-    [event_1, event_2, event_3, event_4, event_5, event_6, event_7, event_8] = getTestEvents()
-
-    [event_1, event_2, event_3, event_4, event_5]
-    |> Enum.map(&Hefty.Repo.insert(&1))
-
-    Logger.debug("Step 8 - kick of streaming of trade events every 3 * 100ms")
-
-    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
-
-    Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
-
-    # allow 5 events to be sent 
-    :timer.sleep(720)
-
-    Hefty.turn_off_trading(symbol)
-
-    :timer.sleep(200)
-
-    qry = "TRUNCATE TABLE trade_events"
-    Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
-
-    [event_6, event_7, event_8]
-    |> Enum.map(&Hefty.Repo.insert(&1))
-
-    Hefty.turn_on_trading(symbol)
-
-    :timer.sleep(300)
-
-    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
-
-    # allow rest of events to be sent 
-    :timer.sleep(1000)
-
-    result = Hefty.Orders.fetch_orders(symbol)
-
-    assert length(result) == 3
-    [buy_order, sell_order, _new_buy_order] = result
-
-    assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
-
-    assert D.cmp(
-             D.new(buy_order.original_quantity),
-             D.div(D.new(new_settings.budget), D.new(buy_order.price))
-           ) == :lt
-
-    assert buy_order.original_quantity == sell_order.original_quantity
+    :timer.sleep((length(events) + 1) * 100)
   end
 end

@@ -46,6 +46,7 @@ defmodule Hefty.Algos.Naive.Trader do
               buy_down_interval: nil,
               profit_interval: nil,
               stop_loss_interval: nil,
+              stop_loss_triggered: false,
               rebuy_interval: nil,
               rebuy_notified: false,
               retarget_interval: nil,
@@ -259,14 +260,22 @@ defmodule Hefty.Algos.Naive.Trader do
           retarget_interval: retarget_interval
         } = state
       ) do
-    d_price = D.new(price)
+    d_current_price = D.new(price)
     d_order_price = D.new(order_price)
 
     retarget_price = D.add(d_order_price, D.mult(d_order_price, D.new(retarget_interval)))
 
-    case D.cmp(retarget_price, d_price) do
+    case D.cmp(retarget_price, d_current_price) do
       # retarget_price < current_price
       :lt ->
+        IO.inspect(d_current_price)
+        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        IO.inspect("REBUY TRIGGERED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         # cancel order in Binance
         # update order in DB
         {:noreply, %{state | :buy_order => nil}}
@@ -288,14 +297,22 @@ defmodule Hefty.Algos.Naive.Trader do
           payload: %Hefty.Repo.Binance.TradeEvent{price: current_price}
         },
         %State{
-          buy_order:
+          buy_order: %Hefty.Repo.Binance.Order{
+            price: buy_price,
+            executed_quantity: matching_quantity,
+            original_quantity: matching_quantity,
+            trade_id: trade_id
+          },
+          sell_order:
             %Hefty.Repo.Binance.Order{
-              price: buy_price,
-              executed_quantity: matching_quantity,
-              original_quantity: matching_quantity
-            } = _buy_order,
-          sell_order: _sell_order,
-          stop_loss_interval: stop_loss_interval
+              order_id: order_id,
+              time: timestamp,
+              original_quantity: original_quantity,
+              executed_quantity: executed_quantity
+            } = sell_order,
+          stop_loss_interval: stop_loss_interval,
+          stop_loss_triggered: false,
+          symbol: symbol
         } = state
       ) do
     d_current_price = D.new(current_price)
@@ -304,13 +321,25 @@ defmodule Hefty.Algos.Naive.Trader do
     stop_loss_price = D.sub(d_buy_price, D.mult(d_buy_price, D.new(stop_loss_interval)))
 
     case D.cmp(d_current_price, stop_loss_price) do
-      # retarget_price >= current_price
       :lt ->
-        # cancel SELL order in Binance
-        # update order in DB
-        # place new sell order
-        # "kill" process
-        {:noreply, state}#%{state | :sell_order => new_sell_order}}
+        Logger.info(
+          "Stop loss triggered for trade #{trade_id} bought @ #{buy_price} as price fallen below #{
+            D.to_float(stop_loss_price)
+          }"
+        )
+
+        cancelled_order = @binance_client.cancel_order(symbol, timestamp, order_id)
+
+        update_order(sell_order, cancelled_order)
+
+        # just in case of partially filled order
+        remaining_quantity = D.to_float(D.sub(D.new(original_quantity), D.new(executed_quantity)))
+
+        market_sell_order = @binance_client.order_market_sell(symbol, remaining_quantity)
+
+        store_order(market_sell_order, trade_id)
+
+        {:noreply, %{state | :stop_loss_triggered => true, :sell_order => market_sell_order}}
 
       _ ->
         {:noreply, state}

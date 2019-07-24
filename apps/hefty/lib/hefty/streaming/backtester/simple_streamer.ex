@@ -86,7 +86,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
 
     sell_stack
     |> Enum.take_while(&compare_string_prices(trade_event.price, &1.price, gt))
-    |> Enum.map(&convert_order_to_event(&1, trade_event.event_time))
+    |> Enum.map(&convert_order_to_event(&1, trade_event.event_time, trade_event.price))
     |> Enum.map(&broadcast_trade_event(&1))
 
     new_buy_stack =
@@ -139,13 +139,19 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     )
   end
 
-  defp convert_order_to_event(%Binance.OrderResponse{} = order, time) do
+  defp convert_order_to_event(%Binance.OrderResponse{} = order, time, market_price \\ nil) do
     %Hefty.Repo.Binance.TradeEvent{
       :event_type => order.type,
       :event_time => time - 1,
       :symbol => order.symbol,
       :trade_id => "fake-#{time}",
-      :price => order.price,
+      # handles market orders
+      :price =>
+        if order.price === 0 do
+          market_price
+        else
+          order.price
+        end,
       :quantity => order.orig_qty,
       # hack - it does not matter
       :buyer_order_id => order.order_id,

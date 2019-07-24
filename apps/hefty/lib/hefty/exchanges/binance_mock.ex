@@ -18,6 +18,8 @@ defmodule Hefty.Exchanges.BinanceMock do
     {:ok, %State{}}
   end
 
+  ## Public interface
+
   def get_account() do
     Binance.get_account()
   end
@@ -44,10 +46,7 @@ defmodule Hefty.Exchanges.BinanceMock do
   def order_limit_sell(symbol, quantity, price, "GTC") do
     fake_order = %{generate_fake_order(symbol, quantity, price) | :side => "SELL"}
 
-    GenServer.cast(
-      Hefty.Streaming.Backtester.SimpleStreamer,
-      {:order, fake_order}
-    )
+    Hefty.Streaming.Backtester.SimpleStreamer.add_order(fake_order)
 
     GenServer.cast(
       __MODULE__,
@@ -57,27 +56,26 @@ defmodule Hefty.Exchanges.BinanceMock do
     {:ok, fake_order}
   end
 
+  def order_market_sell(symbol, quantity) do
+    order_limit_sell(symbol, quantity, 0, "GTC")
+  end
+
   def get_order(symbol, time, order_id) do
     GenServer.call(__MODULE__, {:get_order, symbol, time, order_id})
   end
 
-  defp generate_fake_order(symbol, quantity, price) do
-    current_timestamp = :os.system_time(:millisecond)
-    order_id = :rand.uniform(1_000_000)
-
-    Binance.OrderResponse.new(%{
-      client_order_id: :crypto.hash(:md5, "#{order_id}") |> Base.encode16(),
-      executed_qty: "0.00000",
-      order_id: order_id,
-      orig_qty: Float.to_string(quantity),
-      price: Float.to_string(price),
-      status: "NEW",
-      symbol: symbol,
-      time_in_force: "GTC",
-      transact_time: current_timestamp,
-      type: "LIMIT"
-    })
+  def cancel_order(
+        symbol,
+        timestamp,
+        order_id,
+        _orig_client_order_id \\ nil,
+        _new_client_order_id \\ nil,
+        _recv_window \\ nil
+      ) do
+    GenServer.call(__MODULE__, {:cancel_order, symbol, timestamp, order_id})
   end
+
+  ## Callbacks
 
   def handle_cast(
         {:add_order, order},
@@ -108,37 +106,74 @@ defmodule Hefty.Exchanges.BinanceMock do
     {:reply, {:ok, result}, state}
   end
 
-  def handle_info(
-        %{
-          event: "trade_event",
-          payload: %Hefty.Repo.Binance.TradeEvent{:seller_order_id => order_id}
-        },
-        %State{} = state
+  def handle_call(
+        {:cancel_order, symbol, timestamp, order_id},
+        _from,
+        %State{:orders => orders} = state
       ) do
-    update_orders(state, order_id)
+    index =
+      orders
+      |> Enum.find_index(
+        &(&1.symbol == symbol and &1.transact_time == timestamp and &1.order_id == order_id)
+      )
+
+    case index do
+      nil ->
+        Logger.error("Unable to find requested order to be cancelled")
+        {:reply, nil, state}
+
+      _ ->
+        {order, rest_of_orders} = List.pop_at(orders, index)
+        {:reply, %{order | :status => "CANCELLED"}, %{state | :orders => rest_of_orders}}
+    end
   end
 
   def handle_info(
         %{
           event: "trade_event",
-          payload: %Hefty.Repo.Binance.TradeEvent{:buyer_order_id => order_id}
+          payload: %Hefty.Repo.Binance.TradeEvent{
+            :buyer_order_id => buyer_order_id,
+            :seller_order_id => seller_order_id,
+            :price => price
+          }
         },
-        %State{} = state
+        %State{orders: orders} = state
       ) do
-    update_orders(state, order_id)
-  end
-
-  defp update_orders(%State{:orders => orders} = state, order_id) do
-    case Enum.find(orders, nil, &(&1.order_id == order_id)) do
+    case Enum.find(
+           orders,
+           nil,
+           &(&1.order_id == buyer_order_id || &1.order_id == seller_order_id)
+         ) do
       nil ->
         {:noreply, state}
 
       order ->
         Logger.debug("BinanceMock received trade event for fake order - updating order")
-        new_orders = Enum.reject(orders, &(&1.order_id == order_id))
+        new_orders = Enum.reject(orders, &(&1.order_id == order.order_id))
         # hack - assuming that one fake trade will fill whole order here - simplification
-        new_order = %{order | :executed_qty => order.orig_qty}
+        # price is overriden for market orders
+        new_order = %{order | :executed_qty => order.orig_qty, :price => price}
         {:noreply, %{state | :orders => [new_order | new_orders]}}
     end
+  end
+
+  ## Helpers
+
+  defp generate_fake_order(symbol, quantity, price) do
+    current_timestamp = :os.system_time(:millisecond)
+    order_id = :rand.uniform(1_000_000)
+
+    Binance.OrderResponse.new(%{
+      client_order_id: :crypto.hash(:md5, "#{order_id}") |> Base.encode16(),
+      executed_qty: "0.00000",
+      order_id: order_id,
+      orig_qty: Float.to_string(quantity),
+      price: Float.to_string(price),
+      status: "NEW",
+      symbol: symbol,
+      time_in_force: "GTC",
+      transact_time: current_timestamp,
+      type: "LIMIT"
+    })
   end
 end
