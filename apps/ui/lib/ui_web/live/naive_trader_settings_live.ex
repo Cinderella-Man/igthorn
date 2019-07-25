@@ -201,7 +201,11 @@ defmodule UiWeb.NaiveTraderSettingsLive do
     new_row = Hefty.update_naive_trader_settings(data)
 
     new_list =
-      Keyword.update!(socket.assigns.naive_trader_settings_data.list, :"#{data["symbol"]}", fn _v -> new_row end)
+      Keyword.update!(
+        socket.assigns.naive_trader_settings_data.list,
+        :"#{data["symbol"]}",
+        fn _v -> new_row end
+      )
 
     naive_trader_settings_data =
       Map.update!(socket.assigns.naive_trader_settings_data, :list, fn _v -> new_list end)
