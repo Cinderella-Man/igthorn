@@ -147,7 +147,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
       :trade_id => "fake-#{time}",
       # handles market orders
       :price =>
-        if order.price === 0 do
+        if order.price === "0.0" do
           market_price
         else
           order.price

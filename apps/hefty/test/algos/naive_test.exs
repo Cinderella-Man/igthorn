@@ -226,15 +226,95 @@ defmodule Hefty.Algos.NaiveTest do
       :buyer_market_maker => false
     }
 
-    events = events_up_to_buy_fulfilled ++ [event_6, event_7, event_8]
+    # this one should trigger stop loss
+    event_9 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_090,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_009,
+      # below - just to fill stop loss
+      :price => "0.4221330",
+      :quantity => "126.53000000",
+      :buyer_order_id => 20_000_017,
+      :seller_order_id => 20_000_018,
+      :trade_time => 1_560_941_210_090,
+      :buyer_market_maker => false
+    }
+
+    events = events_up_to_buy_fulfilled ++ [event_6, event_7, event_8, event_9]
 
     stream_events(symbol, settings, events)
 
-    result = Hefty.Orders.fetch_orders(symbol)
+    orders = Hefty.Orders.fetch_orders(symbol)
 
-    assert length(result) == 3
+    assert length(orders) == 4
 
-    # TODO!
+    [filled_buy, cancelled_sell, stop_loss, new_buy] = orders
+
+    # Checking filled buy order
+    assert filled_buy.executed_quantity == filled_buy.original_quantity
+    assert filled_buy.status == "FILLED"
+
+    # Checking cancelled order
+    assert cancelled_sell.executed_quantity == "0.00000"
+    assert cancelled_sell.status == "CANCELLED"
+
+    # Checking stop loss order
+    assert D.cmp(D.new(stop_loss.price), D.new("0.4221350")) == :lt
+    assert stop_loss.status == "FILLED"
+
+    # Checking new buy price
+    assert D.cmp(D.new(new_buy.price), D.new(event_9.price)) == :lt
+    assert new_buy.status == "NEW"
+  end
+
+  test "Naive trader retarget test" do
+    symbol = "XRPUSDT"
+
+    settings = %{
+      :profit_interval => "0.001",
+      :buy_down_interval => "0.0025",
+      # effectively disable stop loss
+      :stop_loss_interval => "0.2",
+      # effectively disable rebuying
+      :rebuy_interval => "0.2",
+      # which means retarget every 0.1%
+      :retarget_interval => "0.0050",
+      :budget => "100.0"
+    }
+
+    sample_events = getTestEvents()
+
+    [event_1, event_2, event_3, event_4] = Enum.take(sample_events, 4)
+
+    # price increased by 0.001
+    event_2 = %{event_2 | :price => "0.43226193010"}
+    # exact retarget price
+    event_3 = %{event_3 | :price => "0.432909675250"}
+    # above retarget price
+    event_3 = %{event_3 | :price => "0.433"}
+    # another event to trigger new buy
+    event_4 = %{event_4 | :price => "0.44"}
+
+    events = [event_1, event_2, event_3, event_4]
+
+    stream_events(symbol, settings, events)
+
+    orders = Hefty.Orders.fetch_orders(symbol)
+
+    assert length(orders) == 2
+
+    [cancelled_buy, new_buy] = orders
+
+    # Checking cancelled order
+    assert cancelled_buy.executed_quantity == "0.00000"
+    assert cancelled_buy.status == "CANCELLED"
+
+    # Checking stop loss order
+    assert new_buy.price == "0.4389"
+    assert new_buy.status == "NEW"
+
+    assert D.cmp(D.new(new_buy.original_quantity), D.new(cancelled_buy.original_quantity)) == :lt
   end
 
   def getTestEvents() do
@@ -409,10 +489,10 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 9 - kick of streaming of trade events every 100ms")
 
-    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 120)
+    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
 
     Logger.debug("Step 10 - let's allow the rest of the events to be broadcasted")
 
-    :timer.sleep((length(events) + 1) * 120)
+    :timer.sleep((length(events) + 1) * 100)
   end
 end

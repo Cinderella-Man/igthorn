@@ -152,7 +152,7 @@ defmodule Hefty.Exchanges.BinanceMock do
         new_orders = Enum.reject(orders, &(&1.order_id == order.order_id))
         # hack - assuming that one fake trade will fill whole order here - simplification
         # price is overriden for market orders
-        new_order = %{order | :executed_qty => order.orig_qty, :price => price}
+        new_order = %{order | :executed_qty => order.orig_qty, :price => price, status: "FILLED"}
         {:noreply, %{state | :orders => [new_order | new_orders]}}
     end
   end

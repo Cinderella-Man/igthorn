@@ -256,10 +256,14 @@ defmodule Hefty.Algos.Naive.Trader do
         %State{
           buy_order:
             %Hefty.Repo.Binance.Order{
+              order_id: order_id,
+              trade_id: trade_id,
               price: order_price,
-              executed_quantity: "0.00000"
-            } = _buy_order,
-          retarget_interval: retarget_interval
+              executed_quantity: "0.00000",
+              time: timestamp
+            } = buy_order,
+          retarget_interval: retarget_interval,
+          symbol: symbol
         } = state
       ) do
     d_current_price = D.new(price)
@@ -268,18 +272,21 @@ defmodule Hefty.Algos.Naive.Trader do
     retarget_price = D.add(d_order_price, D.mult(d_order_price, D.new(retarget_interval)))
 
     case D.cmp(retarget_price, d_current_price) do
-      # retarget_price < current_price
       :lt ->
-        IO.inspect(d_current_price)
-        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        IO.inspect("REBUY TRIGGERED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        IO.inspect("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        # cancel order in Binance
-        # update order in DB
+        Logger.info("Retargeting triggered for trade #{trade_id} with buy order @ #{order_price}
+            as price raised above #{D.to_float(retarget_price)}")
+
+        Logger.info("Cancelling BUY order #{order_id}")
+
+        {:ok, cancelled_order} = @binance_client.cancel_order(symbol, timestamp, order_id)
+
+        Logger.info("Successfully cancelled BUY order #{order_id}")
+
+        update_order(buy_order, %{
+          status: cancelled_order.status,
+          time: cancelled_order.transact_time
+        })
+
         {:noreply, %{state | :buy_order => nil}}
 
       _ ->
@@ -288,7 +295,7 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   @doc """
-  Situation:
+  Situation - STOP LOSS:
 
   Buy and sell orders were placed, only buy got filled.
   Price is dropping - stop loss should be triggered
@@ -357,9 +364,9 @@ defmodule Hefty.Algos.Naive.Trader do
           "Successfully placed an stop loss market SELL order #{market_sell_order.order_id}"
         )
 
-        store_order(market_sell_order, trade_id)
+        stop_loss_order = store_order(market_sell_order, trade_id)
 
-        {:noreply, %{state | :stop_loss_triggered => true, :sell_order => market_sell_order}}
+        {:noreply, %{state | :stop_loss_triggered => true, :sell_order => stop_loss_order}}
 
       _ ->
         {:noreply, state}
@@ -369,6 +376,7 @@ defmodule Hefty.Algos.Naive.Trader do
   # TO IMPLEMENT
   # Price went below buy order but no sell order neither quantity got updated - update record and possibly add sell order
   # Price went above sell order but quantity wasn't updated - update record and die
+  # Partially filled buy order that needs to be retargeted or sold if possible
 
   @doc """
   Catch all - should never happen in production - here for developing
