@@ -268,6 +268,7 @@ defmodule Hefty.Algos.NaiveTest do
     assert new_buy.status == "NEW"
   end
 
+  @tag :skip
   test "Naive trader retarget test" do
     symbol = "XRPUSDT"
 
