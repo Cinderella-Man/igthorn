@@ -167,6 +167,7 @@ defmodule Hefty.Algos.NaiveTest do
     assert buy_order.original_quantity == sell_order.original_quantity
   end
 
+  @tag :skip
   test "Naive trader stop loss test" do
     symbol = "XRPUSDT"
 
@@ -316,6 +317,61 @@ defmodule Hefty.Algos.NaiveTest do
     assert new_buy.status == "NEW"
 
     assert D.cmp(D.new(new_buy.original_quantity), D.new(cancelled_buy.original_quantity)) == :lt
+  end
+
+  test "Naive trader rebuy test" do
+    symbol = "XRPUSDT"
+
+    settings = %{
+      :profit_interval => "0.001",
+      :buy_down_interval => "0.0025",
+      # effectively disable stop loss
+      :stop_loss_interval => "0.2",
+      # rebuy at 5% from first seen price
+      :rebuy_interval => "0.0475",
+      # effectively disable rebuying
+      :retarget_interval => "0.0050",
+      :budget => "100.0"
+    }
+
+    sample_events = getTestEvents()
+
+    [event_1, event_2, event_3, event_4, event_5, event_6] = Enum.take(sample_events, 6)
+
+    # -4% - still above rebuy price
+    event_3 = %{event_3 | :price => "0.4145568960"}
+    # exact retarget price
+    event_3 = %{event_3 | :price => "0.4102385950"}
+    # another event to trigger retarget
+    event_4 = %{event_4 | :price => "0.4102385940"}
+    # first event received by second tracer
+    event_5 = %{event_5 | :price => "0.4102385930"}
+    # event that will cause buy order to be created
+    event_6 = %{event_6 | :price => "0.4102385920"}
+
+    events = [event_1, event_2, event_3, event_4, event_5, event_6]
+
+    stream_events(symbol, settings, events)
+
+    orders = Hefty.Orders.fetch_orders(symbol)
+
+    assert length(orders) == 3
+
+    traders = Hefty.Algos.Naive.Leader.fetch_traders(symbol)
+
+    assert length(traders) == 2
+
+    # [cancelled_buy, new_buy] = orders
+
+    # # Checking cancelled order
+    # assert cancelled_buy.executed_quantity == "0.00000"
+    # assert cancelled_buy.status == "CANCELLED"
+
+    # # Checking stop loss order
+    # assert new_buy.price == "0.4389"
+    # assert new_buy.status == "NEW"
+
+    # assert D.cmp(D.new(new_buy.original_quantity), D.new(cancelled_buy.original_quantity)) == :lt
   end
 
   def getTestEvents() do

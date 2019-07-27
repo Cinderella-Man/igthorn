@@ -118,8 +118,15 @@ defmodule Hefty.Algos.Naive.Leader do
   @doc """
   Handles `rebuy` notifications from traders. This should spin new trader
   """
-  def handle_cast({:notify, :rebuy}, state) do
-    {:noreply, state}
+  def handle_cast({:notify, :rebuy}, %State{symbol: symbol, traders: traders, chunks: chunks} = state) do
+    new_trader = case length(traders) < chunks do
+      true  -> Logger.info("Rebuy notification received, starting a new trader")
+               start_new_trader(symbol, :blank, [])
+      false -> Logger.info("Rebuy notification received but all chunks already used")
+               traders
+    end
+
+    {:noreply, %{state | :traders => [new_trader | traders] }}
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :shutdown}, state) do

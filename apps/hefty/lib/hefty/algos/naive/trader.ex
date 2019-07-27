@@ -295,7 +295,8 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   @doc """
-  Situation - STOP LOSS:
+  Situation
+  STOP LOSS OR REBUY:
 
   Buy and sell orders were placed, only buy got filled.
   Price is dropping - stop loss should be triggered
@@ -310,67 +311,35 @@ defmodule Hefty.Algos.Naive.Trader do
             price: buy_price,
             executed_quantity: matching_quantity,
             original_quantity: matching_quantity,
-            trade_id: trade_id
-          },
+          } = buy_order,
           sell_order:
-            %Hefty.Repo.Binance.Order{
-              order_id: order_id,
-              time: timestamp,
-              original_quantity: original_quantity,
-              executed_quantity: executed_quantity
-            } = sell_order,
+            %Hefty.Repo.Binance.Order{} = sell_order,
           stop_loss_interval: stop_loss_interval,
-          stop_loss_triggered: false,
-          symbol: symbol
+          stop_loss_triggered: stop_loss_triggered,
+          rebuy_interval: rebuy_interval,
+          rebuy_notified: rebuy_notified,
         } = state
       ) do
-    d_current_price = D.new(current_price)
-    d_buy_price = D.new(buy_price)
 
-    stop_loss_price = D.sub(d_buy_price, D.mult(d_buy_price, D.new(stop_loss_interval)))
-
-    case D.cmp(d_current_price, stop_loss_price) do
-      :lt ->
-        Logger.info(
-          "Stop loss triggered for trade #{trade_id} bought @ #{buy_price} as price fallen below #{
-            D.to_float(stop_loss_price)
-          }"
-        )
-
-        Logger.info("Cancelling BUY order #{order_id}")
-
-        {:ok, cancelled_order} = @binance_client.cancel_order(symbol, timestamp, order_id)
-
-        Logger.info("Successfully cancelled BUY order #{order_id}")
-
-        update_order(sell_order, %{
-          executed_quantity: cancelled_order.executed_qty,
-          status: cancelled_order.status,
-          time: cancelled_order.transact_time
-        })
-
-        # just in case of partially filled order
-        remaining_quantity = D.to_float(D.sub(D.new(original_quantity), D.new(executed_quantity)))
-
-        Logger.info(
-          "Placing stop loss MARKET SELL order for #{symbol} @ MARKET PRICE, quantity: #{
-            remaining_quantity
-          }"
-        )
-
-        {:ok, market_sell_order} = @binance_client.order_market_sell(symbol, remaining_quantity)
-
-        Logger.info(
-          "Successfully placed an stop loss market SELL order #{market_sell_order.order_id}"
-        )
-
-        stop_loss_order = store_order(market_sell_order, trade_id)
-
-        {:noreply, %{state | :stop_loss_triggered => true, :sell_order => stop_loss_order}}
-
-      _ ->
-        {:noreply, state}
+    new_state = if !stop_loss_triggered do
+      case is_stop_loss(buy_price, current_price, stop_loss_interval) do
+        false -> state
+        stop_loss_price -> handle_stop_loss(buy_order, sell_order, stop_loss_price, state)
+      end
+    else
+      state
     end
+
+    new_state = if !rebuy_notified do
+      case is_rebuy(buy_price, current_price, rebuy_interval) do
+        false -> new_state
+        rebuy_price -> handle_rebuy(rebuy_price, state)
+      end
+    else
+      new_state
+    end
+
+    {:noreply, new_state}
   end
 
   # TO IMPLEMENT
@@ -390,6 +359,101 @@ defmodule Hefty.Algos.Naive.Trader do
       ) do
     # Logger.debug("Another trade event received - TBFixed")
     {:noreply, state}
+  end
+
+  defp is_stop_loss(buy_price, current_price, stop_loss_interval) do
+    d_current_price = D.new(current_price)
+    d_buy_price = D.new(buy_price)
+
+    stop_loss_price = D.sub(d_buy_price, D.mult(d_buy_price, D.new(stop_loss_interval)))
+
+    case D.cmp(d_current_price, stop_loss_price) do
+      :lt -> stop_loss_price
+      _   -> false
+    end
+  end
+
+  defp is_rebuy(buy_price, current_price, rebuy_interval) do
+    d_current_price = D.new(current_price)
+    d_buy_price = D.new(buy_price)
+
+    rebuy_price = D.sub(d_buy_price, D.mult(d_buy_price, D.new(rebuy_interval)))
+
+    case D.cmp(d_current_price, rebuy_price) do
+      :lt -> rebuy_price
+      _   -> false
+    end
+  end
+
+  defp handle_rebuy(
+    rebuy_price,
+    %State{
+      buy_order: %Hefty.Repo.Binance.Order{
+        trade_id: trade_id,
+        price: buy_price
+      },
+      symbol: symbol
+    } = state
+  ) do
+    Logger.info(
+      "Rebuy triggered for trade #{trade_id} bought @ #{buy_price}
+      as price fallen below #{D.to_float(rebuy_price)}"
+    )
+
+    Hefty.Algos.Naive.Leader.notify(symbol, :rebuy)
+
+    %{state | :rebuy_notified => true}
+  end
+
+  defp handle_stop_loss(%Hefty.Repo.Binance.Order{
+            price: buy_price
+          }, %Hefty.Repo.Binance.Order{
+            order_id: order_id,
+            time: timestamp,
+            original_quantity: original_quantity,
+            executed_quantity: executed_quantity,
+            trade_id: trade_id
+          } = sell_order,
+          stop_loss_price,
+          %State{
+            symbol: symbol
+          } = state) do
+    Logger.info(
+      "Stop loss triggered for trade #{trade_id} bought @ #{buy_price} as price fallen below #{
+        D.to_float(stop_loss_price)
+      }"
+    )
+
+    Logger.info("Cancelling BUY order #{order_id}")
+
+    {:ok, cancelled_order} = @binance_client.cancel_order(symbol, timestamp, order_id)
+
+    Logger.info("Successfully cancelled BUY order #{order_id}")
+
+    update_order(sell_order, %{
+      executed_quantity: cancelled_order.executed_qty,
+      status: cancelled_order.status,
+      time: cancelled_order.transact_time
+    })
+
+    # just in case of partially filled order
+    remaining_quantity = D.to_float(D.sub(D.new(original_quantity), D.new(executed_quantity)))
+
+    Logger.info(
+      "Placing stop loss MARKET SELL order for #{symbol} @ MARKET PRICE, quantity: #{
+        remaining_quantity
+      }"
+    )
+
+    {:ok, market_sell_order} = @binance_client.order_market_sell(symbol, remaining_quantity)
+
+    Logger.info(
+      "Successfully placed an stop loss market SELL order #{market_sell_order.order_id}"
+    )
+
+    stop_loss_order = store_order(market_sell_order, trade_id)
+
+    %{state | :stop_loss_triggered => true, :sell_order => stop_loss_order}
   end
 
   defp place_buy_order(price, %State{
@@ -437,6 +501,7 @@ defmodule Hefty.Algos.Naive.Trader do
       profit_interval: settings.profit_interval,
       stop_loss_interval: settings.stop_loss_interval,
       retarget_interval: settings.retarget_interval,
+      rebuy_interval: settings.rebuy_interval,
       pair: pair
     }
   end
