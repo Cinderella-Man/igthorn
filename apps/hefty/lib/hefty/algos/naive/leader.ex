@@ -23,11 +23,7 @@ defmodule Hefty.Algos.Naive.Leader do
   defmodule TraderState do
     defstruct pid: nil,
               ref: nil,
-              buy_placed: false,
-              sell_placed: false,
-              buy_price: nil,
-              sell_price: nil,
-              rebuy_triggered: false
+              state: nil
   end
 
   def start_link(symbol) do
@@ -44,7 +40,7 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def notify(symbol, :state, state) do
-    GenServer.cast(:"#{__MODULE__}-#{symbol}", {:notify, :state_update, state})
+    GenServer.cast(:"#{__MODULE__}-#{symbol}", {:notify, :state_update, self(), state})
   end
 
   def notify(symbol, :rebuy) do
@@ -64,12 +60,15 @@ defmodule Hefty.Algos.Naive.Leader do
   def handle_cast(
         {:trade_finished, pid,
          %Hefty.Algos.Naive.Trader.State{
-           :sell_order => %Hefty.Repo.Binance.Order{:price => sell_order_price},
+           :sell_order => %Hefty.Repo.Binance.Order{
+             :trade_id => trade_id,
+             :price => sell_order_price
+           },
            :symbol => symbol
          }},
         state
       ) do
-    Logger.info("Trade finished at price of #{sell_order_price}")
+    Logger.info("Trade(#{trade_id}) finished at price of #{sell_order_price}")
 
     :ok =
       DynamicSupervisor.terminate_child(
@@ -78,7 +77,7 @@ defmodule Hefty.Algos.Naive.Leader do
       )
 
     new_traders = [
-      start_new_trader(symbol, :rebuy, %{:sell_price => sell_order_price})
+      start_new_trader(symbol, :blank, [])
       | Enum.reject(state.traders, &(&1.pid == pid))
     ]
 
@@ -88,7 +87,7 @@ defmodule Hefty.Algos.Naive.Leader do
   @doc """
   Handles change of state notifications from traders. This should update local cache of traders
   """
-  def handle_cast({:notify, :state_update, pid, %Trader.State{} = _trader_state}, state) do
+  def handle_cast({:notify, :state_update, pid, %Trader.State{} = trader_state}, state) do
     index = Enum.find_index(state.traders, &(&1.pid == pid))
 
     case index do
@@ -96,47 +95,37 @@ defmodule Hefty.Algos.Naive.Leader do
         {:noreply, state}
 
       _ ->
-        {:noreply, state}
-        # {old_trader_state, rest_of_traders} = List.pop_at()
+        {old_trader_state, rest_of_traders} = List.pop_at(state.traders, index)
 
-        # new_traders = List.replace_at(
-        #         state.traders,
-        #         index,
-        #         %TraderState{
-        #           pid: nil,
-        #           ref: nil,
-        #           buy_placed: false,
-        #           sell_placed: false,
-        #           buy_price: nil,
-        #           sell_price: nil,
-        #           rebuy_triggered: false                
-        #         }
-        #        )
+        new_trader_state = %{old_trader_state | :state => trader_state}
+
+        {:noreply, %{state | :traders => [new_trader_state | rest_of_traders]}}
     end
   end
 
   @doc """
   Handles `rebuy` notifications from traders. This should spin new trader
   """
-  def handle_cast({:notify, :rebuy}, %State{symbol: symbol, traders: traders, chunks: chunks} = state) do
-    new_trader = case length(traders) < chunks do
-      true  -> Logger.info("Rebuy notification received, starting a new trader")
-               start_new_trader(symbol, :blank, [])
-      false -> Logger.info("Rebuy notification received but all chunks already used")
-               traders
-    end
+  def handle_cast(
+        {:notify, :rebuy},
+        %State{symbol: symbol, traders: traders, chunks: chunks} = state
+      ) do
+    new_trader =
+      case length(traders) < chunks do
+        true ->
+          Logger.info("Rebuy notification received, starting a new trader")
+          start_new_trader(symbol, :blank, [])
 
-    {:noreply, %{state | :traders => [new_trader | traders] }}
+        false ->
+          Logger.info("Rebuy notification received but all chunks already used")
+          traders
+      end
+
+    {:noreply, %{state | :traders => [new_trader | traders]}}
   end
 
-  def handle_info({:DOWN, _ref, :process, _pid, :shutdown}, state) do
-    Logger.info("Leader ignoring the fact that process died as it died normally")
-    {:noreply, state}
-  end
-
-  def handle_info({:DOWN, _ref, :process, _pid, :killed}, state) do
-    Logger.info("Leader ignoring the fact that process died as it was killed")
-    {:noreply, state}
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
+    {:noreply, handle_dead_trader(pid, state)}
   end
 
   def handle_call(:fetch_traders, _from, state) do
@@ -184,24 +173,73 @@ defmodule Hefty.Algos.Naive.Leader do
     |> fetch_open_orders()
     |> Enum.group_by(& &1.trade_id)
     |> Map.values()
+    |> Enum.filter(&is_open_trade(&1))
   end
 
   defp fetch_open_orders(symbol) do
     from(o in Hefty.Repo.Binance.Order,
-      where: o.symbol == ^symbol
+      where: o.symbol == ^symbol,
+      order_by: o.time
     )
     |> Hefty.Repo.all()
   end
 
-  defp start_new_trader(symbol, strategy, data) do
+  # Starting traders based on orders from db.
+  # There is possibility of getting multiple cancelled orders
+  # which needs to be filtered out
+  defp start_new_trader(symbol, strategy, orders) when is_list(orders) do
+    buy_order =
+      Enum.find(
+        orders,
+        &(&1.side == "BUY" &&
+            (&1.status == "NEW" || &1.status == "FILLED" || &1.status == "PARTIALLY_FILLED"))
+      )
+
+    sell_order =
+      Enum.find(
+        orders,
+        &(&1.side == "SELL" && (&1.status == "NEW" || &1.status == "PARTIALLY_FILLED"))
+      )
+
+    start_new_trader(symbol, strategy, %Trader.State{
+      :buy_order => buy_order,
+      :sell_order => sell_order
+    })
+  end
+
+  defp start_new_trader(symbol, strategy, %Trader.State{} = state) do
     {:ok, pid} =
       DynamicSupervisor.start_child(
         :"Hefty.Algos.Naive.DynamicSupervisor-#{symbol}",
-        {Hefty.Algos.Naive.Trader, {symbol, strategy, data}}
+        {Hefty.Algos.Naive.Trader, {symbol, strategy, state}}
       )
 
     ref = Process.monitor(pid)
 
-    %TraderState{:pid => pid, :ref => ref}
+    %TraderState{:pid => pid, :ref => ref, :state => state}
+  end
+
+  defp is_open_trade(orders) do
+    orders
+    |> Enum.count(&(&1.status == "FILLED"))
+    |> (fn c -> c < 2 end).()
+  end
+
+  defp handle_dead_trader(pid, %State{:traders => traders, :symbol => symbol} = state) do
+    Logger.info("Leader restarts process as it died")
+
+    index = Enum.find_index(traders, &(&1.pid == pid))
+
+    if is_number(index) do
+      Logger.info("Trader found in the list of traders. Removing")
+      {%{:state => state_dump}, rest_of_traders} = List.pop_at(traders, index)
+
+      new_trader = start_new_trader(symbol, :restart, state_dump)
+
+      %{state | :traders => [new_trader | rest_of_traders]}
+    else
+      Logger.info("Unable to find trader in list of traders. Skipping removal")
+      state
+    end
   end
 end

@@ -10,10 +10,6 @@ defmodule Shell do
   import Ecto.Query
   require Logger
 
-  @columns ~w( event_type event_time symbol
-  trade_id price quantity buyer_order_id
-  seller_order_id trade_time buyer_market_maker)
-
   #
   # Add your script here
   #
@@ -30,13 +26,15 @@ defmodule Shell do
   # Call your script here
   #
   def run({[{:date, date}], _}) do
-    timestamps = get_timestamps(date)
+    timestamps = [from, to] = get_timestamps(date)
 
     from(te in Hefty.Repo.Binance.TradeEvent,
+      where: te.trade_time >= ^from and te.trade_time < ^to,
       group_by: te.symbol,
       select: {te.symbol, count(te.id)}
     )
     |> Hefty.Repo.all()
+    |> IO.inspect(label: "Found events for {symbol, count}: ")
     |> Enum.map(&(create_query(&1, date, timestamps)))
 
     Logger.info("Data stored successfully to files")
@@ -46,7 +44,7 @@ defmodule Shell do
     command = "PGPASSWORD=postgres psql -Upostgres -h localhost -dhefty_dev  -c \"\\copy " <>
       "(SELECT * FROM trade_events WHERE trade_time >= #{from} AND trade_time < #{to} AND symbol='#{symbol}') " <>
       "TO '/tmp/dumps/#{symbol}-#{date}.csv' (format csv, delimiter ';')\""
-    IO.puts(command)
+    IO.inspect(command)
     :os.cmd(String.to_charlist(command))
   end
 

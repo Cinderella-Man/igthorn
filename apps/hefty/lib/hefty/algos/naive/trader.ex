@@ -39,7 +39,7 @@ defmodule Hefty.Algos.Naive.Trader do
   """
   defmodule State do
     defstruct symbol: nil,
-              strategy: nil,
+              strategy: :blank,
               budget: nil,
               buy_order: nil,
               sell_order: nil,
@@ -72,35 +72,40 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   @doc """
-  Blank strategy called when on init.
+  Blank strategy called on init when there's no state
+  to be passed to trader.
   """
-  def handle_cast({:init_strategy, :blank, []}, state) do
-    state = %State{prepare_state(state.symbol) | :strategy => :blank}
+  def handle_cast({:init_strategy, :blank, _state}, state) do
     Logger.debug("Trader initialized successfully")
-    {:noreply, state}
+    {:noreply, prepare_state(state.symbol)}
   end
 
   @doc """
-  Continue strategy called when on init.
+  Continue strategy called on init when trading was stopped
+  and there's no detailed state in leader so only buy and sell
+  order can be passed from leader (fetched from db)
   """
-  def handle_cast({:init_strategy, :continue, orders}, state) do
-    state = %State{prepare_state(state.symbol) | :strategy => :blank}
-    buy_order = Enum.find(orders, &(&1.side == "BUY"))
-    sell_order = Enum.find(orders, &(&1.side == "SELL"))
-
+  def handle_cast(
+        {:init_strategy, :continue, %{:buy_order => buy_order, :sell_order => sell_order}},
+        state
+      ) do
     Logger.debug("Trader initialized successfully")
-    {:noreply, %{state | :buy_order => buy_order, :sell_order => sell_order}}
+
+    {:noreply,
+     Map.merge(prepare_state(state.symbol), %{
+       :buy_order => buy_order,
+       :sell_order => sell_order
+     })}
   end
 
   @doc """
-  Blank strategy called when on init.
+  Restart strategy called on init when leader is aware of exact
+  state what trader was in before stopping. Current state of trader
+  is ignored.
   """
-  def handle_cast({:init_strategy, :rebuy, %{:sell_price => sell_price}}, state) do
-    base_state = prepare_state(state.symbol)
-    buy_order = place_buy_order(sell_price, base_state)
-    state = %State{base_state | :strategy => :blank, :buy_order => buy_order}
+  def handle_cast({:init_strategy, :restart, new_state}, _state) do
     Logger.debug("Trader initialized successfully")
-    {:noreply, state}
+    {:noreply, new_state}
   end
 
   @doc """
@@ -114,14 +119,18 @@ defmodule Hefty.Algos.Naive.Trader do
   def handle_info(
         %{
           event: "trade_event",
-          payload: %Hefty.Repo.Binance.TradeEvent{price: price}
+          payload: %Hefty.Repo.Binance.TradeEvent{price: price} = event
         },
         %State{
-          buy_order: nil
+          buy_order: nil,
+          symbol: symbol
         } = state
       ) do
+    Logger.debug("Placing buy order - event received - #{inspect(event)}")
     order = place_buy_order(price, state)
-    {:noreply, %State{state | :buy_order => order}}
+    new_state = %State{state | :buy_order => order}
+    Hefty.Algos.Naive.Leader.notify(symbol, :state, new_state)
+    {:noreply, new_state}
   end
 
   @doc """
@@ -149,9 +158,12 @@ defmodule Hefty.Algos.Naive.Trader do
               time: time
             } = buy_order,
           profit_interval: profit_interval,
-          pair: %Hefty.Repo.Binance.Pair{price_tick_size: tick_size}
+          pair: %Hefty.Repo.Binance.Pair{price_tick_size: tick_size},
+          symbol: symbol
         } = state
       ) do
+    Logger.debug("Buy order filling - event received - #{inspect(event)}")
+
     Logger.info("Transaction of #{event.quantity} for BUY order #{order_id} received")
     {:ok, current_buy_order} = @binance_client.get_order(symbol, time, order_id)
 
@@ -182,6 +194,7 @@ defmodule Hefty.Algos.Naive.Trader do
           {:ok, %{state | :buy_order => new_buy_order}}
       end
 
+    Hefty.Algos.Naive.Leader.notify(symbol, :state, new_state)
     {:noreply, new_state}
   end
 
@@ -208,9 +221,12 @@ defmodule Hefty.Algos.Naive.Trader do
               order_id: order_id,
               symbol: symbol,
               time: time
-            } = sell_order
+            } = sell_order,
+          symbol: symbol
         } = state
       ) do
+    Logger.debug("Sell order filling - event received - #{inspect(event)}")
+
     Logger.info("Transaction of #{event.quantity} for SELL order #{order_id} received")
 
     {:ok, current_sell_order} = @binance_client.get_order(symbol, time, order_id)
@@ -234,11 +250,12 @@ defmodule Hefty.Algos.Naive.Trader do
           {:trade_finished, self(), new_state}
         )
 
-        {:noreply, new_state}
-
-      false ->
-        {:noreply, new_state}
+      _ ->
+        nil
     end
+
+    Hefty.Algos.Naive.Leader.notify(symbol, :state, new_state)
+    {:noreply, new_state}
   end
 
   @doc """
@@ -251,7 +268,7 @@ defmodule Hefty.Algos.Naive.Trader do
   def handle_info(
         %{
           event: "trade_event",
-          payload: %Hefty.Repo.Binance.TradeEvent{price: price}
+          payload: %Hefty.Repo.Binance.TradeEvent{price: price} = event
         },
         %State{
           buy_order:
@@ -266,32 +283,38 @@ defmodule Hefty.Algos.Naive.Trader do
           symbol: symbol
         } = state
       ) do
+    Logger.debug("RETARGET - event received - #{inspect(event)}")
+
     d_current_price = D.new(price)
     d_order_price = D.new(order_price)
 
     retarget_price = D.add(d_order_price, D.mult(d_order_price, D.new(retarget_interval)))
 
-    case D.cmp(retarget_price, d_current_price) do
-      :lt ->
-        Logger.info("Retargeting triggered for trade #{trade_id} with buy order @ #{order_price}
+    new_state =
+      case D.cmp(retarget_price, d_current_price) do
+        :lt ->
+          Logger.info("Retargeting triggered for trade #{trade_id} with buy order @ #{order_price}
             as price raised above #{D.to_float(retarget_price)}")
 
-        Logger.info("Cancelling BUY order #{order_id}")
+          Logger.info("Cancelling BUY order #{order_id}")
 
-        {:ok, cancelled_order} = @binance_client.cancel_order(symbol, timestamp, order_id)
+          {:ok, cancelled_order} = @binance_client.cancel_order(symbol, timestamp, order_id)
 
-        Logger.info("Successfully cancelled BUY order #{order_id}")
+          Logger.info("Successfully cancelled BUY order #{order_id}")
 
-        update_order(buy_order, %{
-          status: cancelled_order.status,
-          time: cancelled_order.transact_time
-        })
+          update_order(buy_order, %{
+            status: cancelled_order.status,
+            time: cancelled_order.transact_time
+          })
 
-        {:noreply, %{state | :buy_order => nil}}
+          %{state | :buy_order => nil}
 
-      _ ->
-        {:noreply, state}
-    end
+        _ ->
+          state
+      end
+
+    Hefty.Algos.Naive.Leader.notify(symbol, :state, new_state)
+    {:noreply, new_state}
   end
 
   @doc """
@@ -304,41 +327,46 @@ defmodule Hefty.Algos.Naive.Trader do
   def handle_info(
         %{
           event: "trade_event",
-          payload: %Hefty.Repo.Binance.TradeEvent{price: current_price}
+          payload: %Hefty.Repo.Binance.TradeEvent{price: current_price} = event
         },
         %State{
-          buy_order: %Hefty.Repo.Binance.Order{
-            price: buy_price,
-            executed_quantity: matching_quantity,
-            original_quantity: matching_quantity,
-          } = buy_order,
-          sell_order:
-            %Hefty.Repo.Binance.Order{} = sell_order,
+          buy_order:
+            %Hefty.Repo.Binance.Order{
+              price: buy_price,
+              executed_quantity: matching_quantity,
+              original_quantity: matching_quantity
+            } = buy_order,
+          sell_order: %Hefty.Repo.Binance.Order{} = sell_order,
           stop_loss_interval: stop_loss_interval,
           stop_loss_triggered: stop_loss_triggered,
           rebuy_interval: rebuy_interval,
           rebuy_notified: rebuy_notified,
+          symbol: symbol
         } = state
       ) do
+    Logger.debug("STOP LOSS / REBUY - event received - #{inspect(event)}")
 
-    new_state = if !stop_loss_triggered do
-      case is_stop_loss(buy_price, current_price, stop_loss_interval) do
-        false -> state
-        stop_loss_price -> handle_stop_loss(buy_order, sell_order, stop_loss_price, state)
+    new_state =
+      if !stop_loss_triggered do
+        case is_stop_loss(buy_price, current_price, stop_loss_interval) do
+          false -> state
+          stop_loss_price -> handle_stop_loss(buy_order, sell_order, stop_loss_price, state)
+        end
+      else
+        state
       end
-    else
-      state
-    end
 
-    new_state = if !rebuy_notified do
-      case is_rebuy(buy_price, current_price, rebuy_interval) do
-        false -> new_state
-        rebuy_price -> handle_rebuy(rebuy_price, state)
+    new_state =
+      if !rebuy_notified do
+        case is_rebuy(buy_price, current_price, rebuy_interval) do
+          false -> new_state
+          rebuy_price -> handle_rebuy(rebuy_price, state)
+        end
+      else
+        new_state
       end
-    else
-      new_state
-    end
 
+    Hefty.Algos.Naive.Leader.notify(symbol, :state, new_state)
     {:noreply, new_state}
   end
 
@@ -353,11 +381,11 @@ defmodule Hefty.Algos.Naive.Trader do
   def handle_info(
         %{
           event: "trade_event",
-          payload: %Hefty.Repo.Binance.TradeEvent{}
+          payload: %Hefty.Repo.Binance.TradeEvent{} = event
         },
         %State{} = state
       ) do
-    # Logger.debug("Another trade event received - TBFixed")
+    Logger.debug("Another trade event received - TBFixed - #{inspect(event)}")
     {:noreply, state}
   end
 
@@ -369,7 +397,7 @@ defmodule Hefty.Algos.Naive.Trader do
 
     case D.cmp(d_current_price, stop_loss_price) do
       :lt -> stop_loss_price
-      _   -> false
+      _ -> false
     end
   end
 
@@ -381,43 +409,44 @@ defmodule Hefty.Algos.Naive.Trader do
 
     case D.cmp(d_current_price, rebuy_price) do
       :lt -> rebuy_price
-      _   -> false
+      _ -> false
     end
   end
 
   defp handle_rebuy(
-    rebuy_price,
-    %State{
-      buy_order: %Hefty.Repo.Binance.Order{
-        trade_id: trade_id,
-        price: buy_price
-      },
-      symbol: symbol
-    } = state
-  ) do
-    Logger.info(
-      "Rebuy triggered for trade #{trade_id} bought @ #{buy_price}
-      as price fallen below #{D.to_float(rebuy_price)}"
-    )
+         rebuy_price,
+         %State{
+           buy_order: %Hefty.Repo.Binance.Order{
+             trade_id: trade_id,
+             price: buy_price
+           },
+           symbol: symbol
+         } = state
+       ) do
+    Logger.info("Rebuy triggered for trade #{trade_id} bought @ #{buy_price}
+      as price fallen below #{D.to_float(rebuy_price)}")
 
     Hefty.Algos.Naive.Leader.notify(symbol, :rebuy)
 
     %{state | :rebuy_notified => true}
   end
 
-  defp handle_stop_loss(%Hefty.Repo.Binance.Order{
-            price: buy_price
-          }, %Hefty.Repo.Binance.Order{
-            order_id: order_id,
-            time: timestamp,
-            original_quantity: original_quantity,
-            executed_quantity: executed_quantity,
-            trade_id: trade_id
-          } = sell_order,
-          stop_loss_price,
-          %State{
-            symbol: symbol
-          } = state) do
+  defp handle_stop_loss(
+         %Hefty.Repo.Binance.Order{
+           price: buy_price
+         },
+         %Hefty.Repo.Binance.Order{
+           order_id: order_id,
+           time: timestamp,
+           original_quantity: original_quantity,
+           executed_quantity: executed_quantity,
+           trade_id: trade_id
+         } = sell_order,
+         stop_loss_price,
+         %State{
+           symbol: symbol
+         } = state
+       ) do
     Logger.info(
       "Stop loss triggered for trade #{trade_id} bought @ #{buy_price} as price fallen below #{
         D.to_float(stop_loss_price)
@@ -490,7 +519,7 @@ defmodule Hefty.Algos.Naive.Trader do
 
     Logger.debug(
       "Starting trader on symbol #{settings.symbol} with budget of #{
-        inspect(D.div(D.new(settings.budget), settings.chunks))
+        D.to_float(D.div(D.new(settings.budget), settings.chunks))
       }"
     )
 

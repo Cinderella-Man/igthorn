@@ -30,4 +30,4 @@ config :hefty,
 # Configure your database
 config :hefty, Hefty.Repo, database: "hefty_backtesting"
 
-config :logger, level: :debug
+config :logger, level: :info

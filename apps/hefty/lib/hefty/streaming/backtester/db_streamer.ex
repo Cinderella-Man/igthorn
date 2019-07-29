@@ -26,7 +26,8 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
     Hefty.Repo.transaction(
       fn ->
         from(te in Hefty.Repo.Binance.TradeEvent,
-          where: te.symbol == ^symbol and te.trade_time >= ^from_ts and te.trade_time < ^to_ts
+          where: te.symbol == ^symbol and te.trade_time >= ^from_ts and te.trade_time < ^to_ts,
+          order_by: te.trade_time
         )
         |> Hefty.Repo.stream()
         |> Enum.map(fn row ->

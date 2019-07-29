@@ -8,6 +8,7 @@ defmodule Hefty.Algos.NaiveTest do
   alias Hefty.Repo.Binance.TradeEvent
   alias Decimal, as: D
 
+  @tag :skip
   test "Naive trader full trade(buy + sell) test" do
     symbol = "XRPUSDT"
 
@@ -36,73 +37,70 @@ defmodule Hefty.Algos.NaiveTest do
     assert buy_order.original_quantity == sell_order.original_quantity
   end
 
-  # test "Naive trader partial trade(buy) and pick up and (sell) test (abnormal trader exit)" do
-  #   symbol = "XRPUSDT"
+  @tag :skip
+  test "Naive trader partial trade(buy) and pick up and (sell) test (abnormal trader exit)" do
+    symbol = "XRPUSDT"
 
-  #   settings = %{
-  #     :profit_interval => "0.001",
-  #     :buy_down_interval => "0.0025",
-  #     :budget => "100.0"
-  #   }
+    settings = %{
+      :profit_interval => "0.001",
+      :buy_down_interval => "0.0025",
+      :budget => "100.0"
+    }
 
-  #   setup_trading_environment(symbol, settings)
+    setup_trading_environment(symbol, settings)
 
-  #   Logger.debug("Step 7 - fill table with trade events that we will stream")
+    Logger.debug("Step 7 - fill table with trade events that we will stream")
 
-  #   [event_1, event_2, event_3, event_4, event_5, event_6, event_7, event_8] = getTestEvents()
+    [event_1, event_2, event_3, event_4, event_5, event_6, event_7, event_8] = getTestEvents()
 
-  #   [event_1, event_2, event_3, event_4, event_5]
-  #   |> Enum.map(&Hefty.Repo.insert(&1))
+    [event_1, event_2, event_3, event_4, event_5]
+    |> Enum.map(&Hefty.Repo.insert(&1))
 
-  #   Logger.debug("Step 8 - kick of streaming of trade events every 100ms")
+    Logger.debug("Step 8 - kick of streaming of trade events every 100ms")
 
-  #   SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
+    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
 
-  #   Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
+    Logger.debug("Step 9 - let's allow the rest of the events to be broadcasted")
 
-  #   # allow 5 events to be sent 
-  #   :timer.sleep(720)
+    # allow 5 events to be sent 
+    :timer.sleep(720)
 
-  #   IO.inspect("Before killing")
+    [%{:pid => pid}] = Hefty.Algos.Naive.Leader.fetch_traders(symbol)
+    Process.exit(pid, :kill)
 
-  #   [{pid, _ref}] = Hefty.Algos.Naive.Leader.fetch_traders(symbol)
-  #   Process.exit(pid, :kill)
+    :timer.sleep(100)
 
-  #   IO.inspect(pid, label: "Pid found")
+    qry = "TRUNCATE TABLE trade_events"
+    Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
 
-  #   :timer.sleep(100)
+    event_9 = %{event_8 | :price => "0.43205"}
 
-  #   qry = "TRUNCATE TABLE trade_events"
-  #   Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
+    [event_6, event_7, event_8, event_9]
+    |> Enum.map(&Hefty.Repo.insert(&1))
 
-  #   [event_6, event_7, event_8]
-  #   |> Enum.map(&Hefty.Repo.insert(&1))
+    simple_streamer_pid = Process.whereis(:"Elixir.Hefty.Streaming.Backtester.SimpleStreamer")
 
-  #   simple_streamer_pid = Process.whereis(:"Elixir.Hefty.Streaming.Backtester.SimpleStreamer")
+    Process.exit(simple_streamer_pid, :normal)
 
-  #   Process.exit(simple_streamer_pid, :normal)
+    SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
 
-  #   SimpleStreamer.start_streaming("XRPUSDT", "2019-06-19", "2019-06-19", 100)
+    # allow rest of events to be sent 
+    :timer.sleep(600)
 
-  #   # allow rest of events to be sent 
-  #   :timer.sleep(500)
+    result = Hefty.Orders.fetch_orders(symbol)
 
-  #   result = Hefty.Orders.fetch_orders(symbol)
+    assert length(result) == 3
+    [buy_order, sell_order, _new_buy_order] = result
 
-  #   IO.inspect(result)
+    assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
 
-  #   assert length(result) == 3
-  #   [buy_order, sell_order, _new_buy_order] = result
+    assert D.cmp(
+             D.new(buy_order.original_quantity),
+             D.div(D.new(settings.budget), D.new(buy_order.price))
+           ) == :lt
 
-  #   assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
-
-  #   assert D.cmp(
-  #            D.new(buy_order.original_quantity),
-  #            D.div(D.new(new_settings.budget), D.new(buy_order.price))
-  #          ) == :lt
-
-  #   assert buy_order.original_quantity == sell_order.original_quantity
-  # end
+    assert buy_order.original_quantity == sell_order.original_quantity
+  end
 
   test "Naive trader partial trade(buy) and pick up and (sell) test (graceful flip)" do
     symbol = "XRPUSDT"
@@ -139,7 +137,9 @@ defmodule Hefty.Algos.NaiveTest do
     qry = "TRUNCATE TABLE trade_events"
     Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
 
-    events
+    event_9 = %{event_1 | :price => "0.43205"}
+
+    (events ++ [event_9])
     |> Enum.drop(5)
     |> Enum.map(&Hefty.Repo.insert(&1))
 
@@ -167,7 +167,7 @@ defmodule Hefty.Algos.NaiveTest do
     assert buy_order.original_quantity == sell_order.original_quantity
   end
 
-  @tag :skip
+  # @tag :skip
   test "Naive trader stop loss test" do
     symbol = "XRPUSDT"
 
@@ -242,7 +242,21 @@ defmodule Hefty.Algos.NaiveTest do
       :buyer_market_maker => false
     }
 
-    events = events_up_to_buy_fulfilled ++ [event_6, event_7, event_8, event_9]
+    event_10 = %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_100,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_010,
+      # below - just to kick off another buy order
+      :price => "0.4221320",
+      :quantity => "126.53000000",
+      :buyer_order_id => 20_000_019,
+      :seller_order_id => 20_000_020,
+      :trade_time => 1_560_941_210_100,
+      :buyer_market_maker => false
+    }
+
+    events = events_up_to_buy_fulfilled ++ [event_6, event_7, event_8, event_9, event_10]
 
     stream_events(symbol, settings, events)
 
@@ -269,7 +283,7 @@ defmodule Hefty.Algos.NaiveTest do
     assert new_buy.status == "NEW"
   end
 
-  @tag :skip
+  # @tag :skip
   test "Naive trader retarget test" do
     symbol = "XRPUSDT"
 
@@ -319,6 +333,7 @@ defmodule Hefty.Algos.NaiveTest do
     assert D.cmp(D.new(new_buy.original_quantity), D.new(cancelled_buy.original_quantity)) == :lt
   end
 
+  @tag :skip
   test "Naive trader rebuy test" do
     symbol = "XRPUSDT"
 
@@ -329,8 +344,8 @@ defmodule Hefty.Algos.NaiveTest do
       :stop_loss_interval => "0.2",
       # rebuy at 5% from first seen price
       :rebuy_interval => "0.0475",
-      # effectively disable rebuying
-      :retarget_interval => "0.0050",
+      # effectively disable retargeting
+      :retarget_interval => "0.2",
       :budget => "100.0"
     }
 
@@ -361,17 +376,21 @@ defmodule Hefty.Algos.NaiveTest do
 
     assert length(traders) == 2
 
-    # [cancelled_buy, new_buy] = orders
+    [filled_buy, unfilled_sell, new_buy] = orders
 
-    # # Checking cancelled order
-    # assert cancelled_buy.executed_quantity == "0.00000"
-    # assert cancelled_buy.status == "CANCELLED"
+    # Checking filled buy order
+    assert filled_buy.executed_quantity == filled_buy.original_quantity
+    assert filled_buy.status == "FILLED"
 
-    # # Checking stop loss order
-    # assert new_buy.price == "0.4389"
-    # assert new_buy.status == "NEW"
+    # Checking un-filled sell order
+    assert unfilled_sell.price == "0.43204"
+    assert unfilled_sell.status == "NEW"
+    assert unfilled_sell.executed_quantity == "0.00000"
 
-    # assert D.cmp(D.new(new_buy.original_quantity), D.new(cancelled_buy.original_quantity)) == :lt
+    # Checking new buy order
+    assert new_buy.price == "0.40921"
+    assert new_buy.status == "NEW"
+    assert new_buy.executed_quantity == "0.00000"
   end
 
   def getTestEvents() do
@@ -474,6 +493,20 @@ defmodule Hefty.Algos.NaiveTest do
         :trade_id => 10_000_008,
         # above
         :price => "0.43205",
+        :quantity => "126.53000000",
+        :buyer_order_id => 20_000_015,
+        :seller_order_id => 20_000_016,
+        :trade_time => 1_560_941_210_080,
+        :buyer_market_maker => false
+      },
+      # this one should push fake event to fulfil sell order
+      %TradeEvent{
+        :event_type => "trade",
+        :event_time => 1_560_941_210_180,
+        :symbol => "XRPUSDT",
+        :trade_id => 10_000_018,
+        # above
+        :price => "0.43210",
         :quantity => "126.53000000",
         :buyer_order_id => 20_000_015,
         :seller_order_id => 20_000_016,

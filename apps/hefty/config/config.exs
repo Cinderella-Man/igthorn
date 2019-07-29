@@ -35,14 +35,16 @@ config :hefty,
   trading: %{
     :defaults => %{
       :chunks => 5,
-      # 0.25%
-      :profit_interval => "0.0025",
-      # 2.0%
-      :buy_down_interval => "0.02",
+      :budget => "1000.0",
+      # 0.35%
+      :profit_interval => "0.0035",
+      # 1.0%
+      :buy_down_interval => "0.01",
       # 10%
-      :stop_loss_interval => "0.1",
-      # 1%
-      :retarget_interval => "0.01",
+      :stop_loss_interval => "0.10",
+      # 2% - buy down so 1% really
+      # needs to be always bigger than buy_down_interval!!
+      :retarget_interval => "0.02",
       # 2.5%
       :rebuy_interval => "0.025"
     }

@@ -11,7 +11,8 @@ defmodule Hefty.Orders do
     Logger.debug("Fetching orders for a symbol", symbol: symbol)
 
     from(o in Hefty.Repo.Binance.Order,
-      where: o.symbol == ^symbol
+      where: o.symbol == ^symbol,
+      order_by: o.time
     )
     |> Hefty.Repo.all()
   end
