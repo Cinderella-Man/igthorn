@@ -8,7 +8,7 @@ defmodule Hefty.Algos.NaiveTest do
   alias Hefty.Repo.Binance.TradeEvent
   alias Decimal, as: D
 
-  @tag :skip
+  # @tag :skip
   test "Naive trader full trade(buy + sell) test" do
     symbol = "XRPUSDT"
 
@@ -102,6 +102,7 @@ defmodule Hefty.Algos.NaiveTest do
     assert buy_order.original_quantity == sell_order.original_quantity
   end
 
+  @tag :skip
   test "Naive trader partial trade(buy) and pick up and (sell) test (graceful flip)" do
     symbol = "XRPUSDT"
 
