@@ -3,6 +3,8 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
 
   import Ecto.Query, only: [from: 2]
 
+  require Logger
+
   @doc """
   Expected args:
   * symbol: string
@@ -10,7 +12,7 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
   * to: string (YYYY-MM-DD)
   * interval: number (of ms)
   """
-  def start_link(symbol, from, to, streamer_pid, interval \\ 5) do
+  def start_link(symbol, from, to, streamer_pid, interval \\ 1) do
     Task.start_link(__MODULE__, :run, [symbol, from, to, streamer_pid, interval])
   end
 
@@ -22,6 +24,15 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
       |> Hefty.Utils.Date.ymdToNaiveDate()
       |> NaiveDateTime.add(24 * 60 * 60, :second)
       |> Hefty.Utils.Date.naiveDateToTs()
+
+    result =
+      from(te in Hefty.Repo.Binance.TradeEvent,
+        select: count("*"),
+        where: te.symbol == ^symbol and te.trade_time >= ^from_ts and te.trade_time < ^to_ts
+      )
+      |> Hefty.Repo.one()
+
+    Logger.info("#{result} records to be stream with interval of #{interval}ms")
 
     Hefty.Repo.transaction(
       fn ->

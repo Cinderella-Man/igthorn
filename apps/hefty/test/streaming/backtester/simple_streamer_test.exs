@@ -76,14 +76,14 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamerTest do
   defp generate_event(id, price, quantity) do
     %TradeEvent{
       :event_type => "trade",
-      :event_time => 1_560_941_210_000 + (id * 10),
+      :event_time => 1_560_941_210_000 + id * 10,
       :symbol => "XRPUSDT",
-      :trade_id => 10_000_000 + (id * 10),
+      :trade_id => 10_000_000 + id * 10,
       :price => price,
       :quantity => quantity,
-      :buyer_order_id => 20_000_000 + (id * 10),
-      :seller_order_id => 30_000_000 + (id * 10),
-      :trade_time => 1_560_941_210_000 + (id * 10),
+      :buyer_order_id => 20_000_000 + id * 10,
+      :seller_order_id => 30_000_000 + id * 10,
+      :trade_time => 1_560_941_210_000 + id * 10,
       :buyer_market_maker => false
     }
   end

@@ -49,7 +49,7 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 7 - fill table with trade events that we will stream")
 
-    [ event_1 | _ ] = sample_events = getTestEvents()
+    [event_1 | _] = sample_events = getTestEvents()
 
     sample_events
     |> Enum.take(5)
@@ -292,7 +292,7 @@ defmodule Hefty.Algos.NaiveTest do
     event_3 = %{event_3 | :price => "0.4102385950"}
     # another event to trigger retarget
     event_4 = %{event_4 | :price => "0.4102385940"}
-    # first event received by second tracer
+    # first event received by second trader
     event_5 = %{event_5 | :price => "0.4102385930"}
     # event that will cause buy order to be created
     event_6 = %{event_6 | :price => "0.4102385920"}
@@ -316,7 +316,7 @@ defmodule Hefty.Algos.NaiveTest do
     assert filled_buy.status == "FILLED"
 
     # Checking un-filled sell order
-    assert unfilled_sell.price == "0.43204"
+    assert unfilled_sell.price == "0.43182"
     assert unfilled_sell.status == "NEW"
     assert unfilled_sell.executed_quantity == "0.00000"
 
@@ -324,6 +324,109 @@ defmodule Hefty.Algos.NaiveTest do
     assert new_buy.price == "0.40921"
     assert new_buy.status == "NEW"
     assert new_buy.executed_quantity == "0.00000"
+  end
+
+  @tag :special
+  test "Naive trader limits number of trader(using chunks) and honors that limit when rebuy is called" do
+    symbol = "XRPUSDT"
+
+    settings = %{
+      :profit_interval => "0.001",
+      :buy_down_interval => "0.0025",
+      # effectively disable stop loss
+      :stop_loss_interval => "0.9",
+      # rebuy at 5% from first seen price
+      :rebuy_interval => "0.0475",
+      # effectively disable retargeting
+      :retarget_interval => "0.2",
+      :budget => "100.0"
+    }
+
+    # starting point
+    event_1 = generate_event(1, "0.50", "12.35564")
+    # - 5% - will fill first buy + put sell
+    event_2 = generate_event(2, "0.475", "45.3567")
+    event_3 = generate_event(3, "0.475", "345.563")
+    # - 10% - will fill second buy + put sell
+    event_4 = generate_event(4, "0.45125", "23.467")
+    event_5 = generate_event(5, "0.45125", "46.86")
+    # - 15% - will fill third buy + put sell
+    event_6 = generate_event(6, "0.4286875", "37.234")
+    event_7 = generate_event(7, "0.4286875", "753.324")
+    # - 20%
+    event_8 = generate_event(8, "0.407253125", "3523.4234")
+    event_9 = generate_event(9, "0.407253125", "827.343")
+    # - 25%
+    event_10 = generate_event(10, "0.38689046875", "4345.23423")
+    event_11 = generate_event(11, "0.38689046875", "56456.321")
+    # - 30%
+    event_12 = generate_event(12, "0.3675459453125", "354.4234")
+    event_13 = generate_event(13, "0.3675459453125", "235436.23")
+
+    events = [
+      event_1,
+      event_2,
+      event_3,
+      event_4,
+      event_5,
+      event_6,
+      event_7,
+      event_8,
+      event_9,
+      event_10,
+      event_11,
+      event_12,
+      event_13
+    ]
+
+    stream_events(symbol, settings, events)
+
+    orders = Hefty.Orders.fetch_orders(symbol)
+
+    assert length(orders) == 10
+
+    traders = Hefty.Algos.Naive.Leader.fetch_traders(symbol)
+
+    assert length(traders) == 5
+
+    expected_buy_prices = [
+      "0.49875",
+      "0.47381",
+      "0.45012",
+      "0.42761",
+      "0.40623"
+    ]
+
+    orders
+    |> Enum.take_every(2)
+    |> (fn buy_orders -> [buy_orders, expected_buy_prices] end).()
+    |> List.zip()
+    |> Enum.each(fn {buy_order, expected_price} ->
+      assert buy_order.executed_quantity == buy_order.original_quantity
+      assert buy_order.status == "FILLED"
+      assert buy_order.side == "BUY"
+      assert buy_order.price == expected_price
+    end)
+
+    expected_sell_prices = [
+      "0.49999",
+      "0.47499",
+      "0.45124",
+      "0.42867",
+      "0.40724"
+    ]
+
+    orders
+    |> Enum.drop(1)
+    |> Enum.take_every(2)
+    |> (fn sell_orders -> [sell_orders, expected_sell_prices] end).()
+    |> List.zip()
+    |> Enum.each(fn {sell_order, expected_price} ->
+      assert sell_order.executed_quantity == "0.00000"
+      assert sell_order.status == "NEW"
+      assert sell_order.side == "SELL"
+      assert sell_order.price == expected_price
+    end)
   end
 
   def getTestEvents() do
@@ -432,14 +535,14 @@ defmodule Hefty.Algos.NaiveTest do
   defp generate_event(id, price, quantity) do
     %TradeEvent{
       :event_type => "trade",
-      :event_time => 1_560_941_210_000 + (id * 10),
+      :event_time => 1_560_941_210_000 + id * 10,
       :symbol => "XRPUSDT",
-      :trade_id => 10_000_000 + (id * 10),
+      :trade_id => 10_000_000 + id * 10,
       :price => price,
       :quantity => quantity,
-      :buyer_order_id => 20_000_000 + (id * 10),
-      :seller_order_id => 30_000_000 + (id * 10),
-      :trade_time => 1_560_941_210_000 + (id * 10),
+      :buyer_order_id => 20_000_000 + id * 10,
+      :seller_order_id => 30_000_000 + id * 10,
+      :trade_time => 1_560_941_210_000 + id * 10,
       :buyer_market_maker => false
     }
   end

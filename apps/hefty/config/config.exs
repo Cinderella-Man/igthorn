@@ -46,7 +46,10 @@ config :hefty,
       # needs to be always bigger than buy_down_interval!!
       :retarget_interval => "0.02",
       # 2.5%
-      :rebuy_interval => "0.025"
+      :rebuy_interval => "0.025",
+      # WARNING: Change this to 0.001 if you won't pay fees in BNB
+      :fee => "0.00075"
+      # :fee => "0.001"
     }
   }
 
