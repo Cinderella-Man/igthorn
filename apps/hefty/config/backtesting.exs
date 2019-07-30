@@ -24,6 +24,10 @@ use Mix.Config
 config :hefty,
   env: "backtesting",
   exchanges: %{
+    :defaults => %{
+      :fee => "0.00075"
+      # :fee => "0.001"
+    },
     binance: Hefty.Exchanges.BinanceMock
   }
 

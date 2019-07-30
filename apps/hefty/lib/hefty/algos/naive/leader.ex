@@ -3,6 +3,9 @@ defmodule Hefty.Algos.Naive.Leader do
   require Logger
 
   alias Hefty.Algos.Naive.Trader
+  alias Hefty.Repo.Binance.Order
+
+  alias Decimal, as: D
 
   import Ecto.Query, only: [from: 2]
   # import Ecto.Changeset, only: [cast: 3]
@@ -60,10 +63,12 @@ defmodule Hefty.Algos.Naive.Leader do
   def handle_cast(
         {:trade_finished, pid,
          %Hefty.Algos.Naive.Trader.State{
-           :sell_order => %Hefty.Repo.Binance.Order{
-             :trade_id => trade_id,
-             :price => sell_order_price
-           },
+           :buy_order => %Order{} = buy_order,
+           :sell_order =>
+             %Order{
+               :trade_id => trade_id,
+               :price => sell_order_price
+             } = sell_order,
            :symbol => symbol
          }},
         state
@@ -75,6 +80,8 @@ defmodule Hefty.Algos.Naive.Leader do
         :"Hefty.Algos.Naive.DynamicSupervisor-#{symbol}",
         pid
       )
+
+    _outcome = calculate_outcome(buy_order, sell_order)
 
     new_traders = [
       start_new_trader(symbol, :blank, [])
@@ -110,18 +117,18 @@ defmodule Hefty.Algos.Naive.Leader do
         {:notify, :rebuy},
         %State{symbol: symbol, traders: traders, chunks: chunks} = state
       ) do
-    new_trader =
+    new_traders =
       case length(traders) < chunks do
         true ->
           Logger.info("Rebuy notification received, starting a new trader")
-          start_new_trader(symbol, :blank, [])
+          [start_new_trader(symbol, :blank, []) | traders]
 
         false ->
           Logger.info("Rebuy notification received but all chunks already used")
           traders
       end
 
-    {:noreply, %{state | :traders => [new_trader | traders]}}
+    {:noreply, %{state | :traders => new_traders}}
   end
 
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
@@ -179,6 +186,7 @@ defmodule Hefty.Algos.Naive.Leader do
   defp fetch_open_orders(symbol) do
     from(o in Hefty.Repo.Binance.Order,
       where: o.symbol == ^symbol,
+      where: o.status != "CANCELLED",
       order_by: o.time
     )
     |> Hefty.Repo.all()
@@ -241,5 +249,14 @@ defmodule Hefty.Algos.Naive.Leader do
       Logger.info("Unable to find trader in list of traders. Skipping removal")
       state
     end
+  end
+
+  defp calculate_outcome(
+         %Order{:price => buy_price, :original_quantity => quantity} = buy_order,
+         %Order{:price => sell_price} = sell_order
+       ) do
+    fee = D.new(Application.get_env(:hefty, :trading).defaults.fee)
+    total_spent = D.mult(D.mult(D.new(buy_price), D.new(quantity)), fee)
+    # TODO!!!!
   end
 end

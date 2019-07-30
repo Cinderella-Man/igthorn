@@ -630,13 +630,13 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   defp calculate_sell_price(buy_price, profit_interval, tick_size) do
-    fee = 1.001
+    fee = D.add(D.new("1.0"), D.new(Application.get_env(:hefty, :trading).defaults.fee))
     buy_price = D.new(buy_price)
-    real_buy_price = D.mult(buy_price, D.from_float(fee))
+    real_buy_price = D.mult(buy_price, fee)
     tick = D.new(tick_size)
 
     net_target_price = D.mult(real_buy_price, D.add(1, D.new(profit_interval)))
-    gross_target_price = D.mult(net_target_price, D.from_float(fee))
+    gross_target_price = D.mult(net_target_price, fee)
     D.to_float(D.mult(D.div_int(gross_target_price, tick), tick))
   end
 
