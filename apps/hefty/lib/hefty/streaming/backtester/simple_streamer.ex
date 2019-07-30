@@ -57,6 +57,10 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     {:noreply, %{state | :db_streamer_task => task}}
   end
 
+  def cleanup() do
+    GenServer.cast(__MODULE__, :cleanup)
+  end
+
   # CALLBACKS
 
   @doc """
@@ -124,6 +128,11 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   def handle_cast({:order, %Binance.OrderResponse{:side => "SELL"} = order}, state) do
     {:noreply,
      %{state | :sell_stack => [order | state.sell_stack] |> Enum.sort(&(&1.price < &2.price))}}
+  end
+
+  def handle_cast(:cleanup, _state) do
+    Logger.debug("Cleaning state of simple streamer")
+    {:noreply, %State{}}
   end
 
   # PRIVATE FUNCTIONS
