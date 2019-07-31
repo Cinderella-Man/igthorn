@@ -48,6 +48,8 @@ defmodule UiWeb.OrdersLive do
                   <th>Price</th>
                   <th>Original Quantity</th>
                   <th>Executed Quantity</th>
+                  <th>Side</th>
+                  <th>Status</th>
                   <th>Type</th>
                   <th>Time</th>
                 </tr>
@@ -59,6 +61,8 @@ defmodule UiWeb.OrdersLive do
                     <td><%= order.price %></td>
                     <td><%= order.original_quantity %></td>
                     <td><%= order.executed_quantity %></td>
+                    <td><%= order.side %></td>
+                    <td><%= order.status %></td>
                     <td><%= order.type %></td>
                     <td><%= order.time %></td>
                   </tr>
