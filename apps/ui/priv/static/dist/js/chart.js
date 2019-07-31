@@ -12,10 +12,11 @@ let doRender = (labels, symbol, data) => {
         labels: labels,
         datasets: [{
             label: symbol,
-            backgroundColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.3)',
             borderColor: 'rgb(255, 99, 132)',
             data: data,
-            fill: false
+            fill: 'origin',
+            lineTension: 0
         }]
     }
 
@@ -44,6 +45,12 @@ let doRender = (labels, symbol, data) => {
                         labelString: 'Price'
                     }
                 }]
+            },
+            legend: {
+                display: true,
+                labels: {
+                    fontColor: 'rgb(255, 99, 132)'
+                }
             }
         }
     }
