@@ -103,8 +103,15 @@ defmodule Hefty.Algos.Naive.Trader do
   state what trader was in before stopping. Current state of trader
   is ignored.
   """
-  def handle_cast({:init_strategy, :restart, new_state}, _state) do
-    Logger.debug("Trader initialized successfully")
+  def handle_cast(
+        {
+          :init_strategy,
+          :restart,
+          %State{:symbol => symbol, :budget => budget} = new_state
+        },
+        _state
+      ) do
+    Logger.info("Trader started on #{symbol} with budget of #{budget}")
     {:noreply, new_state}
   end
 
@@ -516,16 +523,15 @@ defmodule Hefty.Algos.Naive.Trader do
   defp prepare_state(symbol) do
     settings = fetch_settings(symbol)
     pair = fetch_pair(symbol)
+    budget = D.div(D.new(settings.budget), settings.chunks)
 
     Logger.debug(
-      "Starting trader on symbol #{settings.symbol} with budget of #{
-        D.to_float(D.div(D.new(settings.budget), settings.chunks))
-      }"
+      "Starting trader on symbol #{settings.symbol} with budget of #{D.to_float(budget)}"
     )
 
     %State{
       symbol: settings.symbol,
-      budget: D.div(D.new(settings.budget), settings.chunks),
+      budget: budget,
       buy_down_interval: settings.buy_down_interval,
       profit_interval: settings.profit_interval,
       stop_loss_interval: settings.stop_loss_interval,
@@ -563,7 +569,6 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   defp calculate_quantity(budget, price, quantity_step_size) do
-    budget = D.new(budget)
     step = D.new(quantity_step_size)
     price = D.from_float(price)
 

@@ -4,6 +4,7 @@ defmodule Hefty.Algos.Naive.Leader do
 
   alias Hefty.Algos.Naive.Trader
   alias Hefty.Repo.Binance.Order
+  alias Hefty.Repo.NaiveTraderSetting
 
   alias Decimal, as: D
 
@@ -20,7 +21,7 @@ defmodule Hefty.Algos.Naive.Leader do
   """
 
   defmodule State do
-    defstruct symbol: nil, budget: 0, chunks: 5, traders: []
+    defstruct settings: nil, traders: []
   end
 
   defmodule TraderState do
@@ -34,8 +35,8 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def init(symbol) do
-    GenServer.cast(self(), :init_traders)
-    {:ok, %State{symbol: symbol}}
+    GenServer.cast(self(), {:init_traders, symbol})
+    {:ok, nil}
   end
 
   def fetch_traders(symbol) do
@@ -50,19 +51,28 @@ defmodule Hefty.Algos.Naive.Leader do
     GenServer.cast(:"#{__MODULE__}-#{symbol}", {:notify, :rebuy})
   end
 
-  def handle_cast(:init_traders, state) do
+  @doc """
+  Callback after startup. State is empty so it will be ignored
+  """
+  def handle_cast({:init_traders, symbol}, _state) do
     settings =
       from(nts in Hefty.Repo.NaiveTraderSetting,
-        where: nts.platform == "Binance" and nts.symbol == ^state.symbol
+        where: nts.platform == "Binance" and nts.symbol == ^symbol
       )
       |> Hefty.Repo.one()
 
-    init_traders(settings, state)
+    traders = init_traders(settings)
+
+    {:noreply,
+     %State{
+       traders: traders,
+       settings: settings
+     }}
   end
 
   def handle_cast(
         {:trade_finished, pid,
-         %Hefty.Algos.Naive.Trader.State{
+         %Trader.State{
            :buy_order => %Order{} = buy_order,
            :sell_order =>
              %Order{
@@ -70,7 +80,7 @@ defmodule Hefty.Algos.Naive.Leader do
                :price => sell_order_price
              } = sell_order,
            :symbol => symbol
-         }},
+         } = old_trader_state},
         state
       ) do
     Logger.info("Trade(#{trade_id}) finished at price of #{sell_order_price}")
@@ -81,10 +91,20 @@ defmodule Hefty.Algos.Naive.Leader do
         pid
       )
 
-    _outcome = calculate_outcome(buy_order, sell_order)
+    outcome = calculate_outcome(buy_order, sell_order)
+    new_budget = calculate_budget(state.settings, outcome)
+
+    Logger.info("Trade outcome: #{outcome} USDT")
 
     new_traders = [
-      start_new_trader(symbol, :blank, [])
+      start_new_trader(symbol, :restart, %{
+        old_trader_state
+        | :buy_order => nil,
+          :sell_order => nil,
+          :stop_loss_triggered => false,
+          :rebuy_notified => false,
+          :budget => new_budget
+      })
       | Enum.reject(state.traders, &(&1.pid == pid))
     ]
 
@@ -115,7 +135,13 @@ defmodule Hefty.Algos.Naive.Leader do
   """
   def handle_cast(
         {:notify, :rebuy},
-        %State{symbol: symbol, traders: traders, chunks: chunks} = state
+        %State{
+          settings: %NaiveTraderSetting{
+            symbol: symbol,
+            chunks: chunks
+          },
+          traders: traders
+        } = state
       ) do
     new_traders =
       case length(traders) < chunks do
@@ -140,39 +166,28 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   # Safety fuse
-  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:trading => false}, state) do
+  defp init_traders(%NaiveTraderSetting{:trading => false}) do
     Logger.warn("Safety fuse triggered - trying to start non traded symbol")
-    {:noreply, state}
+    []
   end
 
-  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:chunks => chunks, :budget => budget}, %State{
+  defp init_traders(%NaiveTraderSetting{
          :symbol => symbol
        }) do
-    open_trades =
-      symbol
-      |> fetch_open_trades()
+    open_trades = fetch_open_trades(symbol)
 
-    traders =
-      case open_trades do
-        [] ->
-          Logger.info("No open trades so starting :blank trader", symbol: symbol)
-          [start_new_trader(symbol, :blank, [])]
+    case open_trades do
+      [] ->
+        Logger.info("No open trades so starting :blank trader", symbol: symbol)
+        [start_new_trader(symbol, :blank, [])]
 
-        x ->
-          Logger.info("There's some exisitng trades ongoing - starting trader for each",
-            symbol: symbol
-          )
+      x ->
+        Logger.info("There's some exisitng trades ongoing - starting trader for each",
+          symbol: symbol
+        )
 
-          Enum.map(x, &start_new_trader(symbol, :continue, &1))
-      end
-
-    {:noreply,
-     %State{
-       symbol: symbol,
-       budget: budget,
-       chunks: chunks,
-       traders: traders
-     }}
+        Enum.map(x, &start_new_trader(symbol, :continue, &1))
+    end
   end
 
   defp fetch_open_trades(symbol) do
@@ -233,7 +248,15 @@ defmodule Hefty.Algos.Naive.Leader do
     |> (fn c -> c < 2 end).()
   end
 
-  defp handle_dead_trader(pid, %State{:traders => traders, :symbol => symbol} = state) do
+  defp handle_dead_trader(
+         pid,
+         %State{
+           :traders => traders,
+           :settings => %NaiveTraderSetting{
+             :symbol => symbol
+           }
+         } = state
+       ) do
     Logger.info("Leader restarts process as it died")
 
     index = Enum.find_index(traders, &(&1.pid == pid))
@@ -252,11 +275,21 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   defp calculate_outcome(
-         %Order{:price => buy_price, :original_quantity => quantity} = buy_order,
-         %Order{:price => sell_price} = sell_order
+         %Order{:price => buy_price, :original_quantity => quantity},
+         %Order{:price => sell_price}
        ) do
     fee = D.new(Application.get_env(:hefty, :trading).defaults.fee)
-    total_spent = D.mult(D.mult(D.new(buy_price), D.new(quantity)), fee)
-    # TODO!!!!
+    spent_without_fee = D.mult(D.new(buy_price), D.new(quantity))
+    total_spent = D.add(spent_without_fee, D.mult(spent_without_fee, fee))
+
+    gain_without_fee = D.mult(D.new(sell_price), D.new(quantity))
+    total_gain = D.sub(gain_without_fee, D.mult(gain_without_fee, fee))
+
+    D.to_float(D.sub(total_gain, total_spent))
+  end
+
+  defp calculate_budget(%NaiveTraderSetting{:budget => total_budget, :chunks => chunks}, outcome) do
+    total_budget = D.new(total_budget)
+    D.add(D.div(total_budget, D.new(chunks)), D.from_float(outcome))
   end
 end
