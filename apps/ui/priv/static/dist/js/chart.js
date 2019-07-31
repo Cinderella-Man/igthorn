@@ -4,7 +4,7 @@ window.renderChart = (labels, symbol, data) => {
     } else {
         document.addEventListener("DOMContentLoaded", () => doRender(labels, symbol, data))
     }
-}
+};
 
 let doRender = (labels, symbol, data) => {
 
@@ -12,13 +12,13 @@ let doRender = (labels, symbol, data) => {
         labels: labels,
         datasets: [{
             label: symbol,
-            backgroundColor: 'rgba(255, 99, 132, 0.3)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
             borderColor: 'rgb(255, 99, 132)',
             data: data,
             fill: 'origin',
             lineTension: 0
         }]
-    }
+    };
 
     var config = {
         type: 'line',
@@ -53,14 +53,14 @@ let doRender = (labels, symbol, data) => {
                 }
             }
         }
-    }
+    };
 
     if (window.chart !== undefined) {
-        window.chart.data = chartData
-        window.chart.update()
-        return
+        window.chart.data = chartData;
+        window.chart.update();
+        return;
     }
 
-    var ctx = document.getElementById('lineChart')
-    window.chart = new Chart(ctx, config)
-}
+    var ctx = document.getElementById('lineChart');
+    window.chart = new Chart(ctx, config);
+};
