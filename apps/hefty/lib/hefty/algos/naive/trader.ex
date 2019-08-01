@@ -111,7 +111,7 @@ defmodule Hefty.Algos.Naive.Trader do
         },
         _state
       ) do
-    Logger.info("Trader started on #{symbol} with budget of #{budget}")
+    Logger.info("Starting trader on symbol #{symbol} with budget of #{budget}")
     {:noreply, new_state}
   end
 
@@ -525,7 +525,7 @@ defmodule Hefty.Algos.Naive.Trader do
     pair = fetch_pair(symbol)
     budget = D.div(D.new(settings.budget), settings.chunks)
 
-    Logger.debug(
+    Logger.info(
       "Starting trader on symbol #{settings.symbol} with budget of #{D.to_float(budget)}"
     )
 

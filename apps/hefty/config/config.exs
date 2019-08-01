@@ -39,14 +39,14 @@ config :hefty,
       # 0.35%
       :profit_interval => "0.005",
       # 1.0%
-      :buy_down_interval => "0.02",
+      :buy_down_interval => "0.01",
       # 5%
       :stop_loss_interval => "0.05",
       # 2% - buy down so 1% really
       # needs to be always bigger than buy_down_interval!!
       :retarget_interval => "0.02",
       # 4%
-      :rebuy_interval => "0.04",
+      :rebuy_interval => "0.03",
       # WARNING: Change this to 0.001 if you won't pay fees in BNB
       :fee => "0.00075"
       # :fee => "0.001"

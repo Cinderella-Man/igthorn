@@ -79,7 +79,8 @@ defmodule Hefty.Algos.Naive.Leader do
                :trade_id => trade_id,
                :price => sell_order_price
              } = sell_order,
-           :symbol => symbol
+           :symbol => symbol,
+           :budget => previous_budget
          } = old_trader_state},
         state
       ) do
@@ -92,9 +93,9 @@ defmodule Hefty.Algos.Naive.Leader do
       )
 
     outcome = calculate_outcome(buy_order, sell_order)
-    new_budget = calculate_budget(state.settings, outcome)
+    new_budget = D.add(D.new(previous_budget), outcome)
 
-    Logger.info("Trade outcome: #{outcome} USDT")
+    Logger.info("Trade outcome: #{D.to_float(outcome)} USDT")
 
     new_traders = [
       start_new_trader(symbol, :restart, %{
@@ -285,11 +286,6 @@ defmodule Hefty.Algos.Naive.Leader do
     gain_without_fee = D.mult(D.new(sell_price), D.new(quantity))
     total_gain = D.sub(gain_without_fee, D.mult(gain_without_fee, fee))
 
-    D.to_float(D.sub(total_gain, total_spent))
-  end
-
-  defp calculate_budget(%NaiveTraderSetting{:budget => total_budget, :chunks => chunks}, outcome) do
-    total_budget = D.new(total_budget)
-    D.add(D.div(total_budget, D.new(chunks)), D.from_float(outcome))
+    D.sub(total_gain, total_spent)
   end
 end
