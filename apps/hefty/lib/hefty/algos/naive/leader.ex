@@ -80,11 +80,12 @@ defmodule Hefty.Algos.Naive.Leader do
                :price => sell_order_price
              } = sell_order,
            :symbol => symbol,
-           :budget => previous_budget
+           :budget => previous_budget,
+           :id => id
          } = old_trader_state},
         state
       ) do
-    Logger.info("Trade(#{trade_id}) finished at price of #{sell_order_price}")
+    Logger.info("Trader(#{id}) - Trade(#{trade_id}) finished at price of #{sell_order_price}")
 
     :ok =
       DynamicSupervisor.terminate_child(
@@ -95,7 +96,7 @@ defmodule Hefty.Algos.Naive.Leader do
     outcome = calculate_outcome(buy_order, sell_order)
     new_budget = D.add(D.new(previous_budget), outcome)
 
-    Logger.info("Trade outcome: #{D.to_float(outcome)} USDT")
+    Logger.info("Trader(#{id}) - Trade outcome: #{D.to_float(outcome)} USDT")
 
     new_traders = [
       start_new_trader(symbol, :restart, %{

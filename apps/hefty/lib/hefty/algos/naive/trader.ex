@@ -38,7 +38,8 @@ defmodule Hefty.Algos.Naive.Trader do
       `buy price` * (1 - `stop loss interval`)
   """
   defmodule State do
-    defstruct symbol: nil,
+    defstruct id: nil,
+              symbol: nil,
               strategy: :blank,
               budget: nil,
               buy_order: nil,
@@ -58,7 +59,7 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   def init({symbol, strategy, data}) do
-    Logger.info("Trader starting(symbol: #{symbol}, strategy: #{strategy})")
+    Logger.debug("Trader starting(symbol: #{symbol}, strategy: #{strategy})")
     GenServer.cast(self(), {:init_strategy, strategy, data})
 
     Logger.debug("Trader subscribing to #{"stream-#{symbol}"}")
@@ -166,18 +167,22 @@ defmodule Hefty.Algos.Naive.Trader do
             } = buy_order,
           profit_interval: profit_interval,
           pair: %Hefty.Repo.Binance.Pair{price_tick_size: tick_size},
-          symbol: symbol
+          symbol: symbol,
+          id: id
         } = state
       ) do
     Logger.debug("Buy order filling - event received - #{inspect(event)}")
 
-    Logger.info("Transaction of #{event.quantity} for BUY order #{order_id} received")
+    Logger.info(
+      "Trader(#{id}) received an transaction of #{event.quantity} for BUY order #{order_id} received"
+    )
+
     {:ok, current_buy_order} = @binance_client.get_order(symbol, time, order_id)
 
     {:ok, new_state} =
       case current_buy_order.executed_qty == current_buy_order.orig_qty do
         true ->
-          Logger.info("Current buy order has been filled. Submitting sell order")
+          Logger.debug("Current buy order has been filled. Submitting sell order")
 
           Hefty.Repo.transaction(fn ->
             sell_order = create_sell_order(buy_order, profit_interval, tick_size)
@@ -229,12 +234,15 @@ defmodule Hefty.Algos.Naive.Trader do
               symbol: symbol,
               time: time
             } = sell_order,
-          symbol: symbol
+          symbol: symbol,
+          id: id
         } = state
       ) do
     Logger.debug("Sell order filling - event received - #{inspect(event)}")
 
-    Logger.info("Transaction of #{event.quantity} for SELL order #{order_id} received")
+    Logger.info(
+      "Trader(#{id}) received an transaction of #{event.quantity} for SELL order #{order_id} received"
+    )
 
     {:ok, current_sell_order} = @binance_client.get_order(symbol, time, order_id)
 
@@ -250,7 +258,7 @@ defmodule Hefty.Algos.Naive.Trader do
 
     case current_sell_order.executed_qty == current_sell_order.orig_qty do
       true ->
-        Logger.info("Current sell order has been filled. Process can terminate")
+        Logger.debug("Current sell order has been filled. Process can terminate")
 
         GenServer.cast(
           :"#{Hefty.Algos.Naive.Leader}-#{symbol}",
@@ -287,7 +295,8 @@ defmodule Hefty.Algos.Naive.Trader do
               time: timestamp
             } = buy_order,
           retarget_interval: retarget_interval,
-          symbol: symbol
+          symbol: symbol,
+          id: id
         } = state
       ) do
     Logger.debug("RETARGET - event received - #{inspect(event)}")
@@ -300,14 +309,18 @@ defmodule Hefty.Algos.Naive.Trader do
     new_state =
       case D.cmp(retarget_price, d_current_price) do
         :lt ->
-          Logger.info("Retargeting triggered for trade #{trade_id} with buy order @ #{order_price}
-            as price raised above #{D.to_float(retarget_price)}")
+          Logger.info(
+            "Trader(#{id}) - Retargeting triggered for trade #{trade_id} with buy order @ #{
+              order_price
+            }
+            as price raised above #{D.to_float(retarget_price)}"
+          )
 
           Logger.info("Cancelling BUY order #{order_id}")
 
           {:ok, cancelled_order} = @binance_client.cancel_order(symbol, timestamp, order_id)
 
-          Logger.info("Successfully cancelled BUY order #{order_id}")
+          Logger.debug("Successfully cancelled BUY order #{order_id}")
 
           update_order(buy_order, %{
             status: cancelled_order.status,
@@ -427,10 +440,11 @@ defmodule Hefty.Algos.Naive.Trader do
              trade_id: trade_id,
              price: buy_price
            },
-           symbol: symbol
+           symbol: symbol,
+           id: id
          } = state
        ) do
-    Logger.info("Rebuy triggered for trade #{trade_id} bought @ #{buy_price}
+    Logger.info("Trader(#{id}) - Rebuy triggered for trade #{trade_id} bought @ #{buy_price}
       as price fallen below #{D.to_float(rebuy_price)}")
 
     Hefty.Algos.Naive.Leader.notify(symbol, :rebuy)
@@ -451,20 +465,21 @@ defmodule Hefty.Algos.Naive.Trader do
          } = sell_order,
          stop_loss_price,
          %State{
-           symbol: symbol
+           symbol: symbol,
+           id: id
          } = state
        ) do
     Logger.info(
-      "Stop loss triggered for trade #{trade_id} bought @ #{buy_price} as price fallen below #{
+      "Trader(#{id}) - Stop loss triggered for trade #{trade_id} bought @ #{buy_price} as price fallen below #{
         D.to_float(stop_loss_price)
       }"
     )
 
-    Logger.info("Cancelling BUY order #{order_id}")
+    Logger.debug("Cancelling BUY order #{order_id}")
 
     {:ok, cancelled_order} = @binance_client.cancel_order(symbol, timestamp, order_id)
 
-    Logger.info("Successfully cancelled BUY order #{order_id}")
+    Logger.debug("Successfully cancelled BUY order #{order_id}")
 
     update_order(sell_order, %{
       executed_quantity: cancelled_order.executed_qty,
@@ -476,14 +491,14 @@ defmodule Hefty.Algos.Naive.Trader do
     remaining_quantity = D.to_float(D.sub(D.new(original_quantity), D.new(executed_quantity)))
 
     Logger.info(
-      "Placing stop loss MARKET SELL order for #{symbol} @ MARKET PRICE, quantity: #{
+      "Trader(#{id}) - Placing stop loss MARKET SELL order for #{symbol} @ MARKET PRICE, quantity: #{
         remaining_quantity
       }"
     )
 
     {:ok, market_sell_order} = @binance_client.order_market_sell(symbol, remaining_quantity)
 
-    Logger.info(
+    Logger.debug(
       "Successfully placed an stop loss market SELL order #{market_sell_order.order_id}"
     )
 
@@ -494,6 +509,7 @@ defmodule Hefty.Algos.Naive.Trader do
 
   defp place_buy_order(price, %State{
          buy_order: nil,
+         id: id,
          symbol: symbol,
          buy_down_interval: buy_down_interval,
          budget: budget,
@@ -505,7 +521,9 @@ defmodule Hefty.Algos.Naive.Trader do
     target_price = calculate_target_price(price, buy_down_interval, tick_size)
     quantity = calculate_quantity(budget, target_price, quantity_step_size)
 
-    Logger.info("Placing BUY order for #{symbol} @ #{target_price}, quantity: #{quantity}")
+    Logger.info(
+      "Trader(#{id}) - Placing BUY order for #{symbol} @ #{target_price}, quantity: #{quantity}"
+    )
 
     {:ok, res} =
       @binance_client.order_limit_buy(
@@ -515,7 +533,7 @@ defmodule Hefty.Algos.Naive.Trader do
         "GTC"
       )
 
-    Logger.info("Successfully placed an BUY order #{res.order_id}")
+    Logger.debug("Successfully placed an BUY order #{res.order_id}")
 
     store_order(res)
   end
@@ -524,12 +542,14 @@ defmodule Hefty.Algos.Naive.Trader do
     settings = fetch_settings(symbol)
     pair = fetch_pair(symbol)
     budget = D.div(D.new(settings.budget), settings.chunks)
+    id = rem(:os.system_time(:second), 100_000)
 
     Logger.info(
-      "Starting trader on symbol #{settings.symbol} with budget of #{D.to_float(budget)}"
+      "Starting trader(#{id}) on symbol #{settings.symbol} with budget of #{D.to_float(budget)}"
     )
 
     %State{
+      id: id,
       symbol: settings.symbol,
       budget: budget,
       buy_down_interval: settings.buy_down_interval,
@@ -579,7 +599,7 @@ defmodule Hefty.Algos.Naive.Trader do
   end
 
   defp store_order(%Binance.OrderResponse{} = response, trade_id \\ nil) do
-    Logger.info("Storing order #{response.order_id} to db")
+    Logger.debug("Storing order #{response.order_id} to db")
 
     %Hefty.Repo.Binance.Order{
       :order_id => response.order_id,
@@ -629,7 +649,7 @@ defmodule Hefty.Algos.Naive.Trader do
         "GTC"
       )
 
-    Logger.info("Successfully placed an SELL order #{res.order_id}")
+    Logger.debug("Successfully placed an SELL order #{res.order_id}")
 
     store_order(res, trade_id)
   end
