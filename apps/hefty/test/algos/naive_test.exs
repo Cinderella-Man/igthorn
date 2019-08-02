@@ -332,12 +332,12 @@ defmodule Hefty.Algos.NaiveTest do
     assert new_buy.executed_quantity == "0.00000"
   end
 
-  @tag :special
   test "Naive trader limits number of trader(using chunks) and honors that limit when rebuy is called" do
     symbol = "XRPUSDT"
 
     settings = %{
       :profit_interval => "0.001",
+      :chunks => 5,
       :buy_down_interval => "0.0025",
       # effectively disable stop loss
       :stop_loss_interval => "0.9",
