@@ -14,6 +14,7 @@ defmodule Hefty.Algos.NaiveTest do
     settings = %{
       :profit_interval => "0.001",
       :buy_down_interval => "0.0025",
+      :chunks => 5,
       :budget => "100.0"
     }
 
