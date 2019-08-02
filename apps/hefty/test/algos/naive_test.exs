@@ -512,7 +512,7 @@ defmodule Hefty.Algos.NaiveTest do
     end
 
     # makes sure that it's updated before starting trading process
-    :timer.sleep(50)
+    :timer.sleep(100)
 
     Logger.debug("Step 7 - start trading processes")
 
