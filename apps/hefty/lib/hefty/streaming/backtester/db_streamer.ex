@@ -12,7 +12,7 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
   * to: string (YYYY-MM-DD)
   * interval: number (of ms)
   """
-  def start_link(symbol, from, to, streamer_pid, interval \\ 1) do
+  def start_link(symbol, from, to, streamer_pid, interval) do
     Task.start_link(__MODULE__, :run, [symbol, from, to, streamer_pid, interval])
   end
 
@@ -32,7 +32,11 @@ defmodule Hefty.Streaming.Backtester.DbStreamer do
       )
       |> Hefty.Repo.one()
 
-    Logger.info("#{result} records to be stream with interval of #{interval}ms")
+    Logger.info(
+      "#{result} records(time range #{from_ts}->#{to_ts}) to be stream with interval of #{
+        interval
+      }ms"
+    )
 
     Hefty.Repo.transaction(
       fn ->

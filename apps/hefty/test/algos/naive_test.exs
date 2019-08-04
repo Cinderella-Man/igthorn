@@ -14,6 +14,7 @@ defmodule Hefty.Algos.NaiveTest do
     settings = %{
       :profit_interval => "0.001",
       :buy_down_interval => "0.0025",
+      :chunks => 5,
       :budget => "100.0"
     }
 
@@ -21,10 +22,15 @@ defmodule Hefty.Algos.NaiveTest do
 
     stream_events(symbol, settings, events)
 
-    result = Hefty.Orders.fetch_orders(symbol)
+    orders = Hefty.Orders.fetch_orders(symbol)
 
-    assert length(result) == 3
-    [buy_order, sell_order, _new_buy_order] = result
+    [%{:state => %{:budget => budget}}] = Hefty.Algos.Naive.Leader.fetch_traders(symbol)
+
+    assert length(orders) == 3
+    [buy_order, sell_order, _new_buy_order] = orders
+
+    # Making sure that budget is increased after sale
+    assert D.cmp(budget, D.new("20.0")) == :gt
 
     assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
 
@@ -326,12 +332,12 @@ defmodule Hefty.Algos.NaiveTest do
     assert new_buy.executed_quantity == "0.00000"
   end
 
-  @tag :special
   test "Naive trader limits number of trader(using chunks) and honors that limit when rebuy is called" do
     symbol = "XRPUSDT"
 
     settings = %{
       :profit_interval => "0.001",
+      :chunks => 5,
       :buy_down_interval => "0.0025",
       # effectively disable stop loss
       :stop_loss_interval => "0.9",
@@ -506,7 +512,7 @@ defmodule Hefty.Algos.NaiveTest do
     end
 
     # makes sure that it's updated before starting trading process
-    :timer.sleep(50)
+    :timer.sleep(100)
 
     Logger.debug("Step 7 - start trading processes")
 
