@@ -13,5 +13,7 @@ matrix:
     - env: 'travis'
 
 before_script:
-  - mix dialyzer
+  # - mix dialyzer
   - cd apps/hefty && export MIX_ENV=test && mix ecto.reset
+
+script: mix test --trace

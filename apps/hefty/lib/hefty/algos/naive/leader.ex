@@ -3,6 +3,10 @@ defmodule Hefty.Algos.Naive.Leader do
   require Logger
 
   alias Hefty.Algos.Naive.Trader
+  alias Hefty.Repo.Binance.Order
+  alias Hefty.Repo.NaiveTraderSetting
+
+  alias Decimal, as: D
 
   import Ecto.Query, only: [from: 2]
   # import Ecto.Changeset, only: [cast: 3]
@@ -17,7 +21,7 @@ defmodule Hefty.Algos.Naive.Leader do
   """
 
   defmodule State do
-    defstruct symbol: nil, budget: 0, chunks: 5, traders: []
+    defstruct settings: nil, traders: []
   end
 
   defmodule TraderState do
@@ -31,8 +35,8 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def init(symbol) do
-    GenServer.cast(self(), :init_traders)
-    {:ok, %State{symbol: symbol}}
+    GenServer.cast(self(), {:init_traders, symbol})
+    {:ok, nil}
   end
 
   def fetch_traders(symbol) do
@@ -47,28 +51,41 @@ defmodule Hefty.Algos.Naive.Leader do
     GenServer.cast(:"#{__MODULE__}-#{symbol}", {:notify, :rebuy})
   end
 
-  def handle_cast(:init_traders, state) do
+  @doc """
+  Callback after startup. State is empty so it will be ignored
+  """
+  def handle_cast({:init_traders, symbol}, _state) do
     settings =
       from(nts in Hefty.Repo.NaiveTraderSetting,
-        where: nts.platform == "Binance" and nts.symbol == ^state.symbol
+        where: nts.platform == "Binance" and nts.symbol == ^symbol
       )
       |> Hefty.Repo.one()
 
-    init_traders(settings, state)
+    traders = init_traders(settings)
+
+    {:noreply,
+     %State{
+       traders: traders,
+       settings: settings
+     }}
   end
 
   def handle_cast(
         {:trade_finished, pid,
-         %Hefty.Algos.Naive.Trader.State{
-           :sell_order => %Hefty.Repo.Binance.Order{
-             :trade_id => trade_id,
-             :price => sell_order_price
-           },
-           :symbol => symbol
-         }},
+         %Trader.State{
+           :buy_order => %Order{} = buy_order,
+           :sell_order =>
+             %Order{
+               :trade_id => trade_id,
+               :price => sell_order_price
+             } = sell_order,
+           :symbol => symbol,
+           :budget => previous_budget,
+           :id => id
+         } = old_trader_state},
         state
       ) do
-    Logger.info("Trade(#{trade_id}) finished at price of #{sell_order_price}")
+    Logger.info("Trader(#{id}) - Trade(#{trade_id}) finished at price of #{sell_order_price}")
 
     :ok =
       DynamicSupervisor.terminate_child(
@@ -76,8 +93,20 @@ defmodule Hefty.Algos.Naive.Leader do
         pid
       )
 
+    outcome = calculate_outcome(buy_order, sell_order)
+    new_budget = D.add(D.new(previous_budget), outcome)
+
+    Logger.info("Trader(#{id}) - Trade outcome: #{D.to_float(outcome)} USDT")
+
     new_traders = [
-      start_new_trader(symbol, :blank, [])
+      start_new_trader(symbol, :restart, %{
+        old_trader_state
+        | :buy_order => nil,
+          :sell_order => nil,
+          :stop_loss_triggered => false,
+          :rebuy_notified => false,
+          :budget => new_budget
+      })
       | Enum.reject(state.traders, &(&1.pid == pid))
     ]
 
@@ -108,20 +137,26 @@ defmodule Hefty.Algos.Naive.Leader do
   """
   def handle_cast(
         {:notify, :rebuy},
-        %State{symbol: symbol, traders: traders, chunks: chunks} = state
+        %State{
+          settings: %NaiveTraderSetting{
+            symbol: symbol,
+            chunks: chunks
+          },
+          traders: traders
+        } = state
       ) do
-    new_trader =
+    new_traders =
       case length(traders) < chunks do
         true ->
           Logger.info("Rebuy notification received, starting a new trader")
-          start_new_trader(symbol, :blank, [])
+          [start_new_trader(symbol, :blank, []) | traders]
 
         false ->
           Logger.info("Rebuy notification received but all chunks already used")
           traders
       end
 
-    {:noreply, %{state | :traders => [new_trader | traders]}}
+    {:noreply, %{state | :traders => new_traders}}
   end
 
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
@@ -133,39 +168,28 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   # Safety fuse
-  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:trading => false}, state) do
+  defp init_traders(%NaiveTraderSetting{:trading => false}) do
     Logger.warn("Safety fuse triggered - trying to start non traded symbol")
-    {:noreply, state}
+    []
   end
 
-  defp init_traders(%Hefty.Repo.NaiveTraderSetting{:chunks => chunks, :budget => budget}, %State{
+  defp init_traders(%NaiveTraderSetting{
          :symbol => symbol
        }) do
-    open_trades =
-      symbol
-      |> fetch_open_trades()
+    open_trades = fetch_open_trades(symbol)
 
-    traders =
-      case open_trades do
-        [] ->
-          Logger.info("No open trades so starting :blank trader", symbol: symbol)
-          [start_new_trader(symbol, :blank, [])]
+    case open_trades do
+      [] ->
+        Logger.info("No open trades so starting :blank trader", symbol: symbol)
+        [start_new_trader(symbol, :blank, [])]
 
-        x ->
-          Logger.info("There's some exisitng trades ongoing - starting trader for each",
-            symbol: symbol
-          )
+      x ->
+        Logger.info("There's some exisitng trades ongoing - starting trader for each",
+          symbol: symbol
+        )
 
-          Enum.map(x, &start_new_trader(symbol, :continue, &1))
-      end
-
-    {:noreply,
-     %State{
-       symbol: symbol,
-       budget: budget,
-       chunks: chunks,
-       traders: traders
-     }}
+        Enum.map(x, &start_new_trader(symbol, :continue, &1))
+    end
   end
 
   defp fetch_open_trades(symbol) do
@@ -179,6 +203,7 @@ defmodule Hefty.Algos.Naive.Leader do
   defp fetch_open_orders(symbol) do
     from(o in Hefty.Repo.Binance.Order,
       where: o.symbol == ^symbol,
+      where: o.status != "CANCELLED",
       order_by: o.time
     )
     |> Hefty.Repo.all()
@@ -225,7 +250,15 @@ defmodule Hefty.Algos.Naive.Leader do
     |> (fn c -> c < 2 end).()
   end
 
-  defp handle_dead_trader(pid, %State{:traders => traders, :symbol => symbol} = state) do
+  defp handle_dead_trader(
+         pid,
+         %State{
+           :traders => traders,
+           :settings => %NaiveTraderSetting{
+             :symbol => symbol
+           }
+         } = state
+       ) do
     Logger.info("Leader restarts process as it died")
 
     index = Enum.find_index(traders, &(&1.pid == pid))
@@ -241,5 +274,19 @@ defmodule Hefty.Algos.Naive.Leader do
       Logger.info("Unable to find trader in list of traders. Skipping removal")
       state
     end
+  end
+
+  defp calculate_outcome(
+         %Order{:price => buy_price, :original_quantity => quantity},
+         %Order{:price => sell_price}
+       ) do
+    fee = D.new(Application.get_env(:hefty, :trading).defaults.fee)
+    spent_without_fee = D.mult(D.new(buy_price), D.new(quantity))
+    total_spent = D.add(spent_without_fee, D.mult(spent_without_fee, fee))
+
+    gain_without_fee = D.mult(D.new(sell_price), D.new(quantity))
+    total_gain = D.sub(gain_without_fee, D.mult(gain_without_fee, fee))
+
+    D.sub(total_gain, total_spent)
   end
 end

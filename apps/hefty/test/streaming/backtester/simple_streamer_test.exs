@@ -12,44 +12,11 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamerTest do
 
     Hefty.turn_off_trading("XRPUSDT")
 
-    event_1 = %TradeEvent{
-      :event_type => "trade",
-      :event_time => 1_560_941_210_010,
-      :symbol => "XRPUSDT",
-      :trade_id => 10_000_001,
-      :price => "0.43183030",
-      :quantity => "213.10000000",
-      :buyer_order_id => 20_000_001,
-      :seller_order_id => 20_000_002,
-      :trade_time => 1_560_941_210_010,
-      :buyer_market_maker => false
-    }
+    SimpleStreamer.cleanup()
 
-    event_2 = %TradeEvent{
-      :event_type => "trade",
-      :event_time => 1_560_941_210_020,
-      :symbol => "XRPUSDT",
-      :trade_id => 10_000_002,
-      :price => "0.43183020",
-      :quantity => "56.10000000",
-      :buyer_order_id => 20_000_003,
-      :seller_order_id => 20_000_004,
-      :trade_time => 1_560_941_210_020,
-      :buyer_market_maker => false
-    }
-
-    event_3 = %TradeEvent{
-      :event_type => "trade",
-      :event_time => 1_560_941_210_030,
-      :symbol => "XRPUSDT",
-      :trade_id => 10_000_003,
-      :price => "0.43183010",
-      :quantity => "12.10000000",
-      :buyer_order_id => 20_000_005,
-      :seller_order_id => 20_000_006,
-      :trade_time => 1_560_941_210_030,
-      :buyer_market_maker => false
-    }
+    event_1 = generate_event(1, "0.43183030", "213.10000000")
+    event_2 = generate_event(2, "0.43183020", "56.10000000")
+    event_3 = generate_event(3, "0.43183010", "12.10000000")
 
     [event_1, event_2, event_3] =
       [event_1, event_2, event_3]
@@ -104,5 +71,20 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamerTest do
     # fake order should come as 3rd element
     expected_sequence = [event_1, event_2, expected_event, event_3]
     assert expected_sequence == streamed_events
+  end
+
+  defp generate_event(id, price, quantity) do
+    %TradeEvent{
+      :event_type => "trade",
+      :event_time => 1_560_941_210_000 + id * 10,
+      :symbol => "XRPUSDT",
+      :trade_id => 10_000_000 + id * 10,
+      :price => price,
+      :quantity => quantity,
+      :buyer_order_id => 20_000_000 + id * 10,
+      :seller_order_id => 30_000_000 + id * 10,
+      :trade_time => 1_560_941_210_000 + id * 10,
+      :buyer_market_maker => false
+    }
   end
 end

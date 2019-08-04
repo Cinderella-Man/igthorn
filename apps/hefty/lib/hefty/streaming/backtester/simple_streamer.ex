@@ -7,6 +7,8 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
 
   require Logger
 
+  @log_counter_every 5000
+
   @moduledoc """
   The SimpleStreamer module as the name implies is a responsible for
   streaming trade events of specified symbol between from date and
@@ -33,7 +35,8 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   defmodule State do
     defstruct db_streamer_task: nil,
               buy_stack: [],
-              sell_stack: []
+              sell_stack: [],
+              events_counter: 0
   end
 
   def start_link(_args \\ nil) do
@@ -44,7 +47,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     {:ok, %State{}}
   end
 
-  def start_streaming(symbol, from, to, interval \\ 5) do
+  def start_streaming(symbol, from, to, interval \\ 2) do
     GenServer.cast(__MODULE__, {:start_streaming, symbol, from, to, interval})
   end
 
@@ -52,12 +55,16 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     GenServer.cast(__MODULE__, {:order, order})
   end
 
-  def handle_cast({:start_streaming, symbol, from, to, interval}, state) do
-    task = DbStreamer.start_link(symbol, from, to, self(), interval)
-    {:noreply, %{state | :db_streamer_task => task}}
+  def cleanup() do
+    GenServer.cast(__MODULE__, :cleanup)
   end
 
   # CALLBACKS
+
+  def handle_cast({:start_streaming, symbol, from, to, interval}, state) do
+    task = DbStreamer.start_link(symbol, from, to, self(), interval)
+    {:noreply, %{state | :db_streamer_task => task, :events_counter => 0}}
+  end
 
   @doc """
   Trade events coming from db streamer
@@ -66,15 +73,29 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   """
   def handle_cast(
         {:trade_event, trade_event},
-        %State{:buy_stack => [], :sell_stack => []} = state
+        %State{
+          :buy_stack => [],
+          :sell_stack => [],
+          :events_counter => events_counter
+        } = state
       ) do
     broadcast_trade_event(trade_event)
-    {:noreply, state}
+    events_counter = events_counter + 1
+
+    if rem(events_counter, @log_counter_every) == 0 do
+      Logger.info("#{events_counter} events published")
+    end
+
+    {:noreply, %{state | :events_counter => events_counter}}
   end
 
   def handle_cast(
         {:trade_event, trade_event},
-        %State{:buy_stack => buy_stack, :sell_stack => sell_stack} = state
+        %State{
+          :buy_stack => buy_stack,
+          :sell_stack => sell_stack,
+          :events_counter => events_counter
+        } = state
       ) do
     lt = &less_than/2
     gt = &greather_than/2
@@ -98,8 +119,19 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
       |> Enum.drop_while(&compare_string_prices(trade_event.price, &1.price, gt))
 
     broadcast_trade_event(trade_event)
+    events_counter = events_counter + 1
 
-    {:noreply, %{state | :buy_stack => new_buy_stack, :sell_stack => new_sell_stack}}
+    if rem(events_counter, @log_counter_every) == 0 do
+      Logger.info("#{events_counter} events published")
+    end
+
+    {:noreply,
+     %{
+       state
+       | :buy_stack => new_buy_stack,
+         :sell_stack => new_sell_stack,
+         :events_counter => events_counter
+     }}
   end
 
   @doc """
@@ -124,6 +156,11 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   def handle_cast({:order, %Binance.OrderResponse{:side => "SELL"} = order}, state) do
     {:noreply,
      %{state | :sell_stack => [order | state.sell_stack] |> Enum.sort(&(&1.price < &2.price))}}
+  end
+
+  def handle_cast(:cleanup, _state) do
+    Logger.debug("Cleaning state of simple streamer")
+    {:noreply, %State{}}
   end
 
   # PRIVATE FUNCTIONS
