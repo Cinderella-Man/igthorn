@@ -47,7 +47,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     {:ok, %State{}}
   end
 
-  def start_streaming(symbol, from, to, interval \\ 5) do
+  def start_streaming(symbol, from, to, interval \\ 2) do
     GenServer.cast(__MODULE__, {:start_streaming, symbol, from, to, interval})
   end
 
