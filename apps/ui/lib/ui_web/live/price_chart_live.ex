@@ -27,7 +27,7 @@ defmodule UiWeb.PriceChartLive do
               <div class="box-body">
                 <div class="chart">
                   <script src="/dist/js/chart.js"></script>
-                  <canvas id="lineChart" style="height: 300; width: 1400;" width="1400" height="300"></canvas>
+                  <canvas id="lineChart" style="display: block; width: 1400px!important; height: 400px; margin: auto;" width="1400" height="400"></canvas>
                   <script id="chart-<%= Base.encode64(:erlang.md5(@data.prices)) %>">
                     renderChart([<%= for l <- @data.labels do %>"<%= l %>",<% end %>], "<%= @data.symbol %>", <%= @data.prices %>)
                   </script>
