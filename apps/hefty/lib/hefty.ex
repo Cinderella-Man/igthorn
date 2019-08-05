@@ -155,6 +155,8 @@ defmodule Hefty do
           :buy_down_interval => data["buy_down_interval"],
           :chunks => String.to_integer(data["chunks"]),
           :profit_interval => data["profit_interval"],
+          :rebuy_interval => data["rebuy_interval"],
+          :retarget_interval => data["retarget_interval"],
           :stop_loss_interval => data["stop_loss_interval"],
           :trading => String.to_existing_atom(data["trading"])
         }
