@@ -24,12 +24,6 @@ use Mix.Config
 config :hefty,
   exchanges: %{
     binance: Hefty.Exchanges.BinanceMock
-  },
-  trading: %{
-    :defaults => %{
-      :fee => "0.00075"
-      # :fee => "0.001"
-    }
   }
 
 # Configure your database
