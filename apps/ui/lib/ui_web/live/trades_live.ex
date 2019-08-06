@@ -1,14 +1,14 @@
-defmodule UiWeb.TransactionsLive do
+defmodule UiWeb.TradesLive do
   use Phoenix.LiveView
 
   def render(assigns) do
     ~L"""
-      <%= if length(@transactions_data.list) >= 0 do %>
+      <%= if length(@trades_data.list) >= 0 do %>
       <div class="row">
         <div class="col-xs-12">
           <div class="box">
             <div class="box-header">
-              <h3 class="box-title">Transactions</h3>
+              <h3 class="box-title">Trades</h3>
               <div class="box-tools">
                 <form phx-change="search" phx-submit="search" id="search">
                   <div class="input-group input-group-sm" style="width: 180px;">
@@ -45,28 +45,34 @@ defmodule UiWeb.TransactionsLive do
                 <thead>
                   <tr>
                     <th>Symbol</th>
-                    <th>Price</th>
+                    <th>Buy price</th>
+                    <th>Sell price</th>
                     <th>Quantity</th>
+                    <th>State</th>
+                    <th>Outcome</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <%= for transaction <- @transactions_data.list do %>
+                  <%= for trade <- @trades_data.list do %>
                     <tr>
-                      <td><%= transaction.symbol %></td>
-                      <td><%= transaction.price %></td>
-                      <td><%= transaction.quantity %></td>
+                      <td><%= trade.symbol %></td>
+                      <td><%= trade.buy_price %></td>
+                      <td><%= trade.sell_price %></td>
+                      <td><%= trade.quantity %></td>
+                      <td><%= trade.state %></td>
+                      <td><%= trade.outcome %></td>
                     </tr>
                   <% end %>
                 </tbody>
               </table>
             </div>
             <div class="box-footer clearfix">
-              <span><%= @transactions_data.total %> row<%= if @transactions_data.total != 1 do %>s<% end %></span>
-              <%= if show_pagination?(@transactions_data.limit, @transactions_data.total) do %>
+              <span><%= @trades_data.total %> row<%= if @trades_data.total != 1 do %>s<% end %></span>
+              <%= if show_pagination?(@trades_data.limit, @trades_data.total) do %>
                 <ul class="pagination pagination-sm no-margin pull-right">
                   <li><a phx-click="pagination-1" href="#">«</a></li>
-                  <%= for link <- @transactions_data.pagination_links do %>
-                    <li <%= if link == @transactions_data.page do %>
+                  <%= for link <- @trades_data.pagination_links do %>
+                    <li <%= if link == @trades_data.page do %>
                         class="active"
                       <% end %>
                     >
@@ -81,7 +87,7 @@ defmodule UiWeb.TransactionsLive do
         </div>
       </div>
       <% else %>
-        You are not have any transactions
+        You are not have any trades
       <% end %>
     """
   end
@@ -89,7 +95,7 @@ defmodule UiWeb.TransactionsLive do
   def mount(%{}, socket) do
     {:ok,
      assign(socket,
-       transactions_data: transactions_data(50, 1, ""),
+       trades_data: trades_data(50, 1, ""),
        rows_numbers: [10, 20, 30, 40, 50, 100, 200],
        set_rows: 50,
        search: ""
@@ -99,7 +105,7 @@ defmodule UiWeb.TransactionsLive do
   def handle_event("search", %{"search" => search}, socket) do
     {:noreply,
      assign(socket,
-       transactions_data: transactions_data(50, 1, search),
+       trades_data: trades_data(50, 1, search),
        rows_numbers: [10, 20, 30, 40, 50, 100, 200],
        set_rows: socket.assigns.set_rows,
        search: search
@@ -109,7 +115,7 @@ defmodule UiWeb.TransactionsLive do
   def handle_event("rows", %{"rows_per_page" => limit}, socket) do
     {:noreply,
      assign(socket,
-       transactions_data: transactions_data(String.to_integer(limit), 1, socket.assigns.search),
+       trades_data: trades_data(String.to_integer(limit), 1, socket.assigns.search),
        rows_numbers: [10, 20, 30, 40, 50, 100, 200],
        set_rows: String.to_integer(limit),
        search: socket.assigns.search
@@ -119,8 +125,8 @@ defmodule UiWeb.TransactionsLive do
   def handle_event("pagination-" <> page, _, socket) do
     {:noreply,
      assign(socket,
-       transactions_data:
-         transactions_data(
+       trades_data:
+         trades_data(
            socket.assigns.orders_data.limit,
            String.to_integer(page),
            socket.assigns.search
@@ -131,10 +137,10 @@ defmodule UiWeb.TransactionsLive do
      )}
   end
 
-  defp transactions_data(limit, page, search) do
-    transactions = Hefty.fetch_transactions((page - 1) * limit, limit, search)
+  defp trades_data(limit, page, search) do
+    trades = Hefty.Trades.fetch((page - 1) * limit, limit, search)
 
-    all = Hefty.count_transactions(search)
+    all = Hefty.count_trades(search)
 
     pagination_links =
       Enum.filter(
@@ -143,7 +149,7 @@ defmodule UiWeb.TransactionsLive do
       )
 
     %{
-      :list => transactions,
+      :list => trades,
       :total => all,
       :pages => round(Float.ceil(all / limit)),
       :pagination_links => pagination_links,
