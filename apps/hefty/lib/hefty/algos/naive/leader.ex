@@ -276,10 +276,10 @@ defmodule Hefty.Algos.Naive.Leader do
     end
   end
 
-  defp calculate_outcome(
-         %Order{:price => buy_price, :original_quantity => quantity},
-         %Order{:price => sell_price}
-       ) do
+  def calculate_outcome(
+        %Order{:price => buy_price, :original_quantity => quantity},
+        %Order{:price => sell_price}
+      ) do
     fee = D.new(Application.get_env(:hefty, :trading).defaults.fee)
     spent_without_fee = D.mult(D.new(buy_price), D.new(quantity))
     total_spent = D.add(spent_without_fee, D.mult(spent_without_fee, fee))

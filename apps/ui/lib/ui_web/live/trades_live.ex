@@ -49,7 +49,8 @@ defmodule UiWeb.TradesLive do
                     <th>Sell price</th>
                     <th>Quantity</th>
                     <th>State</th>
-                    <th>Outcome</th>
+                    <th>Profit USDT</th>
+                    <th>Profit %</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -60,7 +61,8 @@ defmodule UiWeb.TradesLive do
                       <td><%= trade.sell_price %></td>
                       <td><%= trade.quantity %></td>
                       <td><%= trade.state %></td>
-                      <td><%= trade.outcome %></td>
+                      <td><%= trade.profit_usdt %></td>
+                      <td><%= trade.profit_percentage %></td>
                     </tr>
                   <% end %>
                 </tbody>
@@ -140,7 +142,7 @@ defmodule UiWeb.TradesLive do
   defp trades_data(limit, page, search) do
     trades = Hefty.Trades.fetch((page - 1) * limit, limit, search)
 
-    all = Hefty.count_trades(search)
+    all = Hefty.Trades.count(search)
 
     pagination_links =
       Enum.filter(
