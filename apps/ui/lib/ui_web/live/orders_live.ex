@@ -1,6 +1,8 @@
 defmodule UiWeb.OrdersLive do
   use Phoenix.LiveView
 
+  alias Timex, as: T
+
   def render(assigns) do
     ~L"""
     <%= if length(@orders_data.list) >= 0 do %>
@@ -64,7 +66,7 @@ defmodule UiWeb.OrdersLive do
                     <td><%= order.side %></td>
                     <td><%= order.status %></td>
                     <td><%= order.type %></td>
-                    <td><%= order.time %></td>
+                    <td><%= timestamp_to_datetime(order.time) %></td>
                   </tr>
                 <% end %>
               </tbody>
@@ -161,4 +163,10 @@ defmodule UiWeb.OrdersLive do
   end
 
   defp show_pagination?(limit, total), do: limit < total
+
+  defp timestamp_to_datetime(timestamp) do
+    timestamp
+    |> DateTime.from_unix!
+    |> T.format!("{YYYY}-{0M}-{0D} {h24}:{0m}:{0s}")
+  end
 end
