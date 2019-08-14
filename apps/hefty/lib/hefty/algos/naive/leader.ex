@@ -93,10 +93,10 @@ defmodule Hefty.Algos.Naive.Leader do
         pid
       )
 
-    outcome = calculate_outcome(buy_order, sell_order)
-    new_budget = D.add(D.new(previous_budget), outcome)
+    profit = Hefty.Trades.calculate_profit(buy_order, sell_order)
+    new_budget = D.add(D.new(previous_budget), profit)
 
-    Logger.info("Trader(#{id}) - Trade outcome: #{D.to_float(outcome)} USDT")
+    Logger.info("Trader(#{id}) - Trade profit: #{D.to_float(profit)} USDT")
 
     new_traders = [
       start_new_trader(symbol, :restart, %{
@@ -274,19 +274,5 @@ defmodule Hefty.Algos.Naive.Leader do
       Logger.info("Unable to find trader in list of traders. Skipping removal")
       state
     end
-  end
-
-  def calculate_outcome(
-        %Order{:price => buy_price, :original_quantity => quantity},
-        %Order{:price => sell_price}
-      ) do
-    fee = D.new(Application.get_env(:hefty, :trading).defaults.fee)
-    spent_without_fee = D.mult(D.new(buy_price), D.new(quantity))
-    total_spent = D.add(spent_without_fee, D.mult(spent_without_fee, fee))
-
-    gain_without_fee = D.mult(D.new(sell_price), D.new(quantity))
-    total_gain = D.sub(gain_without_fee, D.mult(gain_without_fee, fee))
-
-    D.sub(total_gain, total_spent)
   end
 end

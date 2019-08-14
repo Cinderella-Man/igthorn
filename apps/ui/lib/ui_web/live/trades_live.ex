@@ -49,7 +49,7 @@ defmodule UiWeb.TradesLive do
                     <th>Sell price</th>
                     <th>Quantity</th>
                     <th>State</th>
-                    <th>Profit USDT</th>
+                    <th>Profit base currency</th>
                     <th>Profit %</th>
                   </tr>
                 </thead>
@@ -61,7 +61,7 @@ defmodule UiWeb.TradesLive do
                       <td><%= trade.sell_price %></td>
                       <td><%= trade.quantity %></td>
                       <td><%= trade.state %></td>
-                      <td><%= trade.profit_usdt %></td>
+                      <td><%= trade.profit_base_currency %></td>
                       <td><%= trade.profit_percentage %></td>
                     </tr>
                   <% end %>
@@ -81,7 +81,7 @@ defmodule UiWeb.TradesLive do
                       <a phx-click="pagination-<%= link %>" href="#"><%= link %></a>
                     </li>
                   <% end %>
-                  <li><a phx-click="pagination-<%= @orders_data.pages %>" href="#">»</a></li>
+                  <li><a phx-click="pagination-<%= @trades_data.pages %>" href="#">»</a></li>
                 </ul>
               <% end %>
             </div>
@@ -129,7 +129,7 @@ defmodule UiWeb.TradesLive do
      assign(socket,
        trades_data:
          trades_data(
-           socket.assigns.orders_data.limit,
+           socket.assigns.trades_data.limit,
            String.to_integer(page),
            socket.assigns.search
          ),

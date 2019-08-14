@@ -1,6 +1,27 @@
 defmodule Hefty.TradeEvents do
   import Ecto.Query, only: [from: 2, select: 3, order_by: 2, limit: 2]
 
+  alias Hefty.Repo.Binance.TradeEvent, as: RepoTradeEvent
+
+  def fetch_prices(symbols) do
+    prices =
+      symbols
+      |> Enum.map(&fetch_price(&1))
+
+    Enum.zip(symbols, prices)
+    |> Enum.into(%{})
+  end
+
+  def fetch_price(symbol) when is_binary(symbol) do
+    from(te in RepoTradeEvent,
+      select: te.price,
+      where: te.symbol == ^symbol,
+      order_by: [desc: te.trade_time],
+      limit: 1
+    )
+    |> Hefty.Repo.one()
+  end
+
   def count(symbol, from, to) do
     get_base_range_query(symbol, from, to)
     |> select([], count("*"))
@@ -38,7 +59,7 @@ defmodule Hefty.TradeEvents do
   defp get_base_range_query(symbol, from, to) do
     {from_ts, to_ts} = ymd_to_timestamp_range(from, to)
 
-    from(te in Hefty.Repo.Binance.TradeEvent,
+    from(te in RepoTradeEvent,
       where: te.symbol == ^symbol and te.trade_time >= ^from_ts and te.trade_time < ^to_ts
     )
   end
