@@ -22,6 +22,17 @@ defmodule Hefty.TradeEvents do
     |> Hefty.Repo.one()
   end
 
+  # TODO - make unique time (group by time)
+  def fetch_latest_prices(symbol) do
+    from(te in Hefty.Repo.Binance.TradeEvent,
+      select: [te.price, te.inserted_at],
+      order_by: [desc: te.trade_time],
+      limit: 50,
+      where: te.symbol == ^symbol
+    )
+    |> Hefty.Repo.all()
+  end
+
   def count(symbol, from, to) do
     get_base_range_query(symbol, from, to)
     |> select([], count("*"))

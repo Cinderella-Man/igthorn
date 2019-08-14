@@ -3,7 +3,7 @@ defmodule UiWeb.StreamingSettingsController do
 
   def index(conn, _params) do
     settings =
-      Hefty.fetch_stream_settings()
+      Hefty.Streams.fetch_settings()
       |> Enum.into([], &{:"#{&1.symbol}", &1})
 
     conn

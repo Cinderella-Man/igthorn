@@ -208,7 +208,7 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   end
 
   def handle_event("save-row", data, socket) do
-    Hefty.update_naive_trader_settings(data)
+    Hefty.Traders.update_naive_trader_settings(data)
 
     {:noreply,
      assign(socket,
@@ -223,7 +223,7 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   end
 
   def handle_event("trade-symbol-" <> symbol, "", socket) do
-    Hefty.flip_trading(symbol)
+    Hefty.Trades.flip_trading(symbol)
 
     {:noreply,
      assign(socket,
@@ -239,10 +239,10 @@ defmodule UiWeb.NaiveTraderSettingsLive do
 
   defp naive_trader_settings_data(limit, page, search) do
     pagination =
-      Hefty.fetch_naive_trader_settings((page - 1) * limit, limit, search)
+      Hefty.Traders.fetch_naive_trader_settings((page - 1) * limit, limit, search)
       |> Enum.into([], &{:"#{&1.symbol}", &1})
 
-    all = Hefty.count_naive_trader_settings(search)
+    all = Hefty.Traders.count_naive_trader_settings(search)
 
     pagination_links =
       Enum.filter(

@@ -62,7 +62,7 @@ defmodule UiWeb.BacktestingLive do
   end
 
   def mount(%{}, socket) do
-    {:ok, assign(socket, symbols: Hefty.fetch_symbols())}
+    {:ok, assign(socket, symbols: Hefty.Pairs.fetch_symbols())}
   end
 
   def handle_event(

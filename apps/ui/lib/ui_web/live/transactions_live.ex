@@ -132,9 +132,9 @@ defmodule UiWeb.TransactionsLive do
   end
 
   defp transactions_data(limit, page, search) do
-    transactions = Hefty.fetch_transactions((page - 1) * limit, limit, search)
+    transactions = Hefty.Transactions.fetch_transactions((page - 1) * limit, limit, search)
 
-    all = Hefty.count_transactions(search)
+    all = Hefty.Transactions.count_transactions(search)
 
     pagination_links =
       Enum.filter(

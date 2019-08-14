@@ -44,7 +44,7 @@ defmodule UiWeb.PriceChartLive do
 
   def mount(%{}, socket) do
     symbols =
-      Hefty.fetch_streaming_symbols()
+      Hefty.Streams.fetch_streaming_symbols()
       |> Map.keys()
 
     symbol =
@@ -73,7 +73,7 @@ defmodule UiWeb.PriceChartLive do
   defp price_chart_data(symbol) when is_nil(symbol), do: %{:symbol => nil}
 
   defp price_chart_data(symbol) do
-    data = Hefty.fetch_trade_events_prices(symbol)
+    data = Hefty.TradeEvents.fetch_latest_prices(symbol)
 
     prices =
       data

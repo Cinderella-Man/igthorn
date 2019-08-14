@@ -140,9 +140,9 @@ defmodule UiWeb.OrdersLive do
   end
 
   defp orders_data(limit, page, search) do
-    pagination = Hefty.fetch_orders((page - 1) * limit, limit, search)
+    pagination = Hefty.Orders.fetch_orders((page - 1) * limit, limit, search)
 
-    all = Hefty.count_orders(search)
+    all = Hefty.Orders.count_orders(search)
 
     pagination_links =
       Enum.filter(

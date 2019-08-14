@@ -58,7 +58,7 @@ defmodule UiWeb.PriceFeedLive do
 
   def mount(%{}, socket) do
     ticks =
-      Hefty.fetch_streaming_symbols()
+      Hefty.Streams.fetch_streaming_symbols()
       |> symbols_to_keywords
 
     ticks
@@ -74,7 +74,7 @@ defmodule UiWeb.PriceFeedLive do
 
   def handle_event("validate", %{"search" => search}, socket) do
     ticks =
-      Hefty.fetch_streaming_symbols(search)
+      Hefty.Streams.fetch_streaming_symbols(search)
       |> symbols_to_keywords
 
     # todo: possibly unsubrice all non-showing symbols here
@@ -102,8 +102,15 @@ defmodule UiWeb.PriceFeedLive do
   defp symbols_to_keywords(symbols) do
     symbols
     |> Enum.map(&elem(&1, 0))
-    |> Enum.map(&Hefty.fetch_tick(&1))
+    |> Enum.map(&fetch_tick(&1))
     |> Enum.into([], &{:"#{&1.symbol}", &1})
+  end
+
+  defp fetch_tick(symbol) do
+    case Hefty.TradeEvents.fetch_price(symbol) do
+      nil -> %{:symbol => symbol, :price => "Not available"}
+      price -> %{:symbol => symbol, :price => price}
+    end
   end
 
   defp get_direction(new_price, old_price), do: D.cmp(new_price, old_price)

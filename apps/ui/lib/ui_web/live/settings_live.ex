@@ -50,7 +50,7 @@ defmodule UiWeb.SettingsLive do
 
   def handle_event("stream-symbol-" <> symbol, _, socket) do
     Logger.info("Flipping streaming of " <> symbol, entity: "SettingLive")
-    Hefty.flip_streamer(symbol)
+    Hefty.Streams.flip_streamer(symbol)
 
     settings =
       Keyword.update!(
@@ -64,7 +64,7 @@ defmodule UiWeb.SettingsLive do
 
   def handle_event("search", %{"search" => search}, socket) do
     settings =
-      Hefty.fetch_stream_settings(search)
+      Hefty.Streams.fetch_settings(search)
       |> Enum.into([], &{:"#{&1.symbol}", &1})
 
     {:noreply, assign(socket, settings: settings, search: search)}

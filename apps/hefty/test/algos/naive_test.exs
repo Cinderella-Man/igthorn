@@ -133,7 +133,7 @@ defmodule Hefty.Algos.NaiveTest do
     # allow 5 events to be sent
     :timer.sleep(700)
 
-    Hefty.turn_off_trading(symbol)
+    Hefty.Trades.turn_off_trading(symbol)
 
     :timer.sleep(300)
 
@@ -146,7 +146,7 @@ defmodule Hefty.Algos.NaiveTest do
     |> Enum.drop(5)
     |> Enum.map(&Hefty.Repo.insert(&1))
 
-    Hefty.turn_on_trading(symbol)
+    Hefty.Trades.turn_on_trading(symbol)
 
     :timer.sleep(300)
 
@@ -462,7 +462,7 @@ defmodule Hefty.Algos.NaiveTest do
   def setup_trading_environment(symbol, settings) do
     Logger.debug("Step 1 - Stop any trading - it will get reconfigured and started again")
 
-    Hefty.turn_off_trading(symbol)
+    Hefty.Trades.turn_off_trading(symbol)
 
     Logger.debug("Step 2 - start BinanceMock process")
 
@@ -498,7 +498,7 @@ defmodule Hefty.Algos.NaiveTest do
     Logger.debug("Step 6 - configure naive trader for symbol")
 
     current_settings =
-      Hefty.fetch_naive_trader_settings(0, 1, symbol)
+      Hefty.Traders.fetch_naive_trader_settings(0, 1, symbol)
       |> List.first()
 
     changeset = Ecto.Changeset.change(current_settings, settings)
@@ -516,7 +516,7 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 7 - start trading processes")
 
-    Hefty.turn_on_trading(symbol)
+    Hefty.Trades.turn_on_trading(symbol)
 
     :timer.sleep(50)
   end

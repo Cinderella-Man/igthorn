@@ -59,52 +59,6 @@ defmodule Hefty.Trades do
     |> Hefty.Repo.one()
   end
 
-  # single buy order - trade depends on it's state
-  def sum_up_trade([buy_order], current_prices) do
-    state =
-      if buy_order.status == "CANCELLED" do
-        "CANCELLED"
-      else
-        "BUY PLACED"
-      end
-
-    %Trade{
-      :symbol => buy_order.symbol,
-      :buy_price => buy_order.price,
-      :quantity => buy_order.original_quantity,
-      :state => state,
-      :profit_base_currency => 0.0,
-      :profit_percentage => 0.0
-    }
-  end
-
-  # Possibilities here:
-  # 1 BUY + 1 SELL
-  # 1 BUY + 2 SELL (Stop loss)
-  def sum_up_trade([sell_order | _] = orders, current_prices) do
-    buy_order = List.last(orders)
-
-    initial_trade = sum_up_trade([buy_order], current_prices)
-
-    state =
-      if sell_order.status == "FILLED" do
-        "COMPLETED"
-      else
-        "SELL PLACED"
-      end
-
-    profit_base_currency = D.to_float(calculate_profit(buy_order, sell_order))
-    profit_percentage = D.to_float(calculate_profit_percentage(buy_order, sell_order))
-
-    %{
-      initial_trade
-      | :sell_price => sell_order.price,
-        :profit_base_currency => profit_base_currency,
-        :profit_percentage => profit_percentage,
-        :state => state
-    }
-  end
-
   # Note: This will fail if we recalculate old prices using new settings for fee
   def calculate_profit(
         %Order{:price => buy_price, :original_quantity => quantity},
@@ -139,5 +93,69 @@ defmodule Hefty.Trades do
   def calculate_net_sale_amount(sell_price, quantity, fee) do
     sale_without_fee = D.mult(D.new(sell_price), D.new(quantity))
     D.sub(sale_without_fee, D.mult(sale_without_fee, fee))
+  end
+
+  @spec flip_trading(String.t()) :: :ok
+  def flip_trading(symbol) when is_binary(symbol) do
+    Logger.info("Flip trading for a symbol #{symbol}")
+    Hefty.Algos.Naive.flip_trading(symbol)
+  end
+
+  @spec turn_off_trading(String.t()) :: :ok
+  def turn_off_trading(symbol) when is_binary(symbol) do
+    Logger.info("Turn off trading for a symbol #{symbol}")
+    Hefty.Algos.Naive.turn_off(symbol)
+  end
+
+  @spec turn_on_trading(String.t()) :: :ok
+  def turn_on_trading(symbol) when is_binary(symbol) do
+    Logger.info("Turn on trading for a symbol #{symbol}")
+    Hefty.Algos.Naive.turn_on(symbol)
+  end
+
+  # single buy order - trade depends on it's state
+  defp sum_up_trade([buy_order], current_prices) do
+    state =
+      if buy_order.status == "CANCELLED" do
+        "CANCELLED"
+      else
+        "BUY PLACED"
+      end
+
+    %Trade{
+      :symbol => buy_order.symbol,
+      :buy_price => buy_order.price,
+      :quantity => buy_order.original_quantity,
+      :state => state,
+      :profit_base_currency => 0.0,
+      :profit_percentage => 0.0
+    }
+  end
+
+  # Possibilities here:
+  # 1 BUY + 1 SELL
+  # 1 BUY + 2 SELL (Stop loss)
+  defp sum_up_trade([sell_order | _] = orders, current_prices) do
+    buy_order = List.last(orders)
+
+    initial_trade = sum_up_trade([buy_order], current_prices)
+
+    state =
+      if sell_order.status == "FILLED" do
+        "COMPLETED"
+      else
+        "SELL PLACED"
+      end
+
+    profit_base_currency = D.to_float(calculate_profit(buy_order, sell_order))
+    profit_percentage = D.to_float(calculate_profit_percentage(buy_order, sell_order))
+
+    %{
+      initial_trade
+      | :sell_price => sell_order.price,
+        :profit_base_currency => profit_base_currency,
+        :profit_percentage => profit_percentage,
+        :state => state
+    }
   end
 end
