@@ -10,7 +10,7 @@ defmodule Hefty.Traders do
   end
 
   def fetch_naive_trader_settings(offset, limit, symbol \\ "") do
-    Logger.debug("Fetching naive trader settings for a symbol", symbol: symbol)
+    Logger.debug("Fetching naive trader settings for a symbol(#{symbol})")
 
     from(nts in Hefty.Repo.NaiveTraderSetting,
       order_by: nts.symbol,
@@ -23,6 +23,8 @@ defmodule Hefty.Traders do
 
   @spec count_naive_trader_settings(String.t()) :: number()
   def count_naive_trader_settings(symbol \\ "") do
+    Logger.debug("Fetching number of naive trader settings for a symbol(#{symbol})")
+
     from(nts in Hefty.Repo.NaiveTraderSetting,
       select: count("*"),
       where: like(nts.symbol, ^"%#{String.upcase(symbol)}%")
@@ -55,5 +57,23 @@ defmodule Hefty.Traders do
       {:error, _changeset} ->
         throw("Unable to update " <> data["symbol"] <> " naive trader settings")
     end
+  end
+
+  @spec flip_trading(String.t()) :: :ok
+  def flip_trading(symbol) when is_binary(symbol) do
+    Logger.info("Flip trading for a symbol #{symbol}")
+    Hefty.Algos.Naive.flip_trading(symbol)
+  end
+
+  @spec turn_off_trading(String.t()) :: :ok
+  def turn_off_trading(symbol) when is_binary(symbol) do
+    Logger.info("Turn off trading for a symbol #{symbol}")
+    Hefty.Algos.Naive.turn_off(symbol)
+  end
+
+  @spec turn_on_trading(String.t()) :: :ok
+  def turn_on_trading(symbol) when is_binary(symbol) do
+    Logger.info("Turn on trading for a symbol #{symbol}")
+    Hefty.Algos.Naive.turn_on(symbol)
   end
 end

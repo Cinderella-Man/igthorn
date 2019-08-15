@@ -9,7 +9,8 @@ defmodule Hefty.Trades do
   @fee D.new(Application.get_env(:hefty, :trading).defaults.fee)
 
   defmodule Trade do
-    defstruct symbol: nil,
+    defstruct id: nil,
+              symbol: nil,
               buy_price: nil,
               sell_price: nil,
               quantity: nil,
@@ -95,26 +96,8 @@ defmodule Hefty.Trades do
     D.sub(sale_without_fee, D.mult(sale_without_fee, fee))
   end
 
-  @spec flip_trading(String.t()) :: :ok
-  def flip_trading(symbol) when is_binary(symbol) do
-    Logger.info("Flip trading for a symbol #{symbol}")
-    Hefty.Algos.Naive.flip_trading(symbol)
-  end
-
-  @spec turn_off_trading(String.t()) :: :ok
-  def turn_off_trading(symbol) when is_binary(symbol) do
-    Logger.info("Turn off trading for a symbol #{symbol}")
-    Hefty.Algos.Naive.turn_off(symbol)
-  end
-
-  @spec turn_on_trading(String.t()) :: :ok
-  def turn_on_trading(symbol) when is_binary(symbol) do
-    Logger.info("Turn on trading for a symbol #{symbol}")
-    Hefty.Algos.Naive.turn_on(symbol)
-  end
-
   # single buy order - trade depends on it's state
-  defp sum_up_trade([buy_order], current_prices) do
+  defp sum_up_trade([buy_order], _current_prices) do
     state =
       if buy_order.status == "CANCELLED" do
         "CANCELLED"
@@ -123,6 +106,7 @@ defmodule Hefty.Trades do
       end
 
     %Trade{
+      :id => buy_order.trade_id,
       :symbol => buy_order.symbol,
       :buy_price => buy_order.price,
       :quantity => buy_order.original_quantity,

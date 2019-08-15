@@ -44,6 +44,8 @@ defmodule UiWeb.OrdersLive do
             <table class="table table-hover">
               <thead>
                 <tr>
+                  <th>Id</th>
+                  <th>Trade Id</th>
                   <th>Symbol</th>
                   <th>Price</th>
                   <th>Original Quantity</th>
@@ -57,6 +59,8 @@ defmodule UiWeb.OrdersLive do
               <tbody>
                 <%= for order <- @orders_data.list do %>
                   <tr>
+                    <td><%= order.id %></td>
+                    <td><%= order.trade_id %></td>
                     <td><%= order.symbol %></td>
                     <td><%= order.price %></td>
                     <td><%= order.original_quantity %></td>

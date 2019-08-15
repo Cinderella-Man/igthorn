@@ -223,7 +223,7 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   end
 
   def handle_event("trade-symbol-" <> symbol, "", socket) do
-    Hefty.Trades.flip_trading(symbol)
+    Hefty.Traders.flip_trading(symbol)
 
     {:noreply,
      assign(socket,

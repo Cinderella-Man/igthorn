@@ -44,6 +44,7 @@ defmodule UiWeb.TradesLive do
               <table class="table table-hover">
                 <thead>
                   <tr>
+                    <th>Id</th>
                     <th>Symbol</th>
                     <th>Buy price</th>
                     <th>Sell price</th>
@@ -56,6 +57,7 @@ defmodule UiWeb.TradesLive do
                 <tbody>
                   <%= for trade <- @trades_data.list do %>
                     <tr>
+                      <td><%= trade.id %></td>
                       <td><%= trade.symbol %></td>
                       <td><%= trade.buy_price %></td>
                       <td><%= trade.sell_price %></td>

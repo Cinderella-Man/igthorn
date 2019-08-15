@@ -22,7 +22,9 @@ defmodule Hefty.Algos.NaiveTest do
 
     stream_events(symbol, settings, events)
 
-    orders = Hefty.Orders.fetch_orders(symbol)
+    orders =
+      Hefty.Orders.fetch_orders(symbol)
+      |> Enum.sort_by(& &1.time)
 
     [%{:state => %{:budget => budget}}] = Hefty.Algos.Naive.Leader.fetch_traders(symbol)
 
@@ -90,10 +92,12 @@ defmodule Hefty.Algos.NaiveTest do
     # allow rest of events to be sent
     :timer.sleep(600)
 
-    result = Hefty.Orders.fetch_orders(symbol)
+    orders =
+      Hefty.Orders.fetch_orders(symbol)
+      |> Enum.sort_by(& &1.time)
 
-    assert length(result) == 3
-    [buy_order, sell_order, _new_buy_order] = result
+    assert length(orders) == 3
+    [buy_order, sell_order, _new_buy_order] = orders
 
     assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
 
@@ -133,7 +137,7 @@ defmodule Hefty.Algos.NaiveTest do
     # allow 5 events to be sent
     :timer.sleep(700)
 
-    Hefty.Trades.turn_off_trading(symbol)
+    Hefty.Traders.turn_off_trading(symbol)
 
     :timer.sleep(300)
 
@@ -146,7 +150,7 @@ defmodule Hefty.Algos.NaiveTest do
     |> Enum.drop(5)
     |> Enum.map(&Hefty.Repo.insert(&1))
 
-    Hefty.Trades.turn_on_trading(symbol)
+    Hefty.Traders.turn_on_trading(symbol)
 
     :timer.sleep(300)
 
@@ -155,10 +159,12 @@ defmodule Hefty.Algos.NaiveTest do
     # allow rest of events to be sent
     :timer.sleep(400)
 
-    result = Hefty.Orders.fetch_orders(symbol)
+    orders =
+      Hefty.Orders.fetch_orders(symbol)
+      |> Enum.sort_by(& &1.time)
 
-    assert length(result) == 3
-    [buy_order, sell_order, _new_buy_order] = result
+    assert length(orders) == 3
+    [buy_order, sell_order, _new_buy_order] = orders
 
     assert D.cmp(D.new(buy_order.price), D.new(event_1.price)) == :lt
 
@@ -201,7 +207,9 @@ defmodule Hefty.Algos.NaiveTest do
 
     stream_events(symbol, settings, events)
 
-    orders = Hefty.Orders.fetch_orders(symbol)
+    orders =
+      Hefty.Orders.fetch_orders(symbol)
+      |> Enum.sort_by(& &1.time)
 
     assert length(orders) == 4
 
@@ -256,7 +264,9 @@ defmodule Hefty.Algos.NaiveTest do
 
     stream_events(symbol, settings, events)
 
-    orders = Hefty.Orders.fetch_orders(symbol)
+    orders =
+      Hefty.Orders.fetch_orders(symbol)
+      |> Enum.sort_by(& &1.time)
 
     assert length(orders) == 2
 
@@ -307,7 +317,9 @@ defmodule Hefty.Algos.NaiveTest do
 
     stream_events(symbol, settings, events)
 
-    orders = Hefty.Orders.fetch_orders(symbol)
+    orders =
+      Hefty.Orders.fetch_orders(symbol)
+      |> Enum.sort_by(& &1.time)
 
     assert length(orders) == 3
 
@@ -387,7 +399,9 @@ defmodule Hefty.Algos.NaiveTest do
 
     stream_events(symbol, settings, events)
 
-    orders = Hefty.Orders.fetch_orders(symbol)
+    orders =
+      Hefty.Orders.fetch_orders(symbol)
+      |> Enum.sort_by(& &1.time)
 
     assert length(orders) == 10
 
@@ -462,7 +476,7 @@ defmodule Hefty.Algos.NaiveTest do
   def setup_trading_environment(symbol, settings) do
     Logger.debug("Step 1 - Stop any trading - it will get reconfigured and started again")
 
-    Hefty.Trades.turn_off_trading(symbol)
+    Hefty.Traders.turn_off_trading(symbol)
 
     Logger.debug("Step 2 - start BinanceMock process")
 
@@ -516,7 +530,7 @@ defmodule Hefty.Algos.NaiveTest do
 
     Logger.debug("Step 7 - start trading processes")
 
-    Hefty.Trades.turn_on_trading(symbol)
+    Hefty.Traders.turn_on_trading(symbol)
 
     :timer.sleep(50)
   end
