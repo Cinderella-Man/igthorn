@@ -46,6 +46,8 @@ defmodule UiWeb.OrdersLive do
             <table class="table table-hover">
               <thead>
                 <tr>
+                  <th>Id</th>
+                  <th>Trade Id</th>
                   <th>Symbol</th>
                   <th>Price</th>
                   <th>Original Quantity</th>
@@ -59,6 +61,8 @@ defmodule UiWeb.OrdersLive do
               <tbody>
                 <%= for order <- @orders_data.list do %>
                   <tr>
+                    <td><%= order.id %></td>
+                    <td><%= order.trade_id %></td>
                     <td><%= order.symbol %></td>
                     <td><%= order.price %></td>
                     <td><%= order.original_quantity %></td>
@@ -142,9 +146,9 @@ defmodule UiWeb.OrdersLive do
   end
 
   defp orders_data(limit, page, search) do
-    pagination = Hefty.fetch_orders((page - 1) * limit, limit, search)
+    pagination = Hefty.Orders.fetch_orders((page - 1) * limit, limit, search)
 
-    all = Hefty.count_orders(search)
+    all = Hefty.Orders.count_orders(search)
 
     pagination_links =
       Enum.filter(

@@ -15,7 +15,7 @@ defmodule UiWeb.BacktestingLive do
 
         <div class="form-group">
           <label>Symbol</label>
-          <select class="form-control select2" style="width: 100%;" name="symbol">
+          <select class="form-control select2" style="width: 100%;" name="symbol" id="name">
             <%= for symbol <- @symbols do %>
               <option><%= symbol.symbol %></option>
             <% end %>
@@ -35,14 +35,11 @@ defmodule UiWeb.BacktestingLive do
           <!-- /.input group -->
         </div>
         <!-- /.form group -->
-
-
-
       </div>
       <!-- /.box-body -->
 
       <div class="box-footer">
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="submit" class="btn btn-primary">Kick off backtesting</button>
       </div>
     </form>
     </div>
@@ -65,7 +62,7 @@ defmodule UiWeb.BacktestingLive do
   end
 
   def mount(%{}, socket) do
-    {:ok, assign(socket, symbols: Hefty.fetch_symbols())}
+    {:ok, assign(socket, symbols: Hefty.Pairs.fetch_symbols())}
   end
 
   def handle_event(
@@ -74,8 +71,9 @@ defmodule UiWeb.BacktestingLive do
         socket
       ) do
     [from_date, to_date] = convert_daterange_to_dates(date_range)
-    Hefty.Backtesting.kick_off_backtesting(symbol, from_date, to_date)
-    {:noreply, socket}
+    stats = Hefty.Backtesting.kick_off_backtesting(symbol, from_date, to_date)
+    # UiWeb.Endpoint.subscribe("stream-backtesting-#{symbol}")
+    {:noreply, assign(socket, stats: stats)}
   end
 
   defp convert_daterange_to_dates(daterange) do

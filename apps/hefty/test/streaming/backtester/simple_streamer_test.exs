@@ -10,7 +10,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamerTest do
     qry = "TRUNCATE TABLE trade_events"
     Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
 
-    Hefty.turn_off_trading("XRPUSDT")
+    Hefty.Traders.turn_off_trading("XRPUSDT")
 
     SimpleStreamer.cleanup()
 

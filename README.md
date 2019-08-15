@@ -4,18 +4,31 @@
 
 Igthorn is a batteries-included cryptocurrency trading environment written in Elixir.
 
-It contains a lot more than just a trading bot, it allows you to do much more. Non-comprehensive list:
-- naive strategy that trades based on assumption that price will have tendency to grow slowely
-- backtesting engine that allows to test your strategies against historical data
-- search and list current and historical orders and transactions
+Non-comprehensive list of Igthorn's features:
+- baked-in backtesting engine that allows to test your strategies against historical data
+- "naive" trading strategy
+- list and search through current and historical trades, orders and transactions
 - view chart representations of your trading
+and many others
 
-Igthorn is a boilerplate for kick-starting your crypto bot project. It contains everything you need to immediately focus on writing algo instead of worrying about streaming and backoffice in general.
+Igthorn is a boilerplate for kick-starting your crypto trading project. It contains everything you
+need to immediately focus on writing profitable algos instead of worrying about setup, custom framework etc.
 
 It's structured as umbrella app that consist of:
-- `Ui` - GUI - Phoenix frontend to modify things using browser instead of raw queries to db. Things that
-can be done via browser include: kicking off straming on symbol, modyfing naive strategy settings, starting trading, kicking of backtesting and others.
-- `Hefty` - Backend - streaming backend supporting Binance, naive trading strategy and others
+
+- `Ui` - GUI - Phoenix frontend allows fine tuning of crypto trading environment using browser
+instead of raw db queries. Things that can be done via browser include:
+* starting/stoping straming on symbol,
+* modyfing naive strategy settings
+* starting/stoping trading
+* starting backtesting
+* and others.
+
+- `Hefty` - Backend - streaming and trading backend supporting Binance consisting of:
+* naive trading strategy
+* backtesting engine
+* business logic used by UI
+* and others
 
 
 ## Limit of Liability/Disclaimer of Warranty
@@ -33,15 +46,15 @@ cd apps/hefty && mix ecto.reset && cd ../..
 iex -S mix phx.server
 ```
 
-Seeding script checks is there `api_key` and `secret` filled in config of Hefty. It will perform additional query to binance to establish current balances.
+Seeding script checks is there `api_key` and `secret` filled in config of Hefty. It will perform additional query to binance to fetch current assets' balances.
 
 ## Usage
 
 After starting the server with `iex -S mix phx.server` it will automatically go to database and check
-are there any symbols with enabled streaming and potentially kick of streaming.
+are there any symbols with enabled streaming and starts streaming for them.
 
 User interface provides a way to start streaming `trade events` into db under the local url:
-http://localhost:4000/settings
+http://localhost:4000/streaming-settings
 
 There's a column called "streaming" which contains true/false. By clicking on true/false in one of the rows you will flip(enable/disable) streaming for that symbol.
 
@@ -49,10 +62,11 @@ Here's a diagram of processes with 4 streams open:
 
 ![Hefty Supervision Tree](/docs/hefty_supervision_tree.png)
 
-So above will put data in Postgres database called `hefty_dev` in table
-`trade_events`.
+Enabling streaming will put data in Postgres database called `hefty_dev` in table `trade_events`.
 
-That's all nice and fine for algo trading but we need data for possibly back testing(this functionality will be added here soon - top of my todo list). To get data out from database into csv file exs script can be used:
+## Dumping events
+
+To get data out from database into csv file exs script can be used:
 
 ```
 cd apps/hefty
@@ -78,7 +92,7 @@ Naive strategy described in video called "[My Adventures in Automated Crypto Tra
 
 - My aim is to keep UI close to Elixir with as minimal Javascript as possible so I definietly prefer to keep going on [Liveview](https://github.com/phoenixframework/phoenix_live_view) route.
 
-- Would like to keep streaming seperate from trading as I would like to allow for multiple strategies running simultaneously. 
+- Would like to keep streaming seperate from trading as I would like to allow for multiple strategies running simultaneously.
 
 ## To do:
 
@@ -123,9 +137,9 @@ Step 3 - Start application in backtesting environment
 export MIX_ENV=backtesting && iex -S mix phx.server
 ```
 
-Step 4 - Enable trading on `XRPUSDT` pair - go to "Naive trader settings" and search for the symbol. Click on "Edit" set budget to some decent amount like 1000 and click "Save". Now click on "Disabled" button to enable trading. At this moment system will listen to XRPUSDT stream. 
+Step 4 - Enable trading on `XRPUSDT` pair - go to "Naive trader settings" and search for the symbol. Click on "Edit" set budget to some decent amount like 1000 and click "Save". Now click on "Disabled" button to enable trading. At this moment system will listen to XRPUSDT stream.
 
-Step 5 - 
+Step 5 -
 
 Now go to `Backtesting` section chose "XRPUSDT" symbol, select 2 dates (2019-06-03 and 2019-06-09) and click "Submit" which will send all 1 million events through naive strategy trader(s).
 

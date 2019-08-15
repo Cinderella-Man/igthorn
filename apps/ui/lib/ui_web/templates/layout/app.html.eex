@@ -53,7 +53,7 @@
     <!-- Logo -->
     <a href="/" class="logo">
       <!-- mini logo for sidebar mini 50x50 pixels -->
-      <span class="logo-mini"><b>T</b>rto</span>
+      <span class="logo-mini"><b>I</b></span>
       <!-- logo for regular state and mobile devices -->
       <span class="logo-lg"><b>Igthorn</b></span>
     </a>
@@ -136,8 +136,9 @@
       <ul class="sidebar-menu" data-widget="tree">
         <li class="header">MAIN NAVIGATION</li>
         <li><a href="/streaming-settings"><i class="fa fa-cog"></i> <span>Streaming settings</span></a></li>
+        <li><a href="/trades"><i class="fa fa-money"></i> <span>Trades</span></a></li>
         <li><a href="/orders"><i class="fa fa-credit-card"></i> <span>Orders</span></a></li>
-        <li><a href="/transactions"><i class="fa fa-money"></i> <span>Transactions</span></a></li>
+        <%# <li><a href="/transactions"><i class="fa fa-money"></i> <span>Transactions</span></a></li> %>
         <li><a href="/backtesting"><i class="fa fa-flask"></i> <span>Backtesting</span></a></li>
         <li><a href="/naive-trader-settings"><i class="fa fa-cog"></i> <span>Naive trader settings</span></a></li>
       </ul>
@@ -174,7 +175,7 @@
 
   <footer class="main-footer">
     <div class="pull-right hidden-xs">
-      <b>Version</b> 0.0.2
+      <b>Version</b> 1.0.0
     </div>
     <strong>Made with Elixir and <3
   </footer>
