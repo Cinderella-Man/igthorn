@@ -19,7 +19,7 @@ defmodule Hefty.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :binance],
+      extra_applications: [:logger, :binance, :timex],
       mod: {Hefty.Application, []}
     ]
   end
@@ -27,8 +27,8 @@ defmodule Hefty.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:binance, "~> 0.6.0"}
-      {:binance, git: "https://github.com/Cinderella-Man/binance.ex.git"},
+      {:binance, "~> 0.7.1"},
+      # {:binance, git: "https://github.com/Cinderella-Man/binance.ex.git"},
       {:csv, "~> 2.3"},
       {:decimal, "~> 1.7"},
       {:ecto_sql, "~> 3.0"},

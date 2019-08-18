@@ -107,29 +107,17 @@ Step 1 - Initialize empty database
 export MIX_ENV=backtesting && cd apps/hefty && mix ecto.reset && cd ../..
 ```
 
-Step 2 - Database needs to be filled with some data:
+Step 2 - Import historical data
+
+There's a CLI script that will download historical files for you. there's about 20 days of data
+from June (2019-06-03 up to 2019-06-23). To load it you need to specify directory to store csv
+dumps(script will download them for you) to as well as `from` and `to` dates and `symbol` that you are interested in - example below:
 
 ```
-git clone https://github.com/Cinderella-Man/binance-trade-events.git /tmp/trade-events
-gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-03.csv.gz
-gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-04.csv.gz
-gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-05.csv.gz
-gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-06.csv.gz
-gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-07.csv.gz
-gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-08.csv.gz
-gunzip /tmp/trade-events/dumps/XRPUSDT-2019-06-09.csv.gz
-psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-01.csv' WITH (FORMAT csv, delimiter ';');"
-psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-02.csv' WITH (FORMAT csv, delimiter ';');"
-psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-03.csv' WITH (FORMAT csv, delimiter ';');"
-psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-04.csv' WITH (FORMAT csv, delimiter ';');"
-psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-05.csv' WITH (FORMAT csv, delimiter ';');"
-psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-06.csv' WITH (FORMAT csv, delimiter ';');"
-psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-07.csv' WITH (FORMAT csv, delimiter ';');"
-psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-08.csv' WITH (FORMAT csv, delimiter ';');"
-psql -Upostgres -h localhost -dhefty_backtesting  -c "\COPY trade_events FROM '/tmp/trade-events/dumps/XRPUSDT-2019-06-09.csv' WITH (FORMAT csv, delimiter ';');"
+cd apps/hefty && mix run priv/repo/scripts/load-trade-events.exs --path="/backup/projects/binance-trade-events/" --from="2019-06-03" --to="2019-06-09" --symbol="XRPUSDT" && cd ../..
 ```
 
-This will give you a little bit over 1 million events or one full week of trading data.
+This will give you a little bit over 1 million events(one full week of trading data).
 
 Step 3 - Start application in backtesting environment
 
