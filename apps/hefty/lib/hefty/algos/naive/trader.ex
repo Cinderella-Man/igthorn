@@ -51,7 +51,8 @@ defmodule Hefty.Algos.Naive.Trader do
               rebuy_interval: nil,
               rebuy_notified: false,
               retarget_interval: nil,
-              pair: nil
+              pair: nil,
+              trade: nil
   end
 
   def start_link({symbol, strategy, data}) do
@@ -87,7 +88,15 @@ defmodule Hefty.Algos.Naive.Trader do
   order can be passed from leader (fetched from db)
   """
   def handle_cast(
-        {:init_strategy, :continue, %{:buy_order => buy_order, :sell_order => sell_order}},
+        {
+          :init_strategy,
+          :continue,
+          %{
+            :trade => trade,
+            :buy_order => buy_order,
+            :sell_order => sell_order
+          }
+        },
         state
       ) do
     Logger.debug("Trader initialized successfully")
@@ -95,7 +104,8 @@ defmodule Hefty.Algos.Naive.Trader do
     {:noreply,
      Map.merge(prepare_state(state.symbol), %{
        :buy_order => buy_order,
-       :sell_order => sell_order
+       :sell_order => sell_order,
+       :trade => trade
      })}
   end
 
@@ -185,6 +195,8 @@ defmodule Hefty.Algos.Naive.Trader do
           Logger.debug("Current buy order has been filled. Submitting sell order")
 
           Hefty.Repo.transaction(fn ->
+            trade = Hefty.Trades.create_trade(buy_order)
+
             sell_order = create_sell_order(buy_order, profit_interval, tick_size)
 
             new_buy_order =
@@ -193,7 +205,7 @@ defmodule Hefty.Algos.Naive.Trader do
                 :status => current_buy_order.status
               })
 
-            %{state | :buy_order => new_buy_order, :sell_order => sell_order}
+            %{state | :buy_order => new_buy_order, :sell_order => sell_order, :trade => trade}
           end)
 
         false ->
@@ -228,12 +240,14 @@ defmodule Hefty.Algos.Naive.Trader do
             } = event
         },
         %State{
+          buy_order: buy_order,
           sell_order:
             %Hefty.Repo.Binance.Order{
               order_id: order_id,
               symbol: symbol,
               time: time
             } = sell_order,
+          trade: trade,
           symbol: symbol,
           id: id
         } = state
@@ -259,6 +273,10 @@ defmodule Hefty.Algos.Naive.Trader do
     case current_sell_order.executed_qty == current_sell_order.orig_qty do
       true ->
         Logger.debug("Current sell order has been filled. Process can terminate")
+
+        trade = Hefty.Trades.update_trade(trade, buy_order, new_sell_order)
+
+        new_state = %{new_state | :trade => trade}
 
         GenServer.cast(
           :"#{Hefty.Algos.Naive.Leader}-#{symbol}",

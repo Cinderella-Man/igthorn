@@ -73,12 +73,11 @@ defmodule Hefty.Algos.Naive.Leader do
   def handle_cast(
         {:trade_finished, pid,
          %Trader.State{
-           :buy_order => %Order{} = buy_order,
-           :sell_order =>
-             %Order{
-               :trade_id => trade_id,
-               :price => sell_order_price
-             } = sell_order,
+           :sell_order => %Order{
+             :trade_id => trade_id,
+             :price => sell_order_price
+           },
+           :trade => %Hefty.Repo.Trade{:profit_base_currency => profit},
            :symbol => symbol,
            :budget => previous_budget,
            :id => id
@@ -93,10 +92,9 @@ defmodule Hefty.Algos.Naive.Leader do
         pid
       )
 
-    profit = Hefty.Trades.calculate_profit(buy_order, sell_order)
-    new_budget = D.add(D.new(previous_budget), profit)
+    new_budget = D.add(D.new(previous_budget), D.new(profit))
 
-    Logger.info("Trader(#{id}) - Trade profit: #{D.to_float(profit)} USDT")
+    Logger.info("Trader(#{id}) - Trade profit: #{profit} USDT")
 
     new_traders = [
       start_new_trader(symbol, :restart, %{
@@ -226,9 +224,16 @@ defmodule Hefty.Algos.Naive.Leader do
         &(&1.side == "SELL" && (&1.status == "NEW" || &1.status == "PARTIALLY_FILLED"))
       )
 
+    trade =
+      case buy_order do
+        %Order{:trade_id => trade_id} -> Hefty.Trades.fetch(trade_id)
+        _ -> nil
+      end
+
     start_new_trader(symbol, strategy, %Trader.State{
       :buy_order => buy_order,
-      :sell_order => sell_order
+      :sell_order => sell_order,
+      :trade => trade
     })
   end
 
