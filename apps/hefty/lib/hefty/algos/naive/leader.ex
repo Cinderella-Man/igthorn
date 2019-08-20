@@ -55,11 +55,7 @@ defmodule Hefty.Algos.Naive.Leader do
   Callback after startup. State is empty so it will be ignored
   """
   def handle_cast({:init_traders, symbol}, _state) do
-    settings =
-      from(nts in Hefty.Repo.NaiveTraderSetting,
-        where: nts.platform == "Binance" and nts.symbol == ^symbol
-      )
-      |> Hefty.Repo.one()
+    settings = fetch_settings(symbol)
 
     traders = init_traders(settings)
 
@@ -73,17 +69,16 @@ defmodule Hefty.Algos.Naive.Leader do
   def handle_cast(
         {:trade_finished, pid,
          %Trader.State{
-           :buy_order => %Order{} = buy_order,
-           :sell_order =>
-             %Order{
-               :trade_id => trade_id,
-               :price => sell_order_price
-             } = sell_order,
+           :sell_order => %Order{
+             :trade_id => trade_id,
+             :price => sell_order_price
+           },
+           :trade => %Hefty.Repo.Trade{:profit_base_currency => profit},
            :symbol => symbol,
            :budget => previous_budget,
            :id => id
          } = old_trader_state},
-        state
+        %State{:settings => settings} = state
       ) do
     Logger.info("Trader(#{id}) - Trade(#{trade_id}) finished at price of #{sell_order_price}")
 
@@ -93,10 +88,11 @@ defmodule Hefty.Algos.Naive.Leader do
         pid
       )
 
-    profit = Hefty.Trades.calculate_profit(buy_order, sell_order)
-    new_budget = D.add(D.new(previous_budget), profit)
+    new_budget = D.add(D.new(previous_budget), D.new(profit))
 
-    Logger.info("Trader(#{id}) - Trade profit: #{D.to_float(profit)} USDT")
+    settings = update_budget(settings, profit)
+
+    Logger.info("Trader(#{id}) - Trade profit: #{profit} USDT")
 
     new_traders = [
       start_new_trader(symbol, :restart, %{
@@ -110,7 +106,7 @@ defmodule Hefty.Algos.Naive.Leader do
       | Enum.reject(state.traders, &(&1.pid == pid))
     ]
 
-    {:noreply, %{state | :traders => new_traders}}
+    {:noreply, %{state | :traders => new_traders, :settings => settings}}
   end
 
   @doc """
@@ -192,6 +188,13 @@ defmodule Hefty.Algos.Naive.Leader do
     end
   end
 
+  defp fetch_settings(symbol) do
+    from(nts in Hefty.Repo.NaiveTraderSetting,
+      where: nts.platform == "Binance" and nts.symbol == ^symbol
+    )
+    |> Hefty.Repo.one()
+  end
+
   defp fetch_open_trades(symbol) do
     symbol
     |> fetch_open_orders()
@@ -226,9 +229,16 @@ defmodule Hefty.Algos.Naive.Leader do
         &(&1.side == "SELL" && (&1.status == "NEW" || &1.status == "PARTIALLY_FILLED"))
       )
 
+    trade =
+      case buy_order do
+        %Order{:trade_id => trade_id} -> Hefty.Trades.fetch(trade_id)
+        _ -> nil
+      end
+
     start_new_trader(symbol, strategy, %Trader.State{
       :buy_order => buy_order,
-      :sell_order => sell_order
+      :sell_order => sell_order,
+      :trade => trade
     })
   end
 
@@ -248,6 +258,18 @@ defmodule Hefty.Algos.Naive.Leader do
     orders
     |> Enum.count(&(&1.status == "FILLED"))
     |> (fn c -> c < 2 end).()
+  end
+
+  defp update_budget(settings, profit) do
+    query =
+      "UPDATE naive_trader_settings " <>
+        "SET budget = cast(budget as double precision) + #{profit} " <>
+        "WHERE symbol='#{settings.symbol}';"
+
+    # probably check this?
+    Ecto.Adapters.SQL.query!(Hefty.Repo, query, [])
+
+    fetch_settings(settings.symbol)
   end
 
   defp handle_dead_trader(
