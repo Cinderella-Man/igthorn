@@ -16,4 +16,4 @@ before_script:
   # - mix dialyzer
   - cd apps/hefty && export MIX_ENV=test && mix ecto.reset
 
-script: mix test --trace
+script: MIX_ENV=test mix test --trace
