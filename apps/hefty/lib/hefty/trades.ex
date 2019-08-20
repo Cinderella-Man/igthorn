@@ -60,6 +60,64 @@ defmodule Hefty.Trades do
     |> Hefty.Repo.one()
   end
 
+  def fetch(id) do
+    from(t in Hefty.Repo.Trade,
+      where: t.id == ^id
+    )
+    |> Hefty.Repo.one()
+  end
+
+  @doc """
+  This function is intended to be called after buy order was filled.
+  It should NOT be called on buy order placed as there's no trade yet
+  """
+  def create_trade(%Order{
+        :price => buy_price,
+        :symbol => symbol,
+        :original_quantity => quantity,
+        :time => buy_time,
+        :trade_id => id
+      }) do
+    %Hefty.Repo.Trade{
+      :id => id,
+      :symbol => symbol,
+      :buy_price => buy_price,
+      :quantity => quantity,
+      :state => "SELL_PLACED",
+      :buy_time => buy_time,
+      :fee_rate => Application.get_env(:hefty, :trading).defaults.fee
+    }
+    |> Hefty.Repo.insert()
+    |> elem(1)
+  end
+
+  @doc """
+  This function is intended to be called after sell order was filled.
+  It should NOT be called on sell order placed as there's no update yet
+  """
+  def update_trade(
+        %Hefty.Repo.Trade{} = trade,
+        buy_order,
+        %Order{
+          :price => sell_price,
+          :time => sell_time
+        } = sell_order
+      ) do
+    changeset =
+      Ecto.Changeset.change(trade, %{
+        :sell_price => sell_price,
+        :sell_time => sell_time,
+        :state => "COMPLETED",
+        :profit_base_currency => calculate_profit(buy_order, sell_order) |> D.to_string(),
+        :profit_percentage => calculate_profit_percentage(buy_order, sell_order) |> D.to_string()
+      })
+
+    case Hefty.Repo.update(changeset) do
+      {:ok, struct} -> struct
+      {:error, _changeset} -> throw("Unable to update trade")
+    end
+  end
+
   # Note: This will fail if we recalculate old prices using new settings for fee
   def calculate_profit(
         %Order{:price => buy_price, :original_quantity => quantity},

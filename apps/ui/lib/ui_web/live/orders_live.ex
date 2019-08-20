@@ -170,7 +170,7 @@ defmodule UiWeb.OrdersLive do
 
   defp timestamp_to_datetime(timestamp) do
     timestamp
-    |> DateTime.from_unix!
+    |> DateTime.from_unix!()
     |> T.format!("{YYYY}-{0M}-{0D} {h24}:{0m}:{0s}")
   end
 end
