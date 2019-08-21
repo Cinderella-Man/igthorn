@@ -1,14 +1,14 @@
 # Igthorn
 
-[![Build Status](https://travis-ci.com/HedonSoftware/Igthorn.svg?branch=1.0.0)](https://travis-ci.com/HedonSoftware/Igthorn)
+[![Build Status](https://travis-ci.com/Frathon/Igthorn.svg?branch=1.0.0)](https://travis-ci.com/Frathon/Igthorn)
 
 Igthorn is a batteries-included cryptocurrency trading environment written in Elixir.
 
 Non-comprehensive list of Igthorn's features:
 - baked-in backtesting engine that allows to test your strategies against historical data
 - "naive" trading strategy
-- list and search through current and historical trades, orders and transactions
-- view chart representations of your trading
+- listing and searching through current and historical trades, orders and transactions
+- overview charts representations of your trading
 and many others
 
 Igthorn is a boilerplate for kick-starting your crypto trading project. It contains everything you
