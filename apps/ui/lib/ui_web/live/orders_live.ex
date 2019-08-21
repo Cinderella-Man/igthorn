@@ -169,7 +169,8 @@ defmodule UiWeb.OrdersLive do
   defp show_pagination?(limit, total), do: limit < total
 
   defp timestamp_to_datetime(timestamp) do
-    timestamp
+    (timestamp / 1000)
+    |> round()
     |> DateTime.from_unix!()
     |> T.format!("{YYYY}-{0M}-{0D} {h24}:{0m}:{0s}")
   end

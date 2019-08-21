@@ -398,7 +398,7 @@ defmodule Hefty.Algos.Naive.Trader do
       if !rebuy_notified do
         case is_rebuy(buy_price, current_price, rebuy_interval) do
           false -> new_state
-          rebuy_price -> handle_rebuy(rebuy_price, state)
+          rebuy_price -> handle_rebuy(rebuy_price, new_state)
         end
       else
         new_state
@@ -408,23 +408,38 @@ defmodule Hefty.Algos.Naive.Trader do
     {:noreply, new_state}
   end
 
-  # TO IMPLEMENT
-  # Price went below buy order but no sell order neither quantity got updated - update record and possibly add sell order
-  # Price went above sell order but quantity wasn't updated - update record and die
-  # Partially filled buy order that needs to be retargeted or sold if possible
-
   @doc """
-  Catch all - should never happen in production - here for developing
+  Situation:
+  Rebuy scenario after placing buy order
   """
   def handle_info(
         %{
           event: "trade_event",
-          payload: %Hefty.Repo.Binance.TradeEvent{} = event
+          payload: %Hefty.Repo.Binance.TradeEvent{price: current_price}
         },
-        %State{} = state
+        %State{
+          buy_order:
+            %Hefty.Repo.Binance.Order{
+              price: buy_price
+            },
+          rebuy_interval: rebuy_interval,
+          rebuy_notified: rebuy_notified,
+          symbol: symbol
+        } = state
       ) do
-    Logger.debug("Another trade event received - TBFixed - #{inspect(event)}")
-    {:noreply, state}
+
+    new_state =
+      if !rebuy_notified do
+        case is_rebuy(buy_price, current_price, rebuy_interval) do
+          false -> state
+          rebuy_price -> handle_rebuy(rebuy_price, state)
+        end
+      else
+        state
+      end
+
+    Hefty.Algos.Naive.Leader.notify(symbol, :state, new_state)
+    {:noreply, new_state}
   end
 
   defp is_stop_loss(buy_price, current_price, stop_loss_interval) do
