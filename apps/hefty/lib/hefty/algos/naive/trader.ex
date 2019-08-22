@@ -418,16 +418,14 @@ defmodule Hefty.Algos.Naive.Trader do
           payload: %Hefty.Repo.Binance.TradeEvent{price: current_price}
         },
         %State{
-          buy_order:
-            %Hefty.Repo.Binance.Order{
-              price: buy_price
-            },
+          buy_order: %Hefty.Repo.Binance.Order{
+            price: buy_price
+          },
           rebuy_interval: rebuy_interval,
           rebuy_notified: rebuy_notified,
           symbol: symbol
         } = state
       ) do
-
     new_state =
       if !rebuy_notified do
         case is_rebuy(buy_price, current_price, rebuy_interval) do

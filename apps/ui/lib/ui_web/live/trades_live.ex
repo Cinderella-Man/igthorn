@@ -1,6 +1,8 @@
 defmodule UiWeb.TradesLive do
   use Phoenix.LiveView
 
+  alias Timex, as: T
+
   def render(assigns) do
     ~L"""
       <%= if length(@trades_data.list) >= 0 do %>
@@ -52,6 +54,7 @@ defmodule UiWeb.TradesLive do
                     <th>State</th>
                     <th>Profit base currency</th>
                     <th>Profit %</th>
+                    <th>Profit time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -65,6 +68,7 @@ defmodule UiWeb.TradesLive do
                       <td><%= trade.state %></td>
                       <td><%= trade.profit_base_currency %></td>
                       <td><%= trade.profit_percentage %></td>
+                      <td><%= timestamp_to_datetime(trade.sell_time) %></td>
                     </tr>
                   <% end %>
                 </tbody>
@@ -160,6 +164,15 @@ defmodule UiWeb.TradesLive do
       :page => page,
       :limit => limit
     }
+  end
+
+  defp timestamp_to_datetime(nil), do: nil
+
+  defp timestamp_to_datetime(timestamp) do
+    (timestamp / 1000)
+    |> round()
+    |> DateTime.from_unix!()
+    |> T.format!("{YYYY}-{0M}-{0D} {h24}:{0m}:{0s}")
   end
 
   defp show_pagination?(limit, total), do: limit < total
