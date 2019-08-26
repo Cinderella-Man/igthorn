@@ -12,7 +12,7 @@ defmodule Shell do
   @db_username Keyword.fetch!(Application.get_env(:hefty, Hefty.Repo), :username) 
   @db_password Keyword.fetch!(Application.get_env(:hefty, Hefty.Repo), :password)
 
-  @default_link "https://github.com/Cinderella-Man/binance-trade-events/raw/master/XRPUSDT/"
+  @default_link "https://github.com/Cinderella-Man/binance-trade-events/raw/master/"
 
   #
   # Add your script here
@@ -107,7 +107,7 @@ defmodule Shell do
 
   defp generate_file_name(symbol, date) do
     {:ok, ymd} = Timex.format(date, "{YYYY}-{0M}-{0D}")
-    "#{symbol}-#{ymd}"
+    "#{symbol}/#{symbol}-#{ymd}"
   end
 
   defp fetch_file(file_name, link, path) do
