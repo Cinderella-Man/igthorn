@@ -168,6 +168,8 @@ defmodule UiWeb.OrdersLive do
 
   defp show_pagination?(limit, total), do: limit < total
 
+  defp timestamp_to_datetime(nil), do: nil
+
   defp timestamp_to_datetime(timestamp) do
     (timestamp / 1000)
     |> round()
