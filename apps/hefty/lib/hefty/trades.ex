@@ -166,4 +166,30 @@ defmodule Hefty.Trades do
   end
 
   defp update_profit(trade, _), do: trade
+
+  @doc"""
+  Counting gaining traders bu symbol between selling time
+  """
+  def count_gaining(symbol, from, to) do
+    query =
+      "SELECT COUNT(*) FROM trades " <>
+      "WHERE symbol = '#{symbol}' " <>
+      "AND sell_time >= #{from} AND " <>
+      "sell_time < #{to} AND " <>
+      "cast(profit_base_currency as double precision) > 0;"
+    Ecto.Adapters.SQL.query!(Hefty.Repo, query, [])
+  end
+
+  @doc"""
+  Counting losing traders bu symbol between selling time
+  """
+  def count_losing(symbol, from, to) do
+    query =
+      "SELECT COUNT(*) FROM trades " <>
+      "WHERE symbol = '#{symbol}' " <>
+      "AND sell_time >= #{from} AND " <>
+      "sell_time < #{to} AND " <>
+      "cast(profit_base_currency as double precision) < 0;"
+    Ecto.Adapters.SQL.query!(Hefty.Repo, query, [])
+  end
 end

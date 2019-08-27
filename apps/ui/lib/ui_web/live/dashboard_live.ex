@@ -3,11 +3,18 @@ defmodule UiWeb.DashboardLive do
 
   def render(assigns) do
     ~L"""
-    <div class="">
-      Current prices of streamed symbol
-
-      <%= live_render(@socket, UiWeb.PriceFeedLive) %>
-      <%= live_render(@socket, UiWeb.PriceChartLive) %>
+    <div class="row">
+      <div class="col-xs-12">
+        <%= live_render(@socket, UiWeb.PriceFeedLive) %>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-8">
+        <%= live_render(@socket, UiWeb.PriceChartLive) %>
+      </div>
+      <div class="col-md-4">
+        <%= live_render(@socket, UiWeb.GainingLosingTradesLive) %>
+      </div>
     </div>
     """
   end

@@ -23,11 +23,16 @@ defmodule UiWeb.PriceChartLive do
                     </select>
                   </form>
                 </h3>
+                 <div class="box-tools pull-right">
+              <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+              </button>
+              <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+            </div>
               </div>
               <div class="box-body">
                 <div class="chart">
                   <script src="/dist/js/chart.js"></script>
-                  <canvas id="lineChart" style="display: block; width: 1400px!important; height: 400px; margin: auto;" width="1400" height="400"></canvas>
+                  <canvas id="lineChart" style="display: block; width: 1000px!important; height: 400px; margin: auto;" width="1000" height="400"></canvas>
                   <script id="chart-<%= Base.encode64(:erlang.md5(@data.prices)) %>">
                     renderChart([<%= for l <- @data.labels do %>"<%= l %>",<% end %>], "<%= @data.symbol %>", <%= @data.prices %>)
                   </script>
@@ -95,3 +100,5 @@ defmodule UiWeb.PriceChartLive do
     }
   end
 end
+
+14 / (14 + 32) * 100
