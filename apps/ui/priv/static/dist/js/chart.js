@@ -73,7 +73,7 @@ window.renderDoughnutChart = (labels, symbol, data) => {
     }
 };
 
-let doDoughnutChartRender = (labels, symbol, data) => {
+let doDoughnutChartRender = (data) => {
     let chartData = {
         datasets: [{
             data: data,
@@ -82,7 +82,7 @@ let doDoughnutChartRender = (labels, symbol, data) => {
                 '#dd4b39'
             ],
         }],
-        labels: labels
+        labels: data
     };
     let chartConfig = {
         type: 'doughnut',

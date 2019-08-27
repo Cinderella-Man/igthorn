@@ -18,10 +18,25 @@ defmodule UiWeb.GainingLosingTradesLive do
         <div class="box-body" style="">
           <div class="row">
             <div class="col-md-8">
+              <%= if length(@data.symbols) > 0 do %>
+                <div class="col-xs-5">
+                  <form phx-change="change-symbol" id="change-symbol">
+                    <select name="selected_symbol" class="form-control col-xs-3">
+                      <%= for row <- @data.symbols do %>
+                          <option value="<%= row %>"
+                          <%= if row == @symbol do %>
+                            selected
+                          <% end %>
+                          ><%= row %></option>
+                        <% end %>
+                    </select>
+                  </form>
+                </div>
+              <% end %>
               <div class="chart-responsive">
                 <canvas id="doughnutChart" height="160" width="329" style="width: 329px; height: 160px;"></canvas>
                   <script id="chart-pie">
-                    renderDoughnutChart([<%= for l <- @data.chart_data.labels do %>"<%= l %>",<% end %>], '<%= @symbol %>', [<%= for l <- @data.chart_data.data do %>"<%= l %>",<% end %>])
+                    renderDoughnutChart([<%= for l <- @data.chart_data.rows[:"#{@symbol}"] do %>"<%= l %>",<% end %>], '<%= @symbol %>', [<%= for l <- @data.chart_data.data do %>"<%= l %>",<% end %>])
                   </script>
               </div>
               <!-- ./chart-responsive -->
@@ -39,73 +54,17 @@ defmodule UiWeb.GainingLosingTradesLive do
         </div>
         <!-- /.box-body -->
         <div class="box-footer no-padding" style="">
-          <ul class="nav nav-pills nav-stacked">
-            <li><a href="#">United States of America
-              <span class="pull-right text-red"><i class="fa fa-angle-down"></i> 12%</span></a></li>
-            <li><a href="#">India <span class="pull-right text-green"><i class="fa fa-angle-up"></i> 4%</span></a>
-            </li>
-            <li><a href="#">China
-              <span class="pull-right text-yellow"><i class="fa fa-angle-left"></i> 0%</span></a></li>
-          </ul>
         </div>
         <!-- /.footer -->
-      </div>
-      <div class="info-box bg-green">
-        <span class="info-box-icon"><i class="ion ion-ios-heart-outline"></i></span>
-
-        <div class="info-box-content">
-          <span class="info-box-text">Mentions</span>
-          <span class="info-box-number">92,050</span>
-
-          <div class="progress">
-            <div class="progress-bar" style="width: 20%"></div>
-          </div>
-          <span class="progress-description">
-                20% Increase in 30 Days
-              </span>
-        </div>
-        <!-- /.info-box-content -->
-      </div>
-      <div class="info-box bg-green">
-        <span class="info-box-icon"><i class="ion ion-ios-heart-outline"></i></span>
-
-        <div class="info-box-content">
-          <span class="info-box-text">Mentions</span>
-          <span class="info-box-number">92,050</span>
-
-          <div class="progress">
-            <div class="progress-bar" style="width: 20%"></div>
-          </div>
-          <span class="progress-description">
-                20% Increase in 30 Days
-              </span>
-        </div>
-        <!-- /.info-box-content -->
-      </div>
-      <div class="info-box bg-green">
-        <span class="info-box-icon"><i class="ion ion-ios-heart-outline"></i></span>
-
-        <div class="info-box-content">
-          <span class="info-box-text">Mentions</span>
-          <span class="info-box-number">92,050</span>
-
-          <div class="progress">
-            <div class="progress-bar" style="width: 20%"></div>
-          </div>
-          <span class="progress-description">
-                20% Increase in 30 Days
-              </span>
-        </div>
-        <!-- /.info-box-content -->
       </div>
     """
   end
 
   def mount(%{}, socket) do
-    symbols =
-      Hefty.Streams.fetch_streaming_symbols()
-      |> Map.keys()
+    [from, to] = Hefty.Utils.Datetime.get_timestamps(T.today())
 
+    symbols =
+      Hefty.Trades.fetch_trading_symbols(from, to)
     symbol =
       symbols
       |> List.first()
@@ -117,26 +76,40 @@ defmodule UiWeb.GainingLosingTradesLive do
     {:noreply, socket}
   end
 
+  def handle_event("change-symbol", %{"selected_symbol" => selected_symbol}, socket) do
+    {:noreply, socket}
+  end
+
   defp get_data(symbol, symbols) do
     [from, to] = Hefty.Utils.Datetime.get_timestamps(T.today())
 
     %{
-      :chart_data => gaining_losing_data(symbol, from, to),
-      :symbols_data => symbols_data(symbols)
+      :chart_data => gaining_losing_data(symbols, from, to),
+      :symbols => symbols
     }
   end
 
-  defp gaining_losing_data(symbol, from, to) do
-    %{:rows => [[gaining]]} = Hefty.Trades.count_gaining(symbol, from, to)
-    %{:rows => [[losing]]} = Hefty.Trades.count_losing(symbol, from, to)
+  defp gaining_losing_data(symbols, from, to) do
+#    %{:rows => [[gaining]]} = Hefty.Trades.count_gaining(symbol, from, to)
+#    %{:rows => [[losing]]} = Hefty.Trades.count_losing(symbol, from, to)
+
+    rows = symbols
+      |> Enum.map(&%{"#{&1}": Hefty.Trades.count_gaining(&1, from, to)})
+      |> Enum.into([], &%{"#{(List.first(Map.keys(&1)))}":
+      %{
+        :data => [
+          Hefty.Trades.count_gaining(List.first(Map.keys(&1)), from, to).rows
+            |> List.first
+            |> List.first,
+          Hefty.Trades.count_losing(List.first(Map.keys(&1)), from, to).rows
+            |> List.first
+            |> List.first,
+        ],
+      }
+    })
 
     %{
-      :labels => [gaining, losing],
-      :data => [gaining, losing],
+      :rows => rows,
     }
-  end
-
-  defp symbols_data(symbols) do
-    
   end
 end

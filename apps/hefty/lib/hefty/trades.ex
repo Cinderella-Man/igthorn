@@ -192,4 +192,14 @@ defmodule Hefty.Trades do
       "cast(profit_base_currency as double precision) < 0;"
     Ecto.Adapters.SQL.query!(Hefty.Repo, query, [])
   end
+
+  def fetch_trading_symbols(from, to) do
+    from(t in Trade,
+      select: [t.symbol],
+      where: t.sell_time >= ^from and t.sell_time < ^to,
+      order_by: t.symbol,
+      group_by: t.symbol
+    )
+    |> Hefty.Repo.all()
+  end
 end
