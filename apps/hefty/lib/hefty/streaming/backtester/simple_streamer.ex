@@ -34,8 +34,8 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   """
   defmodule State do
     defstruct db_streamer_task: nil,
-              buy_stack: [],
-              sell_stack: [],
+              buy_stacks: %{},
+              sell_stacks: %{},
               events_counter: 0
   end
 
@@ -66,56 +66,37 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     {:noreply, %{state | :db_streamer_task => task, :events_counter => 0}}
   end
 
-  @doc """
-  Trade events coming from db streamer
-
-  Simplest case - no hanging orders
-  """
   def handle_cast(
         {:trade_event, trade_event},
         %State{
-          :buy_stack => [],
-          :sell_stack => [],
-          :events_counter => events_counter
-        } = state
-      ) do
-    broadcast_trade_event(trade_event)
-    events_counter = events_counter + 1
-
-    if rem(events_counter, @log_counter_every) == 0 do
-      Logger.info("#{events_counter} events published")
-    end
-
-    {:noreply, %{state | :events_counter => events_counter}}
-  end
-
-  def handle_cast(
-        {:trade_event, trade_event},
-        %State{
-          :buy_stack => buy_stack,
-          :sell_stack => sell_stack,
+          :buy_stacks => buy_stacks,
+          :sell_stacks => sell_stacks,
           :events_counter => events_counter
         } = state
       ) do
     lt = &less_than/2
     gt = &greather_than/2
 
-    buy_stack
+    buy_stacks
+    |> Map.get(trade_event.symbol, [])
     |> Enum.take_while(&compare_string_prices(trade_event.price, &1.price, lt))
     |> Enum.map(&convert_order_to_event(&1, trade_event.event_time))
     |> Enum.map(&broadcast_trade_event(&1))
 
-    sell_stack
+    sell_stacks
+    |> Map.get(trade_event.symbol, [])
     |> Enum.take_while(&compare_string_prices(trade_event.price, &1.price, gt))
     |> Enum.map(&convert_order_to_event(&1, trade_event.event_time, trade_event.price))
     |> Enum.map(&broadcast_trade_event(&1))
 
-    new_buy_stack =
-      buy_stack
+    buy_orders =
+      buy_stacks
+      |> Map.get(trade_event.symbol, [])
       |> Enum.drop_while(&compare_string_prices(trade_event.price, &1.price, lt))
 
-    new_sell_stack =
-      sell_stack
+    sell_orders =
+      sell_stacks
+      |> Map.get(trade_event.symbol, [])
       |> Enum.drop_while(&compare_string_prices(trade_event.price, &1.price, gt))
 
     broadcast_trade_event(trade_event)
@@ -128,8 +109,8 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
     {:noreply,
      %{
        state
-       | :buy_stack => new_buy_stack,
-         :sell_stack => new_sell_stack,
+       | :buy_stacks => Map.put(buy_stacks, trade_event.symbol, buy_orders),
+         :sell_stacks => Map.put(sell_stacks, trade_event.symbol, sell_orders),
          :events_counter => events_counter
      }}
   end
@@ -145,17 +126,35 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   @doc """
   Handles buy orders coming from Binance Mock
   """
-  def handle_cast({:order, %Binance.OrderResponse{:side => "BUY"} = order}, state) do
-    {:noreply,
-     %{state | :buy_stack => [order | state.buy_stack] |> Enum.sort(&(&1.price > &2.price))}}
+  def handle_cast(
+        {
+          :order,
+          %Binance.OrderResponse{:symbol => symbol, :side => "BUY"} = order
+        },
+        %State{
+          :buy_stacks => buy_stacks
+        } = state
+      ) do
+    current_orders = Map.get(buy_stacks, symbol, [])
+    new_orders = [order | current_orders] |> Enum.sort(&(&1.price > &2.price))
+    {:noreply, %{state | :buy_stacks => Map.put(buy_stacks, symbol, new_orders)}}
   end
 
   @doc """
   Handles sell orders coming from Binance Mock
   """
-  def handle_cast({:order, %Binance.OrderResponse{:side => "SELL"} = order}, state) do
-    {:noreply,
-     %{state | :sell_stack => [order | state.sell_stack] |> Enum.sort(&(&1.price < &2.price))}}
+  def handle_cast(
+        {
+          :order,
+          %Binance.OrderResponse{:symbol => symbol, :side => "SELL"} = order
+        },
+        %State{
+          :sell_stacks => sell_stacks
+        } = state
+      ) do
+    current_orders = Map.get(sell_stacks, symbol, [])
+    new_orders = [order | current_orders] |> Enum.sort(&(&1.price < &2.price))
+    {:noreply, %{state | :sell_stacks => Map.put(sell_stacks, symbol, new_orders)}}
   end
 
   def handle_cast(:cleanup, _state) do
@@ -164,10 +163,7 @@ defmodule Hefty.Streaming.Backtester.SimpleStreamer do
   end
 
   # PRIVATE FUNCTIONS
-
   defp broadcast_trade_event(event) do
-    # Logger.debug("Streaming trade event #{event.trade_id} for symbol #{event.symbol}")
-
     UiWeb.Endpoint.broadcast_from(
       self(),
       "stream-#{event.symbol}",
