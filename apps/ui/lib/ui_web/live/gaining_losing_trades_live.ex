@@ -35,8 +35,8 @@ defmodule UiWeb.GainingLosingTradesLive do
               <% end %>
               <div class="chart-responsive">
                 <canvas id="doughnutChart" height="160" width="329" style="width: 329px; height: 160px;"></canvas>
-                  <script id="chart-pie">
-                    renderDoughnutChart([<%= for l <- @data.chart_data.rows[:"#{@symbol}"] do %>"<%= l %>",<% end %>], '<%= @symbol %>', [<%= for l <- @data.chart_data.data do %>"<%= l %>",<% end %>])
+                  <script id="chart-<%= Base.encode64(:erlang.md5(@symbol)) %>">
+                    renderDoughnutChart([<%= for l <- get_chart_data(@data.chart_data.rows, @symbol) do %>"<%= l %>",<% end %>])
                   </script>
               </div>
               <!-- ./chart-responsive -->
@@ -65,11 +65,13 @@ defmodule UiWeb.GainingLosingTradesLive do
 
     symbols =
       Hefty.Trades.fetch_trading_symbols(from, to)
+      |> Enum.map(&List.to_string(&1))
+
     symbol =
       symbols
       |> List.first()
 
-    {:ok, assign(socket, data: get_data(symbol, symbols), symbol: symbol)}
+    {:ok, assign(socket, data: get_data(symbols), symbol: symbol)}
   end
 
   def handle_info(%{event: "trade_event"}, socket) do
@@ -77,39 +79,42 @@ defmodule UiWeb.GainingLosingTradesLive do
   end
 
   def handle_event("change-symbol", %{"selected_symbol" => selected_symbol}, socket) do
-    {:noreply, socket}
+    {:noreply, assign(socket,
+      symbol: selected_symbol,
+      data: socket.assigns.data
+    )}
   end
 
-  defp get_data(symbol, symbols) do
+  defp get_data(symbols) do
     [from, to] = Hefty.Utils.Datetime.get_timestamps(T.today())
 
     %{
-      :chart_data => gaining_losing_data(symbols, from, to),
+      :chart_data => gaining_losing_data(from, to),
       :symbols => symbols
     }
   end
 
-  defp gaining_losing_data(symbols, from, to) do
-#    %{:rows => [[gaining]]} = Hefty.Trades.count_gaining(symbol, from, to)
-#    %{:rows => [[losing]]} = Hefty.Trades.count_losing(symbol, from, to)
+  defp gaining_losing_data(from, to) do
+    rows_data = Hefty.Trades.count_gaining_losing(from, to).rows
 
-    rows = symbols
-      |> Enum.map(&%{"#{&1}": Hefty.Trades.count_gaining(&1, from, to)})
-      |> Enum.into([], &%{"#{(List.first(Map.keys(&1)))}":
-      %{
-        :data => [
-          Hefty.Trades.count_gaining(List.first(Map.keys(&1)), from, to).rows
-            |> List.first
-            |> List.first,
-          Hefty.Trades.count_losing(List.first(Map.keys(&1)), from, to).rows
-            |> List.first
-            |> List.first,
-        ],
-      }
-    })
+    rows = rows_data
+    |> Enum.group_by(fn [head | _tail] -> head end)
+    |> Enum.map(&row_builder(&1))
 
     %{
       :rows => rows,
     }
+  end
+
+  defp row_builder(row) do
+    {symbol, [[_, _, losing], [_, _, gaining]]} = row
+    %{String.to_atom("#{symbol}") => [gaining, losing]}
+  end
+
+  defp get_chart_data(rows, symbol) do
+    row = rows
+      |> Enum.filter(fn row -> Map.has_key?(row, String.to_atom(symbol)) end)
+      |> List.first
+    row[String.to_atom(symbol)]
   end
 end
