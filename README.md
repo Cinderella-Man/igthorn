@@ -114,10 +114,10 @@ from June (2019-06-03 up to 2019-06-23). To load it you need to specify director
 dumps(script will download them for you) to as well as `from` and `to` dates and `symbol` that you are interested in - example below:
 
 ```
-cd apps/hefty && mix run priv/repo/scripts/load-trade-events.exs --path="/backup/projects/binance-trade-events/" --from="2019-06-03" --to="2019-06-09" --symbol="XRPUSDT" && cd ../..
+cd apps/hefty && mix run priv/repo/scripts/load-trade-events.exs --path="/backup/projects/binance-trade-events/" --from="2019-06-03" --to="2019-06-22" --symbol="XRPUSDT" && cd ../..
 ```
 
-This will give you a little bit over 1 million events(one full week of trading data).
+This will give you a little bit over 2.8 million events(20 days of trading data).
 
 Step 3 - Start application in backtesting environment
 
