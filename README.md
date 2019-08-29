@@ -104,7 +104,7 @@ Naive strategy described in video called "[My Adventures in Automated Crypto Tra
 Step 1 - Initialize empty database
 
 ```
-export MIX_ENV=backtesting && cd apps/hefty && mix ecto.reset && cd ../..
+cd apps/hefty && MIX_ENV=backtesting mix ecto.reset && cd ../..
 ```
 
 Step 2 - Import historical data
@@ -114,7 +114,7 @@ from June (2019-06-03 up to 2019-06-23). To load it you need to specify director
 dumps(script will download them for you) to as well as `from` and `to` dates and `symbol` that you are interested in - example below:
 
 ```
-cd apps/hefty && mix run priv/repo/scripts/load-trade-events.exs --path="/backup/projects/binance-trade-events/" --from="2019-06-03" --to="2019-06-22" --symbol="XRPUSDT" && cd ../..
+cd apps/hefty && MIX_ENV=backtesting mix run priv/repo/scripts/load-trade-events.exs --path="/backup/projects/binance-trade-events/" --from="2019-06-03" --to="2019-06-22" --symbol="XRPUSDT" && cd ../..
 ```
 
 This will give you a little bit over 2.8 million events(20 days of trading data).
@@ -122,7 +122,7 @@ This will give you a little bit over 2.8 million events(20 days of trading data)
 Step 3 - Start application in backtesting environment
 
 ```
-export MIX_ENV=backtesting && iex -S mix phx.server
+MIX_ENV=backtesting iex -S mix phx.server
 ```
 
 Step 4 - Enable trading on `XRPUSDT` pair - go to "Naive trader settings" and search for the symbol. Click on "Edit" set budget to some decent amount like 1000 and click "Save". Now click on "Disabled" button to enable trading. At this moment system will listen to XRPUSDT stream.
