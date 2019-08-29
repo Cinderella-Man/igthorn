@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.com/HedonSoftware/Igthorn.svg?branch=1.0.0)](https://travis-ci.com/HedonSoftware/Igthorn)
 
-Igthorn is a batteries-included cryptocurrency trading environment written in Elixir.
+Igthorn is a batteries-included cryptocurrency trading platform written in Elixir.
 
 Non-comprehensive list of Igthorn's features:
 - baked-in backtesting engine that allows to test your strategies against historical data
@@ -127,9 +127,7 @@ export MIX_ENV=backtesting && iex -S mix phx.server
 
 Step 4 - Enable trading on `XRPUSDT` pair - go to "Naive trader settings" and search for the symbol. Click on "Edit" set budget to some decent amount like 1000 and click "Save". Now click on "Disabled" button to enable trading. At this moment system will listen to XRPUSDT stream.
 
-Step 5 -
-
-Now go to `Backtesting` section chose "XRPUSDT" symbol, select 2 dates (2019-06-03 and 2019-06-09) and click "Submit" which will send all 1 million events through naive strategy trader(s).
+Step 5 - Now go to `Backtesting` section chose "XRPUSDT" symbol, select 2 dates (2019-06-03 and 2019-06-09) and click "Submit" which will send all 1 million events through naive strategy trader(s).
 
 ## Documentation
 
