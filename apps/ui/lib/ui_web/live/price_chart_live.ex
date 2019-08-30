@@ -100,5 +100,3 @@ defmodule UiWeb.PriceChartLive do
     }
   end
 end
-
-14 / (14 + 32) * 100

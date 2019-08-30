@@ -174,7 +174,10 @@ defmodule Hefty.Trades do
       "WHERE sell_time >= #{from} AND " <>
       "sell_time < #{to} " <>
       "GROUP BY (symbol, cast(profit_base_currency as double precision) > 0);"
-    Ecto.Adapters.SQL.query!(Hefty.Repo, query)
+
+    Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
+      |> Enum.group_by(fn [head | _tail] -> head end)
+      |> Enum.map(fn {symbol, [[_, _, losing], [_, _, gaining]]} -> %{String.to_atom("#{symbol}") => [gaining, losing]} end)
   end
 
   def fetch_trading_symbols(from, to) do
