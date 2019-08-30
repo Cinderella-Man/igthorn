@@ -1,6 +1,6 @@
 # Igthorn
 
-[![Build Status](https://travis-ci.com/Frathon/Igthorn.svg?branch=1.0.0)](https://travis-ci.com/HedonSoftware/Igthorn)
+[![Build Status](https://travis-ci.com/Frathon/Igthorn.svg?branch=1.0.0)](https://travis-ci.com/Frathon/Igthorn)
 
 Igthorn is a batteries-included cryptocurrency trading platform written in Elixir.
 
