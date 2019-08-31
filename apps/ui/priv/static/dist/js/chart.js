@@ -64,3 +64,38 @@ let doRender = (labels, symbol, data) => {
     var ctx = document.getElementById('lineChart');
     window.chart = new Chart(ctx, config);
 };
+
+window.renderDoughnutChart = (labels, symbol, data) => {
+    if(["complete", "loaded", "interactive"].indexOf(document.readyState) >= 0){
+        doDoughnutChartRender(labels, symbol, data)
+    } else {
+        document.addEventListener("DOMContentLoaded", () => doDoughnutChartRender(labels, symbol, data))
+    }
+};
+
+let doDoughnutChartRender = (data) => {
+    let chartData = {
+        datasets: [{
+            data: data,
+            backgroundColor: [
+                '#00a65a',
+                '#dd4b39'
+            ],
+        }],
+        labels: data
+    };
+    let chartConfig = {
+        type: 'doughnut',
+        data: chartData,
+        options: {}
+    };
+
+    if (window.donatChart !== undefined) {
+        window.donatChart.data = chartData;
+        window.donatChart.update();
+        return;
+    }
+
+    var ctx = document.getElementById('doughnutChart');
+    window.donatChart = new Chart(ctx, chartConfig);
+};

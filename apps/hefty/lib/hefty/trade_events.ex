@@ -27,7 +27,7 @@ defmodule Hefty.TradeEvents do
     from(te in Hefty.Repo.Binance.TradeEvent,
       select: [te.price, te.inserted_at],
       order_by: [desc: te.trade_time],
-      limit: 50,
+      limit: 500,
       where: te.symbol == ^symbol
     )
     |> Hefty.Repo.all()

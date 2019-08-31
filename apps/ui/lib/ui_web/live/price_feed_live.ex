@@ -4,55 +4,51 @@ defmodule UiWeb.PriceFeedLive do
 
   def render(assigns) do
     ~L"""
-        <div class="row">
-        <div class="col-xs-12">
-          <div class="box">
-            <div class="box-header">
-              <h3 class="box-title">Current prices</h3>
-
-              <div class="box-tools">
-                <form phx_change="validate" phx-submit="validate">
-                  <div class="input-group input-group-sm" style="width: 180px;">
-                    <input type="text" name="search" class="form-control pull-right" placeholder="Search">
-                    <div class="input-group-btn">
-                      <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
-                    </div>
-                  </div>
-                </form>
+      Current prices of streamed symbol
+      <div class="box">
+        <div class="box-header">
+          <h3 class="box-title">Current prices</h3>
+          <div class="box-tools pull-right">
+            <form phx_change="validate" phx-submit="validate">
+              <div class="input-group input-group-sm" style="width: 180px;">
+                <input type="text" name="search" class="form-control pull-right" placeholder="Search">
+                <div class="input-group-btn">
+                  <button type="submit" class="btn btn-default"><i class="fa fa-search"></i></button>
+                </div>
               </div>
-            </div>
-            <!-- /.box-header -->
-            <%= if length(@ticks) > 0 do %>
-              <div class="box-body table-responsive no-padding">
-                <table class="table table-hover">
-                  <tbody><tr>
-                    <th>Symbol</th>
-                    <th>Price</th>
-                  </tr>
-                  <%= for tick <- Keyword.values(@ticks) do %>
-                  <tr>
-                    <td><%= tick.symbol %></td>
-                    <td>
-                      <span class="<%= elem(get_direction_indicators(tick.direction), 0) %>">
-                        <i class="fa <%= elem(get_direction_indicators(tick.direction), 1) %>"></i>
-                        <%= tick.price %>
-                      </span>
-                    </td>
-                  </tr>
-                  <% end %>
-                </tbody></table>
-              </div>
-            <% else %>
-              <div class="box-body">
-                You are not streaming any symbols at the moment. Go to "Streaming settings" to enable
-                streaming on symbols that will show up here
-              </div>
-            <% end %>
-            <!-- /.box-body -->
+            </form>
           </div>
-          <!-- /.box -->
         </div>
+        <!-- /.box-header -->
+        <%= if length(@ticks) > 0 do %>
+          <div class="box-body table-responsive no-padding">
+            <table class="table table-hover">
+              <tbody><tr>
+                <th>Symbol</th>
+                <th>Price</th>
+              </tr>
+              <%= for tick <- Keyword.values(@ticks) do %>
+              <tr>
+                <td><%= tick.symbol %></td>
+                <td>
+                  <span class="<%= elem(get_direction_indicators(tick.direction), 0) %>">
+                    <i class="fa <%= elem(get_direction_indicators(tick.direction), 1) %>"></i>
+                    <%= tick.price %>
+                  </span>
+                </td>
+              </tr>
+              <% end %>
+            </tbody></table>
+          </div>
+        <% else %>
+          <div class="box-body">
+            You are not streaming any symbols at the moment. Go to "Streaming settings" to enable
+            streaming on symbols that will show up here
+          </div>
+        <% end %>
+        <!-- /.box-body -->
       </div>
+      <!-- /.box -->
     """
   end
 
