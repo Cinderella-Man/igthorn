@@ -206,14 +206,14 @@ defmodule Hefty.Algos.Naive.Leader do
   defp fetch_open_orders(symbol) do
     from(o in Hefty.Repo.Binance.Order,
       where: o.symbol == ^symbol,
-      where: o.status != "CANCELLED",
+      where: o.status != "CANCELED",
       order_by: o.time
     )
     |> Hefty.Repo.all()
   end
 
   # Starting traders based on orders from db.
-  # There is possibility of getting multiple cancelled orders
+  # There is possibility of getting multiple canceled orders
   # which needs to be filtered out
   defp start_new_trader(symbol, strategy, orders) when is_list(orders) do
     buy_order =

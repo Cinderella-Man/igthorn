@@ -336,14 +336,14 @@ defmodule Hefty.Algos.Naive.Trader do
 
           Logger.info("Cancelling BUY order #{order_id}")
 
-          {:ok, %Binance.Order{} = cancelled_order} =
+          {:ok, %Binance.Order{} = canceled_order} =
             @binance_client.cancel_order(symbol, timestamp, order_id)
 
-          Logger.debug("Successfully cancelled BUY order #{order_id}")
+          Logger.debug("Successfully canceled BUY order #{order_id}")
 
           update_order(buy_order, %{
-            status: cancelled_order.status,
-            time: cancelled_order.time
+            status: canceled_order.status,
+            time: canceled_order.time
           })
 
           %{state | :buy_order => nil}
@@ -508,20 +508,20 @@ defmodule Hefty.Algos.Naive.Trader do
 
     Logger.debug("Cancelling BUY order #{order_id}")
 
-    {:ok, %Binance.Order{} = cancelled_order} =
+    {:ok, %Binance.Order{} = canceled_order} =
       @binance_client.cancel_order(symbol, timestamp, order_id)
 
-    Logger.debug("Successfully cancelled BUY order #{order_id}")
+    Logger.debug("Successfully canceled BUY order #{order_id}")
 
     update_order(sell_order, %{
-      executed_quantity: cancelled_order.executed_qty,
-      status: cancelled_order.status,
-      time: cancelled_order.time
+      executed_quantity: canceled_order.executed_qty,
+      status: canceled_order.status,
+      time: canceled_order.time
     })
 
     # just in case of partially filled order
     remaining_quantity =
-      D.to_float(D.sub(D.new(original_quantity), D.new(cancelled_order.executed_qty)))
+      D.to_float(D.sub(D.new(original_quantity), D.new(canceled_order.executed_qty)))
 
     Logger.info(
       "Trader(#{id}) - Placing stop loss MARKET SELL order for #{symbol} @ MARKET PRICE, quantity: #{

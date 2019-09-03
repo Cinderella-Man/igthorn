@@ -103,12 +103,12 @@ defmodule Hefty.Exchanges.BinanceMock do
 
     case index do
       nil ->
-        Logger.error("Unable to find requested order to be cancelled")
+        Logger.error("Unable to find requested order to be canceled")
         {:reply, {:error, :not_found}, state}
 
       _ ->
         {order, rest_of_orders} = List.pop_at(orders, index)
-        {:reply, {:ok, %{order | :status => "CANCELLED"}}, %{state | :orders => rest_of_orders}}
+        {:reply, {:ok, %{order | :status => "CANCELED"}}, %{state | :orders => rest_of_orders}}
     end
   end
 
