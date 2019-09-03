@@ -163,7 +163,7 @@ defmodule Hefty.Exchanges.BinanceMock do
 
     Binance.OrderResponse.new(%{
       client_order_id: :crypto.hash(:md5, "#{order_id}") |> Base.encode16(),
-      executed_qty: "0.00000",
+      executed_qty: "0.00000000",
       order_id: order_id,
       orig_qty: Float.to_string(quantity),
       price: Float.to_string(price),

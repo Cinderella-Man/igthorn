@@ -220,7 +220,7 @@ defmodule Hefty.Algos.NaiveTest do
     assert filled_buy.status == "FILLED"
 
     # Checking cancelled order
-    assert cancelled_sell.executed_quantity == "0.00000"
+    assert cancelled_sell.executed_quantity == "0.00000000"
     assert cancelled_sell.status == "CANCELLED"
 
     # Checking stop loss order
@@ -273,7 +273,7 @@ defmodule Hefty.Algos.NaiveTest do
     [cancelled_buy, new_buy] = orders
 
     # Checking cancelled order
-    assert cancelled_buy.executed_quantity == "0.00000"
+    assert cancelled_buy.executed_quantity == "0.00000000"
     assert cancelled_buy.status == "CANCELLED"
 
     # Checking stop loss order
@@ -336,12 +336,12 @@ defmodule Hefty.Algos.NaiveTest do
     # Checking un-filled sell order
     assert unfilled_sell.price == "0.43182"
     assert unfilled_sell.status == "NEW"
-    assert unfilled_sell.executed_quantity == "0.00000"
+    assert unfilled_sell.executed_quantity == "0.00000000"
 
     # Checking new buy order
     assert new_buy.price == "0.40921"
     assert new_buy.status == "NEW"
-    assert new_buy.executed_quantity == "0.00000"
+    assert new_buy.executed_quantity == "0.00000000"
   end
 
   test "Naive trader limits number of trader(using chunks) and honors that limit when rebuy is called" do
@@ -442,7 +442,7 @@ defmodule Hefty.Algos.NaiveTest do
     |> (fn sell_orders -> [sell_orders, expected_sell_prices] end).()
     |> List.zip()
     |> Enum.each(fn {sell_order, expected_price} ->
-      assert sell_order.executed_quantity == "0.00000"
+      assert sell_order.executed_quantity == "0.00000000"
       assert sell_order.status == "NEW"
       assert sell_order.side == "SELL"
       assert sell_order.price == expected_price

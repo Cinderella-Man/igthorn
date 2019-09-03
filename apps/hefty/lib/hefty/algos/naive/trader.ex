@@ -309,7 +309,7 @@ defmodule Hefty.Algos.Naive.Trader do
               order_id: order_id,
               trade_id: trade_id,
               price: order_price,
-              executed_quantity: "0.00000",
+              executed_quantity: "0.00000000",
               time: timestamp
             } = buy_order,
           retarget_interval: retarget_interval,
