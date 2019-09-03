@@ -213,15 +213,15 @@ defmodule Hefty.Algos.NaiveTest do
 
     assert length(orders) == 4
 
-    [filled_buy, cancelled_sell, stop_loss, new_buy] = orders
+    [filled_buy, canceled_sell, stop_loss, new_buy] = orders
 
     # Checking filled buy order
     assert filled_buy.executed_quantity == filled_buy.original_quantity
     assert filled_buy.status == "FILLED"
 
-    # Checking cancelled order
-    assert cancelled_sell.executed_quantity == "0.00000000"
-    assert cancelled_sell.status == "CANCELLED"
+    # Checking canceled order
+    assert canceled_sell.executed_quantity == "0.00000000"
+    assert canceled_sell.status == "CANCELED"
 
     # Checking stop loss order
     assert D.cmp(D.new(stop_loss.price), D.new("0.4221350")) == :lt
@@ -270,17 +270,17 @@ defmodule Hefty.Algos.NaiveTest do
 
     assert length(orders) == 2
 
-    [cancelled_buy, new_buy] = orders
+    [canceled_buy, new_buy] = orders
 
-    # Checking cancelled order
-    assert cancelled_buy.executed_quantity == "0.00000000"
-    assert cancelled_buy.status == "CANCELLED"
+    # Checking canceled order
+    assert canceled_buy.executed_quantity == "0.00000000"
+    assert canceled_buy.status == "CANCELED"
 
     # Checking stop loss order
     assert new_buy.price == "0.4389"
     assert new_buy.status == "NEW"
 
-    assert D.cmp(D.new(new_buy.original_quantity), D.new(cancelled_buy.original_quantity)) == :lt
+    assert D.cmp(D.new(new_buy.original_quantity), D.new(canceled_buy.original_quantity)) == :lt
   end
 
   test "Naive trader rebuy test" do
