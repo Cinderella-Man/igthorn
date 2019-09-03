@@ -46,11 +46,11 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                   <tbody>
                     <th>Symbol</th>
                     <th>Budget</th>
+                    <th>Chunks</th>
                     <th>Profit Interval</th>
                     <th>Buy Down Interval</th>
-                    <th>Rebuy Interval</th>
                     <th>Retarget Interval</th>
-                    <th>Chunks</th>
+                    <th>Rebuy Interval</th>
                     <th>Stop Loss Interval</th>
                     <th>Trading</th>
                     <th></th>
@@ -67,19 +67,19 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                               <input class="form-control input-sm" type="text" name="budget" value="<%= nts.budget %>">
                           </td>
                           <td>
+                            <input class="form-control input-sm" type="text" name="chunks" value="<%= nts.chunks %>">
+                          </td>
+                          <td>
                             <input class="form-control input-sm" type="text" name="profit_interval" value="<%= nts.profit_interval %>">
                           </td>
                           <td>
                             <input class="form-control input-sm" type="text" name="buy_down_interval" value="<%= nts.buy_down_interval %>">
                           </td>
                           <td>
-                            <input class="form-control input-sm" type="text" name="rebuy_interval" value="<%= nts.rebuy_interval %>">
-                          </td>
-                          <td>
                             <input class="form-control input-sm" type="text" name="retarget_interval" value="<%= nts.retarget_interval %>">
                           </td>
                           <td>
-                            <input class="form-control input-sm" type="text" name="chunks" value="<%= nts.chunks %>">
+                            <input class="form-control input-sm" type="text" name="rebuy_interval" value="<%= nts.rebuy_interval %>">
                           </td>
                           <td>
                             <input class="form-control input-sm" type="text" name="stop_loss_interval" value="<%= nts.stop_loss_interval %>">
@@ -98,11 +98,11 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                         <tr>
                           <td><%= nts.symbol %></td>
                           <td><%= nts.budget %></td>
+                          <td><%= nts.chunks %></td>
                           <td><%= nts.profit_interval %></td>
                           <td><%= nts.buy_down_interval %></td>
-                          <td><%= nts.rebuy_interval %></td>
                           <td><%= nts.retarget_interval %></td>
-                          <td><%= nts.chunks %></td>
+                          <td><%= nts.rebuy_interval %></td>
                           <td><%= nts.stop_loss_interval %></td>
                           <td>
                             <a role="button" phx-click="trade-symbol-<%= nts.symbol %>">
