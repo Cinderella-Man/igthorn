@@ -3,12 +3,12 @@ Test 1
 Settings:
 ```
     budget             | 1000
-    retarget_interval  | 0.02
+    chunks             | 10
     profit_interval    | 0.005
     buy_down_interval  | 0.01
-    chunks             | 10
-    stop_loss_interval | 0.05
+    retarget_interval  | 0.02
     rebuy_interval     | 0.03
+    stop_loss_interval | 0.05
 ```
 
 Symbol: XRPUSDT
