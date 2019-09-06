@@ -33,7 +33,7 @@ defmodule Hefty.Trades do
     Logger.debug("Fetching count of trades for a symbol(#{symbol})")
 
     from(t in Trade,
-      where: t.symbol == ^"%#{String.upcase(symbol)}%",
+      where: like(t.symbol, ^"%#{String.upcase(symbol)}%"),
       select: count("*"),
       limit: 1
     )
@@ -166,7 +166,7 @@ defmodule Hefty.Trades do
   end
 
   defp update_profit(trade, _), do: trade
-  
+
   def count_gaining_losing(from, to) do
     query =
       "SELECT symbol, (cast(profit_base_currency as double precision) > 0) AS gaining, " <>
