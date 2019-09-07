@@ -69,17 +69,19 @@ defmodule UiWeb.GainingLosingTradesLive do
       Hefty.Trades.fetch_trading_symbols(from, to)
       |> Enum.map(&List.to_string(&1))
 
-    symbol = symbols
+    symbol =
+      symbols
       |> List.first()
 
     {:ok, assign(socket, data: get_data(symbols), symbol: symbol)}
   end
 
   def handle_event("change-symbol", %{"selected_symbol" => selected_symbol}, socket) do
-    {:noreply, assign(socket,
-      symbol: selected_symbol,
-      data: socket.assigns.data
-    )}
+    {:noreply,
+     assign(socket,
+       symbol: selected_symbol,
+       data: socket.assigns.data
+     )}
   end
 
   defp get_data(symbols) do
@@ -97,9 +99,11 @@ defmodule UiWeb.GainingLosingTradesLive do
   end
 
   defp get_chart_data(rows, symbol) do
-    row = rows
+    row =
+      rows
       |> Enum.filter(fn row -> Map.has_key?(row, String.to_atom(symbol)) end)
-      |> List.first
+      |> List.first()
+
     row[String.to_atom(symbol)]
   end
 end

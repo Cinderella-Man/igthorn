@@ -69,20 +69,23 @@ defmodule UiWeb.ProfitIndicatorLive do
     {:ok, assign(socket, data: get_data(), symbol: "ALL", symbols: symbols)}
   end
 
-  def handle_event("change-symbol", %{"selected_symbol" => selected_symbol}, socket) when selected_symbol == "ALL" do
-    {:noreply, assign(socket,
-      symbol: selected_symbol,
-      symbols: socket.assigns.symbols,
-      data: get_data()
-    )}
+  def handle_event("change-symbol", %{"selected_symbol" => selected_symbol}, socket)
+      when selected_symbol == "ALL" do
+    {:noreply,
+     assign(socket,
+       symbol: selected_symbol,
+       symbols: socket.assigns.symbols,
+       data: get_data()
+     )}
   end
 
   def handle_event("change-symbol", %{"selected_symbol" => selected_symbol}, socket) do
-    {:noreply, assign(socket,
-      symbol: selected_symbol,
-      symbols: socket.assigns.symbols,
-      data: get_data(selected_symbol)
-    )}
+    {:noreply,
+     assign(socket,
+       symbol: selected_symbol,
+       symbols: socket.assigns.symbols,
+       data: get_data(selected_symbol)
+     )}
   end
 
   def get_data(symbol \\ '') do
@@ -115,7 +118,7 @@ defmodule UiWeb.ProfitIndicatorLive do
     Hefty.Trades.profit_base_currency_by_time(from, to, symbol)
   end
 
-    defp get_profit_base_currency(symbol) do
-      Hefty.Trades.profit_base_currency(symbol)
-    end
+  defp get_profit_base_currency(symbol) do
+    Hefty.Trades.profit_base_currency(symbol)
+  end
 end

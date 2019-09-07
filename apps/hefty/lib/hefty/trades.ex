@@ -166,18 +166,20 @@ defmodule Hefty.Trades do
   end
 
   defp update_profit(trade, _), do: trade
-  
+
   def count_gaining_losing(from, to) do
     query =
       "SELECT symbol, (cast(profit_base_currency as double precision) > 0) AS gaining, " <>
-      "COUNT(*) FROM trades " <>
-      "WHERE sell_time >= #{from} AND " <>
-      "sell_time < #{to} " <>
-      "GROUP BY (symbol, cast(profit_base_currency as double precision) > 0);"
+        "COUNT(*) FROM trades " <>
+        "WHERE sell_time >= #{from} AND " <>
+        "sell_time < #{to} " <>
+        "GROUP BY (symbol, cast(profit_base_currency as double precision) > 0);"
 
     Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
-      |> Enum.group_by(fn [head | _tail] -> head end)
-      |> Enum.map(fn {symbol, [[_, _, losing], [_, _, gaining]]} -> %{String.to_atom("#{symbol}") => [gaining, losing]} end)
+    |> Enum.group_by(fn [head | _tail] -> head end)
+    |> Enum.map(fn {symbol, [[_, _, losing], [_, _, gaining]]} ->
+      %{String.to_atom("#{symbol}") => [gaining, losing]}
+    end)
   end
 
   def fetch_trading_symbols(from, to) do
@@ -193,20 +195,20 @@ defmodule Hefty.Trades do
   def profit_base_currency_by_time(from, to, symbol \\ '') do
     query =
       "SELECT SUM(CAST(profit_base_currency as double precision)) as total " <>
-      "FROM trades WHERE sell_time >= #{from} AND sell_time < #{to} " <>
-      "AND symbol LIKE '%#{symbol}%';"
-    [[result]] =
-      Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
+        "FROM trades WHERE sell_time >= #{from} AND sell_time < #{to} " <>
+        "AND symbol LIKE '%#{symbol}%';"
+
+    [[result]] = Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
     result
   end
 
   def profit_base_currency(symbol \\ '') do
     query =
       "SELECT SUM(CAST(profit_base_currency as double precision)) as total " <>
-      "FROM trades WHERE " <>
-      "symbol LIKE '%#{symbol}%';"
-    [[result]] =
-      Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
+        "FROM trades WHERE " <>
+        "symbol LIKE '%#{symbol}%';"
+
+    [[result]] = Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
     result
   end
 

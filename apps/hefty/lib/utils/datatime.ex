@@ -1,5 +1,4 @@
 defmodule Hefty.Utils.Datetime do
-
   def get_timestamps(date) do
     from_datetime = NaiveDateTime.from_iso8601!("#{date}T00:00:00.000Z")
 
@@ -26,8 +25,7 @@ defmodule Hefty.Utils.Datetime do
       |> DateTime.from_naive!("Etc/UTC")
       |> DateTime.to_unix()
 
-    from_datetime =
-      NaiveDateTime.add(to_datetime, -86400, :second)
+    from_datetime = NaiveDateTime.add(to_datetime, -86400, :second)
 
     from_timestamp =
       from_datetime
@@ -45,8 +43,7 @@ defmodule Hefty.Utils.Datetime do
       |> DateTime.from_naive!("Etc/UTC")
       |> DateTime.to_unix()
 
-    from_datetime =
-      NaiveDateTime.add(to_datetime, -604800, :second)
+    from_datetime = NaiveDateTime.add(to_datetime, -604_800, :second)
 
     from_timestamp =
       from_datetime
