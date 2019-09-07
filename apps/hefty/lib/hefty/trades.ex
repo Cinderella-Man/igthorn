@@ -189,4 +189,33 @@ defmodule Hefty.Trades do
     )
     |> Hefty.Repo.all()
   end
+
+  def profit_base_currency_by_time(from, to, symbol \\ '') do
+    query =
+      "SELECT SUM(CAST(profit_base_currency as double precision)) as total " <>
+      "FROM trades WHERE sell_time >= #{from} AND sell_time < #{to} " <>
+      "AND symbol LIKE '%#{symbol}%';"
+    [[result]] =
+      Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
+    result
+  end
+
+  def profit_base_currency(symbol \\ '') do
+    query =
+      "SELECT SUM(CAST(profit_base_currency as double precision)) as total " <>
+      "FROM trades WHERE " <>
+      "symbol LIKE '%#{symbol}%';"
+    [[result]] =
+      Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
+    result
+  end
+
+  def get_all_trading_symbols() do
+    from(t in Trade,
+      select: t.symbol,
+      order_by: t.symbol,
+      group_by: t.symbol
+    )
+    |> Hefty.Repo.all()
+  end
 end

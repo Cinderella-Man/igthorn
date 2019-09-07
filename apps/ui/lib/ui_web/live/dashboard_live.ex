@@ -13,6 +13,7 @@ defmodule UiWeb.DashboardLive do
         <%= live_render(@socket, UiWeb.PriceChartLive) %>
       </div>
       <div class="col-md-4">
+        <%= live_render(@socket, UiWeb.ProfitIndicatorLive) %>
         <%= live_render(@socket, UiWeb.GainingLosingTradesLive) %>
       </div>
     </div>

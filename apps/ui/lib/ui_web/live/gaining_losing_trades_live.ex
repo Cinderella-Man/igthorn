@@ -51,9 +51,9 @@ defmodule UiWeb.GainingLosingTradesLive do
               </div>
               <!-- /.col -->
             </div>
-          <% end %>
           <!-- /.row -->
-        </div>
+          </div>
+        <% end %>
         <!-- /.box-body -->
         <div class="box-footer no-padding" style="">
         </div>
