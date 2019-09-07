@@ -105,17 +105,17 @@ defmodule UiWeb.ProfitIndicatorLive do
     ]
   end
 
-  defp get_profit_base_currency_from_day(symbol \\ '') do
+  defp get_profit_base_currency_from_day(symbol) do
     [from, to] = Hefty.Utils.Datetime.get_last_day(T.now())
     Hefty.Trades.profit_base_currency_by_time(from, to, symbol)
   end
 
-  defp get_profit_base_currency_from_week(symbol \\ '') do
+  defp get_profit_base_currency_from_week(symbol) do
     [from, to] = Hefty.Utils.Datetime.get_last_week(T.now())
     Hefty.Trades.profit_base_currency_by_time(from, to, symbol)
   end
 
-    defp get_profit_base_currency(symbol \\ '') do
+    defp get_profit_base_currency(symbol) do
       Hefty.Trades.profit_base_currency(symbol)
     end
 end
