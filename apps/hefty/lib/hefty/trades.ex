@@ -33,7 +33,7 @@ defmodule Hefty.Trades do
     Logger.debug("Fetching count of trades for a symbol(#{symbol})")
 
     from(t in Trade,
-      where: t.symbol == ^"%#{String.upcase(symbol)}%",
+      where: like(t.symbol, ^"%#{String.upcase(symbol)}%"),
       select: count("*"),
       limit: 1
     )

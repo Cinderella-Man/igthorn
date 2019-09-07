@@ -38,6 +38,8 @@ config :hefty,
       :budget => "1000.0",
       # 0.5%
       :profit_interval => "0.005",
+      # buy down should never be below 0.15% as stop losses
+      # would generate even more losses
       # 1%
       :buy_down_interval => "0.01",
       # 5%
