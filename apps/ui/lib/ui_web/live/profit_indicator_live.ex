@@ -44,7 +44,10 @@ defmodule UiWeb.ProfitIndicatorLive do
                   <span class="info-box-number"><%= row.total || 0.0 %></span>
 
                   <span class="progress-description">
-                    20% Increase in 30 Days
+                    <%= @symbol %>
+                    <%= if @symbol == "ALL" do %>
+                    trading symbols
+                    <% end %>
                   </span>
                 </div>
                 <!-- /.info-box-content -->
