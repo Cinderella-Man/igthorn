@@ -101,7 +101,7 @@ defmodule Helpers do
       :stop_loss_interval => default_settings.stop_loss_interval,
       :retarget_interval => default_settings.retarget_interval,
       :rebuy_interval => default_settings.rebuy_interval,
-      :trading => false
+      :status => "OFF"
     }
   end
 end

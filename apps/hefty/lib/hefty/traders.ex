@@ -45,13 +45,13 @@ defmodule Hefty.Traders do
           :profit_interval => data["profit_interval"],
           :rebuy_interval => data["rebuy_interval"],
           :retarget_interval => data["retarget_interval"],
-          :stop_loss_interval => data["stop_loss_interval"],
-          :trading => String.to_existing_atom(data["trading"])
+          :stop_loss_interval => data["stop_loss_interval"]
         }
       )
 
     case Hefty.Repo.update(nts) do
       {:ok, struct} ->
+        Hefty.Algos.Naive.Leader.update_settings(data["symbol"], struct)
         struct
 
       {:error, _changeset} ->
@@ -59,21 +59,8 @@ defmodule Hefty.Traders do
     end
   end
 
-  @spec flip_trading(String.t()) :: :ok
-  def flip_trading(symbol) when is_binary(symbol) do
-    Logger.info("Flip trading for a symbol #{symbol}")
-    Hefty.Algos.Naive.flip_trading(symbol)
-  end
-
-  @spec turn_off_trading(String.t()) :: :ok
-  def turn_off_trading(symbol) when is_binary(symbol) do
-    Logger.info("Turn off trading for a symbol #{symbol}")
-    Hefty.Algos.Naive.turn_off(symbol)
-  end
-
-  @spec turn_on_trading(String.t()) :: :ok
-  def turn_on_trading(symbol) when is_binary(symbol) do
-    Logger.info("Turn on trading for a symbol #{symbol}")
-    Hefty.Algos.Naive.turn_on(symbol)
+  @spec update_status(String.t(), String.t()) :: :ok
+  def update_status(symbol, status) when is_binary(symbol) and is_binary(status) do
+    Hefty.Algos.Naive.Server.update_status(symbol, status)
   end
 end

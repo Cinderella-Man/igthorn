@@ -22,16 +22,8 @@ defmodule Hefty.Algos.Naive.Server do
     {:ok, %State{}}
   end
 
-  def flip_trading(symbol) do
-    GenServer.cast(__MODULE__, {:flip, symbol})
-  end
-
-  def turn_off(symbol) do
-    GenServer.cast(__MODULE__, {:turn_off, symbol})
-  end
-
-  def turn_on(symbol) do
-    GenServer.cast(__MODULE__, {:turn_on, symbol})
+  def update_status(symbol, status) do
+    GenServer.cast(__MODULE__, {:update_status, symbol, status})
   end
 
   def fetch_trading_symbols() do
@@ -45,7 +37,7 @@ defmodule Hefty.Algos.Naive.Server do
   def handle_cast(:init_symbol_supervisors, _state) do
     symbol_supervisors =
       from(nts in Hefty.Repo.NaiveTraderSetting,
-        where: nts.platform == "Binance" and nts.trading == true
+        where: nts.platform == "Binance" and nts.status == "ON"
       )
       |> Hefty.Repo.all()
       |> Enum.map(&{&1.symbol, start_symbol_supervisor(&1.symbol)})
@@ -54,62 +46,62 @@ defmodule Hefty.Algos.Naive.Server do
     {:noreply, %State{:symbol_supervisors => symbol_supervisors}}
   end
 
-  def handle_cast({:flip, symbol}, state) do
-    flip_db_flag(symbol)
+  def handle_cast(
+    {:update_status, symbol, status},
+    %State{
+      :symbol_supervisors => symbol_supervisors
+    } = state
+  ) do
+    update_db_status(symbol, status)
 
-    case Map.get(state.symbol_supervisors, symbol, false) do
-      false ->
-        start_trading(symbol, state)
+    current_state = Map.get(symbol_supervisors, symbol)
 
-      result ->
-        stop_trading(symbol, result, state)
+    new_state = case status do
+      "OFF" -> case current_state do
+        nil -> Logger.info("Trading on #{symbol} is already disabled")
+               state
+        _   -> stop_trading(symbol, current_state, state)
+      end
+
+      "ON" -> case current_state do
+        nil -> start_trading(symbol, state)
+        _ -> Logger.info("Trading was still running. No need to do anything")
+             state
+      end
+
+      _ -> Logger.info("Graceful shutdown initialized on symbol #{symbol}")
+           state
     end
-  end
 
-  def handle_cast({:turn_off, symbol}, state) do
-    case Map.get(state.symbol_supervisors, symbol, false) do
-      false ->
-        {:noreply, state}
-
-      result ->
-        flip_db_flag(symbol)
-        stop_trading(symbol, result, state)
-    end
-  end
-
-  def handle_cast({:turn_on, symbol}, state) do
-    case Map.get(state.symbol_supervisors, symbol, false) do
-      false ->
-        flip_db_flag(symbol)
-        start_trading(symbol, state)
-
-      _result ->
-        {:noreply, state}
-    end
+    {:noreply, new_state}
   end
 
   defp stop_trading(symbol, ref, state) do
     Logger.info("Stopping supervision tree to cancel trading on symbol #{symbol}")
     stop_child(ref)
     symbol_supervisors = Map.delete(state.symbol_supervisors, symbol)
-    {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
+    %{state | :symbol_supervisors => symbol_supervisors}
   end
 
   defp start_trading(symbol, state) do
     Logger.info("Starting new supervision tree to trade on symbol #{symbol}")
     result = start_symbol_supervisor(symbol)
     symbol_supervisors = Map.put(state.symbol_supervisors, symbol, result)
-    {:noreply, %{state | :symbol_supervisors => symbol_supervisors}}
+    %{state | :symbol_supervisors => symbol_supervisors}
   end
 
-  defp flip_db_flag(symbol) do
+  defp update_db_status(symbol, status) do
     settings =
       from(nts in Hefty.Repo.NaiveTraderSetting, where: nts.symbol == ^symbol)
       |> Hefty.Repo.one()
 
-    settings
-    |> cast(%{:trading => !settings.trading}, [:trading])
+    new_settings = settings
+    |> cast(%{:status => status}, [:status])
     |> Hefty.Repo.update!()
+
+    Hefty.Algos.Naive.Leader.update_settings(symbol, new_settings)
+
+    new_settings
   end
 
   defp start_symbol_supervisor(symbol) do

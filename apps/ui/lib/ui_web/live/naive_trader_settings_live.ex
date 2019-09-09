@@ -85,10 +85,7 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                             <input class="form-control input-sm" type="text" name="stop_loss_interval" value="<%= nts.stop_loss_interval %>">
                           </td>
                           <td>
-                            <select class="form-control input-sm" name="trading" data-enpassusermodified="yes">
-                              <option value="true" <%= trading_select(nts.trading)[true] %>>Enabled</option>
-                              <option value="false" <%= trading_select(nts.trading)[false] %>>Disabled</option>
-                            </select>
+                            <%= nts.status %>
                           </td>
                           <td>
                             <button type="submit" class="btn btn-block btn-info btn-xs"><span class="fa fa-edit"></span>Save</button>
@@ -105,14 +102,23 @@ defmodule UiWeb.NaiveTraderSettingsLive do
                           <td><%= nts.rebuy_interval %></td>
                           <td><%= nts.stop_loss_interval %></td>
                           <td>
-                            <a role="button" phx-click="trade-symbol-<%= nts.symbol %>">
-                              <span class="label label-<%= trading_decoration(nts.trading) %>">
-                                <%= trading_status(nts.trading) %>
+                              <span class="label label-<%= status_decoration(nts.status) %>">
+                                <%= status(nts.status) %>
                               </span>
-                            </a>
                           </td>
                           <td>
-                            <button phx-click="edit-row-<%= nts.symbol %>" type="button" class="btn btn-block btn-primary btn-xs"><span class="fa fa-edit"></span> Edit</button>
+                            <div class="btn-group">
+                              <button type="button" phx-click="edit-row-<%= nts.symbol %>" class="btn btn-default">Edit</button>
+                              <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                <span class="caret"></span>
+                                <span class="sr-only">More options</span>
+                              </button>
+                              <ul class="dropdown-menu" role="menu">
+                                <li><a href="#" phx-click="start-trade-symbol-<%= nts.symbol %>">Start trading</a></li>
+                                <li><a href="#" phx-click="force-stop-trade-symbol-<%= nts.symbol %>">Force stop trading</a></li>
+                                <li><a href="#" phx-click="gracefully-stop-trade-symbol-<%= nts.symbol %>">Gracefully stop trading</a></li>
+                              </ul>
+                            </div>
                           </td>
                         </tr>
                       <%end %>
@@ -158,13 +164,12 @@ defmodule UiWeb.NaiveTraderSettingsLive do
      )}
   end
 
-  defp trading_status(true), do: "Trading"
-  defp trading_status(false), do: "Disabled"
-  defp trading_decoration(true), do: "success"
-  defp trading_decoration(false), do: "danger"
-
-  defp trading_select(true), do: %{true => "selected"}
-  defp trading_select(false), do: %{false => "selected"}
+  defp status("ON"), do: "Trading"
+  defp status("OFF"), do: "Disabled"
+  defp status("SHUTDOWN"), do: "Shutdown"
+  defp status_decoration("ON"), do: "success"
+  defp status_decoration("OFF"), do: "info"
+  defp status_decoration("SHUTDOWN"), do: "warning"
 
   def handle_event("search", %{"search" => search}, socket) do
     {:noreply,
@@ -203,7 +208,6 @@ defmodule UiWeb.NaiveTraderSettingsLive do
   end
 
   def handle_event("edit-row-" <> symbol, _, socket) do
-    IO.inspect("edit-row-#{symbol} triggered")
     {:noreply, assign(socket, edit_row: symbol)}
   end
 
@@ -222,8 +226,20 @@ defmodule UiWeb.NaiveTraderSettingsLive do
      )}
   end
 
-  def handle_event("trade-symbol-" <> symbol, "", socket) do
-    Hefty.Traders.flip_trading(symbol)
+  def handle_event("start-trade-symbol-" <> symbol, "", socket) do
+    update_status(symbol, "ON", socket)
+  end
+
+  def handle_event("force-stop-trade-symbol-" <> symbol, "", socket) do
+    update_status(symbol, "OFF", socket)
+  end
+
+  def handle_event("gracefully-stop-trade-symbol-" <> symbol, "", socket) do
+    update_status(symbol, "SHUTDOWN", socket)
+  end
+
+  defp update_status(symbol, status, socket) do
+    Hefty.Traders.update_status(symbol, status)
 
     {:noreply,
      assign(socket,

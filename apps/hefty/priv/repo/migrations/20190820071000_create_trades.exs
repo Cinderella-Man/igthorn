@@ -3,7 +3,7 @@ defmodule Hefty.Repo.Migrations.CreateTrades do
 
   def change do
     create table(:trades, primary_key: false) do
-      add(:id, :int, primary_key: true)
+      add(:id, :bigint, primary_key: true)
       add(:symbol, :text, null: false)
       add(:buy_price, :text, null: false)
       add(:sell_price, :text)

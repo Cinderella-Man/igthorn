@@ -21,7 +21,7 @@ defmodule Hefty.Algos.Naive.Leader do
   """
 
   defmodule State do
-    defstruct settings: nil, traders: []
+    defstruct symbol: nil, settings: nil, traders: []
   end
 
   defmodule TraderState do
@@ -51,6 +51,10 @@ defmodule Hefty.Algos.Naive.Leader do
     GenServer.cast(:"#{__MODULE__}-#{symbol}", {:notify, :rebuy})
   end
 
+  def update_settings(symbol, settings) do
+    GenServer.cast(:"#{__MODULE__}-#{symbol}", {:update_settings, settings})
+  end
+
   @doc """
   Callback after startup. State is empty so it will be ignored
   """
@@ -61,6 +65,7 @@ defmodule Hefty.Algos.Naive.Leader do
 
     {:noreply,
      %State{
+       symbol: symbol,
        traders: traders,
        settings: settings
      }}
@@ -94,17 +99,21 @@ defmodule Hefty.Algos.Naive.Leader do
 
     Logger.info("Trader(#{id}) - Trade profit: #{profit} USDT")
 
-    new_traders = [
-      start_new_trader(symbol, :restart, %{
-        old_trader_state
-        | :buy_order => nil,
-          :sell_order => nil,
-          :stop_loss_triggered => false,
-          :rebuy_notified => false,
-          :budget => new_budget
-      })
-      | Enum.reject(state.traders, &(&1.pid == pid))
-    ]
+    new_traders = case settings.status do
+      "ON" -> [
+          start_new_trader(symbol, :restart, %{
+            old_trader_state
+            | :buy_order => nil,
+              :sell_order => nil,
+              :stop_loss_triggered => false,
+              :rebuy_notified => false,
+              :budget => new_budget
+          })
+          | Enum.reject(state.traders, &(&1.pid == pid))
+        ]
+      _ -> Logger.info("Ignoring the fact that trader died as we are in graceful shutdown mode for symbol #{symbol}")
+          Enum.reject(state.traders, &(&1.pid == pid))
+    end
 
     {:noreply, %{state | :traders => new_traders, :settings => settings}}
   end
@@ -155,6 +164,22 @@ defmodule Hefty.Algos.Naive.Leader do
     {:noreply, %{state | :traders => new_traders}}
   end
 
+  def handle_cast({:update_settings, settings}, %State{:traders => traders} = state) do
+    Logger.info("Updating settings for all traders of symbol #{state.symbol}")
+
+    traders
+    |> Enum.map(&GenServer.cast(&1.pid, {:update_settings, settings}))
+
+    new_traders = case settings.status do
+      "SHUTDOWN" -> Logger.info("Shutting down all eligible traders of symbol #{state.symbol}")
+                    shutdown_eligible_traders(traders, state.symbol)
+      _          -> Logger.debug("Status didn't change so ignoring")
+                    traders
+    end
+
+    {:noreply, %{state | :settings => settings, :traders => new_traders}}
+  end
+
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     {:noreply, handle_dead_trader(pid, state)}
   end
@@ -164,7 +189,7 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   # Safety fuse
-  defp init_traders(%NaiveTraderSetting{:trading => false}) do
+  defp init_traders(%NaiveTraderSetting{:status => "OFF"}) do
     Logger.warn("Safety fuse triggered - trying to start non traded symbol")
     []
   end
@@ -260,6 +285,18 @@ defmodule Hefty.Algos.Naive.Leader do
     |> (fn c -> c < 2 end).()
   end
 
+  def kill_trader(pid, ref, symbol) do
+    GenServer.call(pid, :stop_trading)
+
+    Process.demonitor(ref)
+
+    :ok =
+      DynamicSupervisor.terminate_child(
+        :"Hefty.Algos.Naive.DynamicSupervisor-#{symbol}",
+        pid
+      )
+  end
+
   defp update_budget(settings, profit) do
     query =
       "UPDATE naive_trader_settings " <>
@@ -297,4 +334,21 @@ defmodule Hefty.Algos.Naive.Leader do
       state
     end
   end
+
+  defp shutdown_eligible_traders(traders, symbol) do
+    traders
+    |> Enum.filter(&(is_shutdown_eligible(&1.state)))
+    |> Enum.map(&(kill_trader(&1.pid, &1.ref, symbol)))
+
+    traders
+    |> Enum.reject(&(is_shutdown_eligible(&1.state)))
+  end
+
+  defp is_shutdown_eligible(%Trader.State{:buy_order => nil}), do: true
+  defp is_shutdown_eligible(%Trader.State{
+    :buy_order => %{
+        :executed_quantity => "0.00000000"
+      }
+    }), do: true
+  defp is_shutdown_eligible(_), do: false
 end

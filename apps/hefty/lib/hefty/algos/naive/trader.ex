@@ -79,7 +79,15 @@ defmodule Hefty.Algos.Naive.Trader do
   """
   def handle_cast({:init_strategy, :blank, _state}, state) do
     Logger.debug("Trader initialized successfully")
-    {:noreply, prepare_state(state.symbol)}
+    settings = fetch_settings(state.symbol)
+
+    fresh_state = prepare_state(state.symbol, settings)
+
+    Logger.info(
+      "Starting trader(#{fresh_state.id}) on symbol #{settings.symbol} with budget" <>
+      " of #{D.to_float(fresh_state.budget)}"
+    )
+    {:noreply, fresh_state}
   end
 
   @doc """
@@ -101,8 +109,15 @@ defmodule Hefty.Algos.Naive.Trader do
       ) do
     Logger.debug("Trader initialized successfully")
 
+    fresh_state = prepare_state(state.symbol, fetch_settings(state.symbol))
+
+    Logger.info(
+      "Starting trader(#{fresh_state.id}) on symbol #{state.symbol} with budget" <>
+      " of #{D.to_float(fresh_state.budget)}"
+    )
+
     {:noreply,
-     Map.merge(prepare_state(state.symbol), %{
+     Map.merge(fresh_state, %{
        :buy_order => buy_order,
        :sell_order => sell_order,
        :trade => trade
@@ -124,6 +139,54 @@ defmodule Hefty.Algos.Naive.Trader do
       ) do
     Logger.info("Starting trader on symbol #{symbol} with budget of #{budget}")
     {:noreply, new_state}
+  end
+
+  @doc """
+  Updates settings cache.
+  """
+  def handle_cast({:update_settings, settings}, state) do
+    Logger.debug("Updating trader(#{state.id}) settings")
+
+    {:noreply,
+     Map.merge(prepare_state(state.symbol, settings), %{
+       :buy_order => state.buy_order,
+       :sell_order => state.sell_order,
+       :trade => state.trade
+     })}
+  end
+
+  # -----------
+  # HANDLE CALL
+  # -----------
+
+  def handle_call(:stop_trading, _from, %State{
+    :id => id,
+    :symbol => symbol,
+    :buy_order => buy_order
+  } = state) do
+    Logger.info("Shuting down trader(#{id}) on #{symbol}")
+
+    :ok = UiWeb.Endpoint.unsubscribe("stream-#{symbol}")
+
+    case buy_order do
+      nil -> Logger.info("Trader #{id} didn't have any buy orders open so nothing to do")
+      %Hefty.Repo.Binance.Order{
+        :time => timestamp,
+        :order_id => order_id
+      } -> Logger.info("There was buy order open - canceling and updating db")
+           {:ok, %Binance.Order{} = canceled_order} =
+             @binance_client.cancel_order(symbol, timestamp, order_id)
+
+           Logger.debug("Successfully canceled BUY order #{order_id}")
+
+           update_order(buy_order, %{
+             status: canceled_order.status,
+             time: canceled_order.time
+           })
+    end
+
+    {:reply, :ok, %{ state | :buy_order => nil}}
+
   end
 
   @doc """
@@ -551,6 +614,7 @@ defmodule Hefty.Algos.Naive.Trader do
            quantity_step_size: quantity_step_size
          }
        }) do
+
     target_price = calculate_target_price(price, buy_down_interval, tick_size)
     quantity = calculate_quantity(budget, target_price, quantity_step_size)
 
@@ -571,15 +635,10 @@ defmodule Hefty.Algos.Naive.Trader do
     store_order(res)
   end
 
-  defp prepare_state(symbol) do
-    settings = fetch_settings(symbol)
+  defp prepare_state(symbol, settings) do
     pair = fetch_pair(symbol)
     budget = D.div(D.new(settings.budget), settings.chunks)
     id = rem(:os.system_time(:second), 100_000)
-
-    Logger.info(
-      "Starting trader(#{id}) on symbol #{settings.symbol} with budget of #{D.to_float(budget)}"
-    )
 
     %State{
       id: id,
@@ -706,4 +765,5 @@ defmodule Hefty.Algos.Naive.Trader do
       {:error, _changeset} -> throw("Unable to update buy order")
     end
   end
+
 end

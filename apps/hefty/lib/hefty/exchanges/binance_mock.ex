@@ -159,7 +159,7 @@ defmodule Hefty.Exchanges.BinanceMock do
   defp generate_fake_order(symbol, quantity, price)
        when is_binary(symbol) and is_float(quantity) and is_float(price) do
     current_timestamp = :os.system_time(:millisecond)
-    order_id = :rand.uniform(1_000_000)
+    order_id = current_timestamp
 
     Binance.OrderResponse.new(%{
       client_order_id: :crypto.hash(:md5, "#{order_id}") |> Base.encode16(),

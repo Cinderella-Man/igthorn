@@ -13,7 +13,7 @@ defmodule Hefty.Repo.Migrations.CreateNaiveTraderSettings do
       add(:stop_loss_interval, :text) # when stop loss should kick in
       add(:rebuy_interval, :text)     # how much lower price needs to drop to buy more (kick off another chunk)
       add(:platform, :text, null: false, default: "Binance")
-      add(:trading, :boolean)
+      add(:status, :text, default: "OFF")
 
       timestamps()
     end
