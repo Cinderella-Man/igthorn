@@ -26,7 +26,8 @@ defmodule Hefty.Utils.Datetime do
       to_datetime
       |> DateTime.from_naive!("Etc/UTC")
       |> DateTime.to_unix()
-    time = times[interval] * n * (-1)
+
+    time = times[interval] * n * -1
     from_datetime = NaiveDateTime.add(to_datetime, time, :second)
 
     from_timestamp =
