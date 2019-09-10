@@ -18,7 +18,7 @@ defmodule Hefty.Utils.Datetime do
   end
 
   def get_last(n, interval, datetime) do
-    times = %{:day => 86400, :week => 604_800, :year => 31_536_000}
+    times = %{:day => 86_400, :week => 604_800, :year => 31_536_000}
 
     to_datetime = NaiveDateTime.from_iso8601!("#{datetime}")
 
