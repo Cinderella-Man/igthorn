@@ -47,31 +47,41 @@ defmodule Hefty.Algos.Naive.Server do
   end
 
   def handle_cast(
-    {:update_status, symbol, status},
-    %State{
-      :symbol_supervisors => symbol_supervisors
-    } = state
-  ) do
+        {:update_status, symbol, status},
+        %State{
+          :symbol_supervisors => symbol_supervisors
+        } = state
+      ) do
     update_db_status(symbol, status)
 
     current_state = Map.get(symbol_supervisors, symbol)
 
-    new_state = case status do
-      "OFF" -> case current_state do
-        nil -> Logger.info("Trading on #{symbol} is already disabled")
-               state
-        _   -> stop_trading(symbol, current_state, state)
-      end
+    new_state =
+      case status do
+        "OFF" ->
+          case current_state do
+            nil ->
+              Logger.info("Trading on #{symbol} is already disabled")
+              state
 
-      "ON" -> case current_state do
-        nil -> start_trading(symbol, state)
-        _ -> Logger.info("Trading was still running. No need to do anything")
-             state
-      end
+            _ ->
+              stop_trading(symbol, current_state, state)
+          end
 
-      _ -> Logger.info("Graceful shutdown initialized on symbol #{symbol}")
-           state
-    end
+        "ON" ->
+          case current_state do
+            nil ->
+              start_trading(symbol, state)
+
+            _ ->
+              Logger.info("Trading was still running. No need to do anything")
+              state
+          end
+
+        _ ->
+          Logger.info("Graceful shutdown initialized on symbol #{symbol}")
+          state
+      end
 
     {:noreply, new_state}
   end
@@ -95,9 +105,10 @@ defmodule Hefty.Algos.Naive.Server do
       from(nts in Hefty.Repo.NaiveTraderSetting, where: nts.symbol == ^symbol)
       |> Hefty.Repo.one()
 
-    new_settings = settings
-    |> cast(%{:status => status}, [:status])
-    |> Hefty.Repo.update!()
+    new_settings =
+      settings
+      |> cast(%{:status => status}, [:status])
+      |> Hefty.Repo.update!()
 
     Hefty.Algos.Naive.Leader.update_settings(symbol, new_settings)
 

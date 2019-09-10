@@ -55,6 +55,10 @@ defmodule Hefty.Algos.Naive.Leader do
     GenServer.cast(:"#{__MODULE__}-#{symbol}", {:update_settings, settings})
   end
 
+  def is_price_level_available(symbol, target_price) do
+    GenServer.call(:"#{__MODULE__}-#{symbol}", {:is_price_level_available, target_price})
+  end
+
   @doc """
   Callback after startup. State is empty so it will be ignored
   """
@@ -99,21 +103,30 @@ defmodule Hefty.Algos.Naive.Leader do
 
     Logger.info("Trader(#{id}) - Trade profit: #{profit} USDT")
 
-    new_traders = case settings.status do
-      "ON" -> [
-          start_new_trader(symbol, :restart, %{
-            old_trader_state
-            | :buy_order => nil,
-              :sell_order => nil,
-              :stop_loss_triggered => false,
-              :rebuy_notified => false,
-              :budget => new_budget
-          })
-          | Enum.reject(state.traders, &(&1.pid == pid))
-        ]
-      _ -> Logger.info("Ignoring the fact that trader died as we are in graceful shutdown mode for symbol #{symbol}")
+    new_traders =
+      case settings.status do
+        "ON" ->
+          [
+            start_new_trader(symbol, :restart, %{
+              old_trader_state
+              | :buy_order => nil,
+                :sell_order => nil,
+                :stop_loss_triggered => false,
+                :rebuy_notified => false,
+                :budget => new_budget
+            })
+            | Enum.reject(state.traders, &(&1.pid == pid))
+          ]
+
+        _ ->
+          Logger.info(
+            "Ignoring the fact that trader died as we are in graceful shutdown mode for symbol #{
+              symbol
+            }"
+          )
+
           Enum.reject(state.traders, &(&1.pid == pid))
-    end
+      end
 
     {:noreply, %{state | :traders => new_traders, :settings => settings}}
   end
@@ -170,14 +183,41 @@ defmodule Hefty.Algos.Naive.Leader do
     traders
     |> Enum.map(&GenServer.cast(&1.pid, {:update_settings, settings}))
 
-    new_traders = case settings.status do
-      "SHUTDOWN" -> Logger.info("Shutting down all eligible traders of symbol #{state.symbol}")
-                    shutdown_eligible_traders(traders, state.symbol)
-      _          -> Logger.debug("Status didn't change so ignoring")
-                    traders
-    end
+    new_traders =
+      case settings.status do
+        "SHUTDOWN" ->
+          Logger.info("Shutting down all eligible traders of symbol #{state.symbol}")
+          shutdown_eligible_traders(traders, state.symbol)
+
+        _ ->
+          Logger.debug("Status didn't change so ignoring")
+          traders
+      end
 
     {:noreply, %{state | :settings => settings, :traders => new_traders}}
+  end
+
+  @doc """
+  Used for killing previously stopped traders that couldn't start because of price
+  being taken by other trader
+  """
+  def handle_cast({:kill, pid}, %State{:symbol => symbol, :traders => traders} = state) do
+    trader =
+      traders
+      |> Enum.find(&(&1.pid == pid))
+
+    new_traders =
+      case trader do
+        %TraderState{:pid => pid, :ref => ref} ->
+          kill_trader(pid, ref, symbol)
+          traders |> Enum.reject(&(&1.pid == pid))
+
+        _ ->
+          Logger.warn("Something gone wrong. Unable to find trader to be killed")
+          traders
+      end
+
+    {:noreply, %{state | :traders => new_traders}}
   end
 
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
@@ -186,6 +226,32 @@ defmodule Hefty.Algos.Naive.Leader do
 
   def handle_call(:fetch_traders, _from, state) do
     {:reply, state.traders, state}
+  end
+
+  def handle_call(
+        {:is_price_level_available, target_price},
+        _from,
+        %State{
+          :settings => %{
+            :buy_down_interval => interval
+          },
+          :traders => traders
+        } = state
+      ) do
+    {:reply, !Enum.member?(traders, &within_range(&1.state, target_price, interval)), state}
+  end
+
+  defp within_range(%Trader.State{buy_order: nil}, _price, _interval), do: false
+
+  defp within_range(%Trader.State{buy_order: %{:price => price}}, target_price, interval) do
+    order_price = D.new(price)
+    price = D.new(target_price)
+    diff = D.abs(D.sub(order_price, price))
+
+    case D.cmp(diff, D.new(interval)) do
+      :gt -> false
+      _ -> true
+    end
   end
 
   # Safety fuse
@@ -337,18 +403,21 @@ defmodule Hefty.Algos.Naive.Leader do
 
   defp shutdown_eligible_traders(traders, symbol) do
     traders
-    |> Enum.filter(&(is_shutdown_eligible(&1.state)))
-    |> Enum.map(&(kill_trader(&1.pid, &1.ref, symbol)))
+    |> Enum.filter(&is_shutdown_eligible(&1.state))
+    |> Enum.map(&kill_trader(&1.pid, &1.ref, symbol))
 
     traders
-    |> Enum.reject(&(is_shutdown_eligible(&1.state)))
+    |> Enum.reject(&is_shutdown_eligible(&1.state))
   end
 
   defp is_shutdown_eligible(%Trader.State{:buy_order => nil}), do: true
+
   defp is_shutdown_eligible(%Trader.State{
-    :buy_order => %{
-        :executed_quantity => "0.00000000"
-      }
-    }), do: true
+         :buy_order => %{
+           :executed_quantity => "0.00000000"
+         }
+       }),
+       do: true
+
   defp is_shutdown_eligible(_), do: false
 end
