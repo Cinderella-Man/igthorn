@@ -31,7 +31,7 @@ defmodule Hefty.Repo.Migrations.CreateOrders do
       # uuid of LTCBTC
       # add(:symbol_id, references(:pairs, type: :uuid))
       add(:symbol, :text)
-      add(:order_id, :integer)
+      add(:order_id, :bigint)
       add(:client_order_id, :text)
       add(:price, :text)
       add(:original_quantity, :text)
@@ -50,7 +50,7 @@ defmodule Hefty.Repo.Migrations.CreateOrders do
       add(:update_time, :bigint)
       # add(:is_working, :boolean) # gave up on this
       add(:strategy, :text)
-      add(:trade_id, :integer) # To pair buy order and sell order
+      add(:trade_id, :bigint) # To pair buy order and sell order
 
       timestamps()
     end

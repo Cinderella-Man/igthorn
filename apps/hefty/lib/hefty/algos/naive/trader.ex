@@ -85,8 +85,9 @@ defmodule Hefty.Algos.Naive.Trader do
 
     Logger.info(
       "Starting trader(#{fresh_state.id}) on symbol #{settings.symbol} with budget" <>
-      " of #{D.to_float(fresh_state.budget)}"
+        " of #{D.to_float(fresh_state.budget)}"
     )
+
     {:noreply, fresh_state}
   end
 
@@ -113,7 +114,7 @@ defmodule Hefty.Algos.Naive.Trader do
 
     Logger.info(
       "Starting trader(#{fresh_state.id}) on symbol #{state.symbol} with budget" <>
-      " of #{D.to_float(fresh_state.budget)}"
+        " of #{D.to_float(fresh_state.budget)}"
     )
 
     {:noreply,
@@ -159,34 +160,17 @@ defmodule Hefty.Algos.Naive.Trader do
   # HANDLE CALL
   # -----------
 
-  def handle_call(:stop_trading, _from, %State{
-    :id => id,
-    :symbol => symbol,
-    :buy_order => buy_order
-  } = state) do
-    Logger.info("Shuting down trader(#{id}) on #{symbol}")
-
-    :ok = UiWeb.Endpoint.unsubscribe("stream-#{symbol}")
-
-    case buy_order do
-      nil -> Logger.info("Trader #{id} didn't have any buy orders open so nothing to do")
-      %Hefty.Repo.Binance.Order{
-        :time => timestamp,
-        :order_id => order_id
-      } -> Logger.info("There was buy order open - canceling and updating db")
-           {:ok, %Binance.Order{} = canceled_order} =
-             @binance_client.cancel_order(symbol, timestamp, order_id)
-
-           Logger.debug("Successfully canceled BUY order #{order_id}")
-
-           update_order(buy_order, %{
-             status: canceled_order.status,
-             time: canceled_order.time
-           })
-    end
-
-    {:reply, :ok, %{ state | :buy_order => nil}}
-
+  def handle_call(
+        :stop_trading,
+        _from,
+        %State{
+          :id => id,
+          :symbol => symbol,
+          :buy_order => buy_order
+        } = state
+      ) do
+    stop_trading(id, symbol, buy_order)
+    {:reply, :ok, %{state | :buy_order => nil}}
   end
 
   @doc """
@@ -208,9 +192,19 @@ defmodule Hefty.Algos.Naive.Trader do
         } = state
       ) do
     Logger.debug("Placing buy order - event received - #{inspect(event)}")
-    order = place_buy_order(price, state)
-    new_state = %State{state | :buy_order => order}
-    Hefty.Algos.Naive.Leader.notify(symbol, :state, new_state)
+
+    new_state =
+      case place_buy_order(price, state) do
+        {:ok, order} ->
+          new_state = %State{state | :buy_order => order}
+          Hefty.Algos.Naive.Leader.notify(symbol, :state, new_state)
+          new_state
+
+        {:error, :price_level_taken} ->
+          handle_price_level_taken(state)
+          state
+      end
+
     {:noreply, new_state}
   end
 
@@ -614,25 +608,33 @@ defmodule Hefty.Algos.Naive.Trader do
            quantity_step_size: quantity_step_size
          }
        }) do
-
     target_price = calculate_target_price(price, buy_down_interval, tick_size)
     quantity = calculate_quantity(budget, target_price, quantity_step_size)
 
-    Logger.info(
-      "Trader(#{id}) - Placing BUY order for #{symbol} @ #{target_price}, quantity: #{quantity}"
-    )
+    case Hefty.Algos.Naive.Leader.is_price_level_available(symbol, target_price) do
+      true ->
+        Logger.info(
+          "Trader(#{id}) - Placing BUY order for #{symbol} @ #{target_price}, quantity: #{
+            quantity
+          }"
+        )
 
-    {:ok, res} =
-      @binance_client.order_limit_buy(
-        symbol,
-        quantity,
-        target_price,
-        "GTC"
-      )
+        {:ok, res} =
+          @binance_client.order_limit_buy(
+            symbol,
+            quantity,
+            target_price,
+            "GTC"
+          )
 
-    Logger.debug("Successfully placed an BUY order #{res.order_id}")
+        Logger.debug("Successfully placed an BUY order #{res.order_id}")
 
-    store_order(res)
+        {:ok, store_order(res)}
+
+      false ->
+        Logger.info("Price level not available for trader(#{id}) on symbol #{symbol}")
+        {:error, :price_level_taken}
+    end
   end
 
   defp prepare_state(symbol, settings) do
@@ -766,4 +768,43 @@ defmodule Hefty.Algos.Naive.Trader do
     end
   end
 
+  defp stop_trading(trader_id, symbol, buy_order) do
+    Logger.info("Shuting down trader(#{trader_id}) on #{symbol}")
+
+    :ok = UiWeb.Endpoint.unsubscribe("stream-#{symbol}")
+
+    case buy_order do
+      nil ->
+        Logger.info("Trader #{trader_id} didn't have any buy orders open so nothing to do")
+
+      %Hefty.Repo.Binance.Order{
+        :time => timestamp,
+        :order_id => order_id
+      } ->
+        Logger.info("Trader #{trader_id} had a buy order open - canceling and updating db")
+
+        {:ok, %Binance.Order{} = canceled_order} =
+          @binance_client.cancel_order(symbol, timestamp, order_id)
+
+        Logger.debug("Successfully canceled BUY order #{order_id}")
+
+        update_order(buy_order, %{
+          status: canceled_order.status,
+          time: canceled_order.time
+        })
+    end
+  end
+
+  defp handle_price_level_taken(%State{
+         :id => trader_id,
+         :symbol => symbol,
+         :buy_order => buy_order
+       }) do
+    stop_trading(trader_id, symbol, buy_order)
+
+    GenServer.cast(
+      :"#{Hefty.Algos.Naive.Leader}-#{symbol}",
+      {:kill, self()}
+    )
+  end
 end

@@ -1,3 +1,3 @@
 ExUnit.start(exclude: [:skip])
 
-Hefty.Traders.turn_off_trading("XRPUSDT")
+Hefty.Traders.update_status("XRPUSDT", "OFF")
