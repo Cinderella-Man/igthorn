@@ -17,33 +17,17 @@ defmodule Hefty.Utils.Datetime do
     [from_timestamp * 1000, to_timestamp * 1000]
   end
 
-  def get_last_day(datetime) do
+  def get_last(n, interval, datetime) do
+    times = %{:day => 86400, :week => 604_800, :year => 31_536_000}
+
     to_datetime = NaiveDateTime.from_iso8601!("#{datetime}")
 
     to_timestamp =
       to_datetime
       |> DateTime.from_naive!("Etc/UTC")
       |> DateTime.to_unix()
-
-    from_datetime = NaiveDateTime.add(to_datetime, -86400, :second)
-
-    from_timestamp =
-      from_datetime
-      |> DateTime.from_naive!("Etc/UTC")
-      |> DateTime.to_unix()
-
-    [from_timestamp * 1000, to_timestamp * 1000]
-  end
-
-  def get_last_week(datetime) do
-    to_datetime = NaiveDateTime.from_iso8601!("#{datetime}")
-
-    to_timestamp =
-      to_datetime
-      |> DateTime.from_naive!("Etc/UTC")
-      |> DateTime.to_unix()
-
-    from_datetime = NaiveDateTime.add(to_datetime, -604_800, :second)
+    time = times[interval] * n * (-1)
+    from_datetime = NaiveDateTime.add(to_datetime, time, :second)
 
     from_timestamp =
       from_datetime
