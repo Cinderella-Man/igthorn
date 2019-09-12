@@ -220,6 +220,34 @@ defmodule Hefty.Algos.Naive.Leader do
     {:noreply, %{state | :traders => new_traders}}
   end
 
+  def handle_cast(
+    {:reenable_rebuy, price},
+    %State{
+      :traders => traders,
+      :settings => %{
+        :rebuy_interval => interval
+      },
+    } = state) do
+
+    trader = traders
+      |> Enum.filter(&(&1.state.buy_order != nil))
+      |> Enum.find(&within_range(&1.state, price, interval))
+
+    new_traders = case trader do
+      nil            -> Logger.info("Unable to find trader to reenable rebuy for. Nothing to do")
+                        traders
+      %TraderState{:state => %{:id => id}} -> Logger.info("Trader #{id} found to reenable rebuy flag")
+                        GenServer.cast(trader.pid, :reenable_rebuy)
+                        new_trader = %{trader | :state => %{trader.state | rebuy_notified: false}}
+                        List.replace_at(traders, Enum.find_index(traders, &(within_range(&1.state, price, interval))), new_trader)
+    end
+
+    {
+      :noreply,
+      %{state | traders: new_traders}
+    }
+  end
+
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     {:noreply, handle_dead_trader(pid, state)}
   end
@@ -233,20 +261,20 @@ defmodule Hefty.Algos.Naive.Leader do
         _from,
         %State{
           :settings => %{
-            :buy_down_interval => interval
+            :rebuy_interval => interval
           },
           :traders => traders
         } = state
       ) do
-    {:reply, !Enum.member?(traders, &within_range(&1.state, target_price, interval)), state}
+    {:reply, !Enum.find_value(traders, false, &within_range(&1.state, target_price, interval)), state}
   end
 
   defp within_range(%Trader.State{buy_order: nil}, _price, _interval), do: false
 
   defp within_range(%Trader.State{buy_order: %{:price => price}}, target_price, interval) do
     order_price = D.new(price)
-    price = D.new(target_price)
-    diff = D.abs(D.sub(order_price, price))
+    price = D.from_float(target_price)
+    diff = D.sub(D.from_float(1.0), D.div(price, order_price))
 
     case D.cmp(diff, D.new(interval)) do
       :gt -> false
@@ -352,8 +380,6 @@ defmodule Hefty.Algos.Naive.Leader do
   end
 
   def kill_trader(pid, ref, symbol) do
-    GenServer.call(pid, :stop_trading)
-
     Process.demonitor(ref)
 
     :ok =
@@ -404,6 +430,7 @@ defmodule Hefty.Algos.Naive.Leader do
   defp shutdown_eligible_traders(traders, symbol) do
     traders
     |> Enum.filter(&is_shutdown_eligible(&1.state))
+    |> Enum.map(&GenServer.call(&1.pid, :stop_trading))
     |> Enum.map(&kill_trader(&1.pid, &1.ref, symbol))
 
     traders

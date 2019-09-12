@@ -34,21 +34,21 @@ config :hefty,
   },
   trading: %{
     :defaults => %{
-      :chunks => 10,
+      :chunks => 50,
       :budget => "1000.0",
-      # 0.5%
-      :profit_interval => "0.005",
+      # 0.25%
+      :profit_interval => "0.0025",
       # buy down should never be below 0.15% as stop losses
       # would generate even more losses
-      # 1%
-      :buy_down_interval => "0.01",
+      # 0.1%
+      :buy_down_interval => "0.001",
       # 5%
       :stop_loss_interval => "0.05",
-      # 2% - buy down so 1% really
+      # 0.2% - buy down so 0.1% really
       # needs to be always bigger than buy_down_interval!!
-      :retarget_interval => "0.02",
-      # 3%
-      :rebuy_interval => "0.03",
+      :retarget_interval => "0.002",
+      # 0.1%
+      :rebuy_interval => "0.001",
       # WARNING: Change this to 0.001 if you won't pay fees in BNB
       :fee => "0.00075"
       # :fee => "0.001"
