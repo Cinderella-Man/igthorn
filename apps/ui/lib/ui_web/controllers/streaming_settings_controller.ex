@@ -9,6 +9,6 @@ defmodule UiWeb.StreamingSettingsController do
     conn
     |> assign(:page_title, "Streaming settings")
     |> assign(:section_subtitle, "Enabled or disable streaming on specific symbols")
-    |> live_render(UiWeb.SettingsLive, session: %{settings: settings})
+    |> live_render(UiWeb.StreamingSettingsLive, session: %{settings: settings})
   end
 end
