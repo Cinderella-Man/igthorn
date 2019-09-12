@@ -11,7 +11,7 @@
 # and so on) as they will fail if something goes wrong.
 
 alias Hefty.Repo.Binance.{Balance, Pair}
-alias Hefty.Repo.{StreamingSetting, NaiveTraderSetting}
+alias Hefty.Repo.{StreamingSetting, NaiveTraderSetting, Setting}
 import Ecto.Query
 require Logger
 
@@ -166,6 +166,12 @@ pairs
 
 pairs
 |> Enum.map(&%StreamingSetting{:symbol => &1.symbol})
+|> Enum.map(&Hefty.Repo.insert/1)
+
+Logger.info("Inserting app settings")
+
+[%{:id => 1, :key => "api_key"}, %{:id => 2, :key => "secret_key"}]
+|> Enum.map(&%Setting{:id => &1.id, :key => &1.key})
 |> Enum.map(&Hefty.Repo.insert/1)
 
 Logger.info("Seeding finished")
