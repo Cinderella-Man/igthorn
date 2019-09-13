@@ -7,7 +7,7 @@ defmodule Hefty.Exchanges.BinanceMock do
   Holds a copy of all placed orders
   """
   defmodule State do
-    defstruct orders: [], subscriptions: []
+    defstruct orders: [], subscriptions: [], fake_order_id: 1
   end
 
   def start_link([]) do
@@ -112,6 +112,10 @@ defmodule Hefty.Exchanges.BinanceMock do
     end
   end
 
+  def handle_call(:generate_id, _from, %State{:fake_order_id => id} = state) do
+    {:reply, id + 1, %{state | :fake_order_id => id + 1}}
+  end
+
   def handle_info(
         %{
           event: "trade_event",
@@ -159,7 +163,7 @@ defmodule Hefty.Exchanges.BinanceMock do
   defp generate_fake_order(symbol, quantity, price)
        when is_binary(symbol) and is_float(quantity) and is_float(price) do
     current_timestamp = :os.system_time(:millisecond)
-    order_id = current_timestamp
+    order_id = GenServer.call(__MODULE__, :generate_id)
 
     Binance.OrderResponse.new(%{
       client_order_id: :crypto.hash(:md5, "#{order_id}") |> Base.encode16(),
