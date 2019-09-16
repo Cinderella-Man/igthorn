@@ -156,6 +156,13 @@ defmodule Hefty.Algos.Naive.Trader do
      })}
   end
 
+  @doc """
+  Re-enable rebuy notification
+  """
+  def handle_cast(:reenable_rebuy, state) do
+    {:noreply, %{state | rebuy_notified: false}}
+  end
+
   # -----------
   # HANDLE CALL
   # -----------
@@ -200,8 +207,8 @@ defmodule Hefty.Algos.Naive.Trader do
           Hefty.Algos.Naive.Leader.notify(symbol, :state, new_state)
           new_state
 
-        {:error, :price_level_taken} ->
-          handle_price_level_taken(state)
+        {:error, :price_level_taken, price} ->
+          handle_price_level_taken(price, state)
           state
       end
 
@@ -230,7 +237,8 @@ defmodule Hefty.Algos.Naive.Trader do
             %Hefty.Repo.Binance.Order{
               order_id: order_id,
               symbol: symbol,
-              time: time
+              time: time,
+              price: price
             } = buy_order,
           profit_interval: profit_interval,
           pair: %Hefty.Repo.Binance.Pair{price_tick_size: tick_size},
@@ -241,7 +249,7 @@ defmodule Hefty.Algos.Naive.Trader do
     Logger.debug("Buy order filling - event received - #{inspect(event)}")
 
     Logger.info(
-      "Trader(#{id}) received an transaction of #{event.quantity} for BUY order #{order_id} received"
+      "Trader(#{id}) received an transaction of #{event.quantity} for BUY order #{order_id} @ #{price}"
     )
 
     {:ok, current_buy_order} = @binance_client.get_order(symbol, time, order_id)
@@ -302,7 +310,8 @@ defmodule Hefty.Algos.Naive.Trader do
             %Hefty.Repo.Binance.Order{
               order_id: order_id,
               symbol: symbol,
-              time: time
+              time: time,
+              price: price
             } = sell_order,
           trade: trade,
           symbol: symbol,
@@ -312,7 +321,7 @@ defmodule Hefty.Algos.Naive.Trader do
     Logger.debug("Sell order filling - event received - #{inspect(event)}")
 
     Logger.info(
-      "Trader(#{id}) received an transaction of #{event.quantity} for SELL order #{order_id} received"
+      "Trader(#{id}) received an transaction of #{event.quantity} for SELL order #{order_id} @ #{price}"
     )
 
     {:ok, current_sell_order} = @binance_client.get_order(symbol, time, order_id)
@@ -385,10 +394,9 @@ defmodule Hefty.Algos.Naive.Trader do
       case D.cmp(retarget_price, d_current_price) do
         :lt ->
           Logger.info(
-            "Trader(#{id}) - Retargeting triggered for trade #{trade_id} with buy order @ #{
-              order_price
-            }
-            as price raised above #{D.to_float(retarget_price)}"
+            "Trader(#{id}) - Retargeting triggered for trade #{trade_id} " <>
+            "with buy order @ #{order_price} " <>
+            "as price raised above #{D.to_float(retarget_price)}"
           )
 
           Logger.info("Cancelling BUY order #{order_id}")
@@ -533,8 +541,10 @@ defmodule Hefty.Algos.Naive.Trader do
            id: id
          } = state
        ) do
-    Logger.info("Trader(#{id}) - Rebuy triggered for trade #{trade_id} bought @ #{buy_price}
-      as price fallen below #{D.to_float(rebuy_price)}")
+    Logger.info(
+      "Trader(#{id}) - Rebuy triggered for trade #{trade_id} bought @ #{buy_price}" <>
+      "as price fallen below #{D.to_float(rebuy_price)}"
+    )
 
     Hefty.Algos.Naive.Leader.notify(symbol, :rebuy)
 
@@ -558,9 +568,8 @@ defmodule Hefty.Algos.Naive.Trader do
          } = state
        ) do
     Logger.info(
-      "Trader(#{id}) - Stop loss triggered for trade #{trade_id} bought @ #{buy_price} as price fallen below #{
-        D.to_float(stop_loss_price)
-      }"
+      "Trader(#{id}) - Stop loss triggered for trade #{trade_id} bought @ #{buy_price} " <>
+      "as price fallen below #{D.to_float(stop_loss_price)}"
     )
 
     Logger.debug("Cancelling BUY order #{order_id}")
@@ -581,9 +590,8 @@ defmodule Hefty.Algos.Naive.Trader do
       D.to_float(D.sub(D.new(original_quantity), D.new(canceled_order.executed_qty)))
 
     Logger.info(
-      "Trader(#{id}) - Placing stop loss MARKET SELL order for #{symbol} @ MARKET PRICE, quantity: #{
-        remaining_quantity
-      }"
+      "Trader(#{id}) - Placing stop loss MARKET SELL order for #{symbol} " <>
+      "@ MARKET PRICE, quantity: #{remaining_quantity}"
     )
 
     {:ok, market_sell_order} = @binance_client.order_market_sell(symbol, remaining_quantity)
@@ -614,9 +622,7 @@ defmodule Hefty.Algos.Naive.Trader do
     case Hefty.Algos.Naive.Leader.is_price_level_available(symbol, target_price) do
       true ->
         Logger.info(
-          "Trader(#{id}) - Placing BUY order for #{symbol} @ #{target_price}, quantity: #{
-            quantity
-          }"
+          "Trader(#{id}) - Placing BUY order for #{symbol} @ #{target_price}, quantity: #{quantity}"
         )
 
         {:ok, res} =
@@ -627,13 +633,13 @@ defmodule Hefty.Algos.Naive.Trader do
             "GTC"
           )
 
-        Logger.debug("Successfully placed an BUY order #{res.order_id}")
+        Logger.debug("Trader #{id} successfully placed an BUY order #{res.order_id}")
 
         {:ok, store_order(res)}
 
       false ->
-        Logger.info("Price level not available for trader(#{id}) on symbol #{symbol}")
-        {:error, :price_level_taken}
+        Logger.info("Trader #{id}: Price level(#{target_price}) not available for trader(#{id}) on symbol #{symbol}")
+        {:error, :price_level_taken, target_price}
     end
   end
 
@@ -795,12 +801,19 @@ defmodule Hefty.Algos.Naive.Trader do
     end
   end
 
-  defp handle_price_level_taken(%State{
-         :id => trader_id,
-         :symbol => symbol,
-         :buy_order => buy_order
-       }) do
+  defp handle_price_level_taken(
+    price,
+    %State{
+      :id => trader_id,
+      :symbol => symbol,
+      :buy_order => buy_order
+    }) do
     stop_trading(trader_id, symbol, buy_order)
+
+    GenServer.cast(
+      :"#{Hefty.Algos.Naive.Leader}-#{symbol}",
+      {:reenable_rebuy, price}
+    )
 
     GenServer.cast(
       :"#{Hefty.Algos.Naive.Leader}-#{symbol}",
