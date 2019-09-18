@@ -69,11 +69,10 @@ defmodule UiWeb.ProfitIndicatorLive do
     {:ok, assign(socket, data: get_data(), symbol: "ALL", symbols: symbols)}
   end
 
-  def handle_event("change-symbol", %{"selected_symbol" => selected_symbol}, socket)
-      when selected_symbol == "ALL" do
+  def handle_event("change-symbol", %{"selected_symbol" => "ALL"}, socket) do
     {:noreply,
      assign(socket,
-       symbol: selected_symbol,
+       symbol: "ALL",
        symbols: socket.assigns.symbols,
        data: get_data()
      )}
@@ -93,32 +92,32 @@ defmodule UiWeb.ProfitIndicatorLive do
       %{
         :symbol => symbol,
         :type => :day,
-        :total => get_profit_base_currency_from_day(symbol)
+        :total => get_profit_base_currency(1, :day, symbol)
       },
       %{
         :symbol => symbol,
         :type => :week,
-        :total => get_profit_base_currency_from_week(symbol)
+        :total => get_profit_base_currency(1, :week, symbol)
+      },
+      %{
+        :symbol => symbol,
+        :type => :year,
+        :total => get_profit_base_currency(1, :year, symbol)
       },
       %{
         :symbol => symbol,
         :type => :all,
-        :total => get_profit_base_currency(symbol)
+        :total => get_profit_base_currency(1, :all, symbol)
       }
     ]
   end
 
-  defp get_profit_base_currency_from_day(symbol) do
-    [from, to] = Hefty.Utils.Datetime.get_last_day(T.now())
-    Hefty.Trades.profit_base_currency_by_time(from, to, symbol)
+  defp get_profit_base_currency(n, :all, symbol) do
+    Hefty.Trades.profit_base_currency_by_time(symbol)
   end
 
-  defp get_profit_base_currency_from_week(symbol) do
-    [from, to] = Hefty.Utils.Datetime.get_last_week(T.now())
+  defp get_profit_base_currency(n, interval, symbol) do
+    [from, to] = Hefty.Utils.Datetime.get_last(n, interval, T.now())
     Hefty.Trades.profit_base_currency_by_time(from, to, symbol)
-  end
-
-  defp get_profit_base_currency(symbol) do
-    Hefty.Trades.profit_base_currency(symbol)
   end
 end

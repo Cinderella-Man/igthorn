@@ -177,8 +177,11 @@ defmodule Hefty.Trades do
 
     Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
     |> Enum.group_by(fn [head | _tail] -> head end)
-    |> Enum.map(fn {symbol, [[_, _, losing], [_, _, gaining]]} ->
-      %{String.to_atom("#{symbol}") => [gaining, losing]}
+    |> Enum.map(fn {symbol, data} ->
+      values = data
+        |> Enum.map(fn [_, bool, val] -> {:"#{bool}", val} end)
+        |> Map.new
+      %{String.to_atom("#{symbol}") => [values[:true] || 0, values[:false] || 0]}
     end)
   end
 
@@ -197,6 +200,15 @@ defmodule Hefty.Trades do
       "SELECT SUM(CAST(profit_base_currency as double precision)) as total " <>
         "FROM trades WHERE sell_time >= #{from} AND sell_time < #{to} " <>
         "AND symbol LIKE '%#{symbol}%';"
+
+    [[result]] = Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
+    result
+  end
+
+  def profit_base_currency_by_time(symbol \\ '') do
+    query =
+      "SELECT SUM(CAST(profit_base_currency as double precision)) as total " <>
+      "FROM trades WHERE symbol LIKE '%#{symbol}%';"
 
     [[result]] = Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
     result

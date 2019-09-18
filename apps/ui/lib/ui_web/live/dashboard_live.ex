@@ -3,6 +3,7 @@ defmodule UiWeb.DashboardLive do
 
   def render(assigns) do
     ~L"""
+    <script src="/dist/js/chart.js"></script>
     <div class="row">
       <div class="col-xs-12">
         <%= live_render(@socket, UiWeb.PriceFeedLive) %>
