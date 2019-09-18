@@ -502,9 +502,14 @@ defmodule Hefty.Algos.NaiveTest do
 
     :timer.sleep(100)
 
-    Logger.debug("Step 5 - clear orders table (cascade)")
+    Logger.debug("Step 5 - clear orders and trades table")
 
     qry = "TRUNCATE TABLE orders CASCADE"
+    Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
+
+    :timer.sleep(100)
+
+    qry = "TRUNCATE TABLE trades CASCADE"
     Ecto.Adapters.SQL.query!(Hefty.Repo, qry, [])
 
     :timer.sleep(100)
