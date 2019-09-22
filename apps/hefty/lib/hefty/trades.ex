@@ -15,7 +15,7 @@ defmodule Hefty.Trades do
     trades =
       from(t in Trade,
         where: like(t.symbol, ^"%#{String.upcase(symbol)}%"),
-        order_by: [desc: t.sell_time],
+        order_by: [desc: t.state, asc: t.buy_price],
         limit: ^limit,
         offset: ^offset
       )
