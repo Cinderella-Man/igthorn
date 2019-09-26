@@ -14,46 +14,44 @@ defmodule UiWeb.GainingLosingTradesLive do
             <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
           </div>
         </div>
-        <!-- /.box-header -->
-        <%= if @symbol != nil do %>
-          <div class="box-body" style="">
-            <div class="row">
-              <div class="col-md-8">
-                <%= if length(@data.symbols) > 0 do %>
-                  <div class="col-xs-5">
-                    <form phx-change="change-symbol" id="change-symbol">
-                      <select name="selected_symbol" class="form-control col-xs-3">
-                        <%= for row <- @data.symbols do %>
-                            <option value="<%= row %>"
-                            <%= if row == @symbol do %>
-                              selected
-                            <% end %>
-                            ><%= row %></option>
+        <div class="box-body" style="">
+          <div class="row">
+            <div class="col-md-8">
+              <%= if length(@data.symbols) > 0 do %>
+                <div class="col-xs-5">
+                  <form phx-change="change-symbol" id="change-symbol">
+                    <select name="selected_symbol" class="form-control col-xs-3">
+                      <%= for row <- @data.symbols do %>
+                          <option value="<%= row %>"
+                          <%= if row == @symbol do %>
+                            selected
                           <% end %>
-                      </select>
-                    </form>
-                  </div>
-                <% end %>
-                <div class="chart-responsive">
-                  <canvas id="doughnutChart" height="160" width="329" style="width: 329px; height: 160px;"></canvas>
-                    <script id="chart-<%= Base.encode64(:erlang.md5(@symbol)) %>">
-                      renderDoughnutChart([<%= for l <- get_chart_data(@data.chart_data.rows, @symbol) do %>"<%= l %>",<% end %>])
-                    </script>
+                          ><%= row %></option>
+                        <% end %>
+                    </select>
+                  </form>
                 </div>
-                <!-- ./chart-responsive -->
+              <% end %>
+              <div class="chart-responsive">
+                <canvas id="doughnutChart" height="160" width="329" style="width: 329px; height: 160px;"></canvas>
+                  <script id="chart-<%= Base.encode64(:erlang.md5(@symbol || "nil")) %>">
+                    renderDoughnutChart([<%= for l <- get_chart_data(@data.chart_data.rows, @symbol || "nil") do %>"<%= l %>",<% end %>])
+                  </script>
               </div>
-              <!-- /.col -->
-              <div class="col-md-4">
-                <ul class="chart-legend clearfix">
-                  <li><i class="fa fa-circle-o text-green"></i> Gaining</li>
-                  <li><i class="fa fa-circle-o text-red"></i> Losing</li>
-                </ul>
-              </div>
-              <!-- /.col -->
+              <!-- ./chart-responsive -->
             </div>
-          <!-- /.row -->
+            <!-- /.col -->
+            <div class="col-md-4">
+              <ul class="chart-legend clearfix">
+                <li><i class="fa fa-circle-o text-green"></i> Gaining</li>
+                <li><i class="fa fa-circle-o text-red"></i> Losing</li>
+              </ul>
+            </div>
+            <!-- /.col -->
           </div>
-        <% end %>
+        <!-- /.row -->
+        </div>
+
         <!-- /.box-body -->
         <div class="box-footer no-padding" style="">
         </div>
@@ -104,6 +102,6 @@ defmodule UiWeb.GainingLosingTradesLive do
       |> Enum.filter(fn row -> Map.has_key?(row, String.to_atom(symbol)) end)
       |> List.first()
 
-    row[String.to_atom(symbol)]
+    row[String.to_atom(symbol)] || [0, 0]
   end
 end
