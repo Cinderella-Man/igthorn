@@ -18,7 +18,7 @@ defmodule Hefty.Settings do
       |> Map.new()
   end
 
-  def update_binance_api_details(api_key, "secret_key_hash") do
+  def update_binance_api_details(api_key, "") do
     update_settings("api_key", api_key)
   end
 
