@@ -24,6 +24,7 @@ defmodule UiWeb.Router do
     get("/transactions", TransactionsController, :index)
     get("/backtesting", BacktestingController, :index)
     get("/naive-trader-settings", NaiveSettingsController, :index)
+    get("/settings", SettingsController, :index)
   end
 
   # Other scopes may use custom stacks.
