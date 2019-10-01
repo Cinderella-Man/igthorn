@@ -230,4 +230,41 @@ defmodule Hefty.Trades do
     )
     |> Hefty.Repo.all()
   end
+
+  def get_trades_dates() do
+    query =
+      "SELECT to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD') AS date " <>
+        "FROM trades GROUP BY to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD') " <>
+        "ORDER BY to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD') DESC;"
+
+      Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
+      |> Enum.map(&List.fist/1)
+  end
+
+  def count_trades_by_symbol(symbols, symbol \\ "") do
+    query =
+      "SELECT symbol, COUNT(NULLIF(id,0)), to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD')" <>
+        "FROM trades " <>
+        "GROUP BY to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD'), symbol " <>
+        "ORDER BY to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD') DESC, symbol ASC;"
+
+    result =
+      Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
+      |> Enum.map(fn [symbol, total, date] -> ["#{symbol}": ["#{date}": total]] end)
+
+    days = Hefty.Utils.Datetime.get_last_days(30)
+
+    symbols
+    |> Enum.map(fn key ->
+      [
+        "#{key}":
+          days
+          |> Enum.map(fn day ->
+            result
+            |> Enum.map(&(&1[String.to_atom("#{key}")][String.to_atom("#{day}")] || 0))
+            |> Enum.sum()
+          end)
+      ]
+    end)
+  end
 end
