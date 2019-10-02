@@ -1,4 +1,6 @@
 defmodule Hefty.Utils.Datetime do
+  use Timex
+
   def get_timestamps(date) do
     from_datetime = NaiveDateTime.from_iso8601!("#{date}T00:00:00.000Z")
 
@@ -36,5 +38,13 @@ defmodule Hefty.Utils.Datetime do
       |> DateTime.to_unix()
 
     [from_timestamp * 1000, to_timestamp * 1000]
+  end
+
+  def get_last_days(n) do
+    day = Date.utc_today() |> Date.add(-n + 1)
+
+    Interval.new(from: day, until: [days: n], right_open: true)
+    |> Interval.with_step(days: 1)
+    |> Enum.map(&Timex.format!(&1, "%Y-%m-%d", :strftime))
   end
 end
