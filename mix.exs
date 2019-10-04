@@ -4,6 +4,7 @@ defmodule Igthorn.MixProject do
   def project do
     [
       apps_path: "apps",
+      version: "1.0.1",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       # Docs

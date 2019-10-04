@@ -585,7 +585,7 @@ defmodule Hefty.Algos.Naive.Trader do
         " as price fallen below #{D.to_float(stop_loss_price)}"
     )
 
-    Logger.debug("Cancelling BUY order #{order_id}")
+    Logger.debug("Cancelling SELL order #{order_id}")
 
     {:ok, %Binance.Order{} = canceled_order} =
       @binance_client.cancel_order(symbol, timestamp, order_id)
