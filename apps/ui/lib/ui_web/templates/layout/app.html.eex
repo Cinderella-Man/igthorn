@@ -27,6 +27,7 @@
   <!-- Theme style -->
   <!-- <link rel="stylesheet" href="../../dist/css/AdminLTE.min.css"> -->
   <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/dist/css/AdminLTE.min.css") %>">
+  <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/dist/css/custom.css") %>">
   <!-- AdminLTE Skins. Choose a skin from the css/skins
        folder instead of downloading all of them to reduce the load. -->
   <!-- <link rel="stylesheet" href="../../dist/css/skins/_all-skins.min.css"> -->
@@ -69,13 +70,13 @@
           <!-- User Account: style can be found in dropdown.less -->
           <li class="dropdown user user-menu">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-              <img src="../../dist/img/user2-160x160.jpg" class="user-image" alt="User Image">
+              <img src="../../dist/img/logo.png" class="user-image" alt="User Image">
               <span class="hidden-xs">Admin</span>
             </a>
             <ul class="dropdown-menu">
               <!-- User image -->
               <li class="user-header">
-                <img src="../../dist/img/user2-160x160.jpg" class="img-circle" alt="User Image">
+                <img src="../../dist/img/logo.png" class="img-circle" alt="User Image">
 
                 <p>
                   Admin - Crypto trader
@@ -125,7 +126,7 @@
       <!-- Sidebar user panel -->
       <div class="user-panel">
         <div class="pull-left image">
-          <img src="../../dist/img/user2-160x160.jpg" class="img-circle" alt="User Image">
+          <img src="../../dist/img/logo.png" class="img-circle" alt="User Image">
         </div>
         <div class="pull-left info">
           <p>Admin</p>

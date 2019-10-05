@@ -6,7 +6,7 @@ defmodule UiWeb.ProfitIndicatorLive do
     ~L"""
     <div class="box box-default">
       <div class="box-header with-border">
-        <h3 class="box-title">Trades</h3>
+        <h3 class="box-title">Total Profit</h3>
 
         <div class="box-tools pull-right">
           <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
@@ -36,19 +36,10 @@ defmodule UiWeb.ProfitIndicatorLive do
         <div class="row">
           <%= for row <- @data do %>
             <div class="col-md-12">
-              <div class="info-box bg-green">
-                <span class="info-box-icon"><i class="ion ion-ios-plus-outline"></i></span>
-
+              <div class="info-box">
                 <div class="info-box-content">
                   <span class="info-box-text"><%= row.type %></span>
                   <span class="info-box-number"><%= row.total || 0.0 %></span>
-
-                  <span class="progress-description">
-                    <%= @symbol %>
-                    <%= if @symbol == "ALL" do %>
-                    trading symbols
-                    <% end %>
-                  </span>
                 </div>
                 <!-- /.info-box-content -->
               </div>

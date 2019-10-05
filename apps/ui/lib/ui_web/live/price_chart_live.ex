@@ -11,6 +11,16 @@ defmodule UiWeb.PriceChartLive do
             <div class="box box-primary">
               <div class="box-header with-border">
                 <h3 class="box-title">
+                  Price Chart
+                </h3>
+                 <div class="box-tools pull-right">
+              <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+              </button>
+              <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+            </div>
+              </div>
+              <div class="box-body">
+                <div class="col-xs-2">
                   <form phx-change="change-symbol" id="change-symbol">
                     <select name="selected_symbol" class="form-control">
                       <%= for row <- @symbols do %>
@@ -22,14 +32,7 @@ defmodule UiWeb.PriceChartLive do
                       <% end %>
                     </select>
                   </form>
-                </h3>
-                 <div class="box-tools pull-right">
-              <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
-              </button>
-              <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
-            </div>
-              </div>
-              <div class="box-body">
+                </div>
                 <div class="chart">
                   <canvas id="lineChart" style="display: block; width: 1000px!important; height: 400px; margin: auto;" width="1000" height="400"></canvas>
                   <script id="chart-<%= Base.encode64(:erlang.md5(@data.prices)) %>">

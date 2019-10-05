@@ -243,10 +243,10 @@ defmodule Hefty.Trades do
 
   def count_trades_by_symbol(symbols, symbol \\ "") do
     query =
-      "SELECT symbol, COUNT(NULLIF(id,0)), to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD')" <>
+      "SELECT symbol, COUNT(NULLIF(id,0)), to_char(to_timestamp(sell_time / 1000.0), 'YYYY-MM-DD')" <>
         "FROM trades " <>
-        "GROUP BY to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD'), symbol " <>
-        "ORDER BY to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD') DESC, symbol ASC;"
+        "GROUP BY to_char(to_timestamp(sell_time / 1000.0), 'YYYY-MM-DD'), symbol " <>
+        "ORDER BY to_char(to_timestamp(sell_time / 1000.0), 'YYYY-MM-DD') DESC, symbol ASC;"
 
     result =
       Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
@@ -266,5 +266,9 @@ defmodule Hefty.Trades do
           end)
       ]
     end)
+  end
+
+  def get_average_by_last_minutes(n, symbol \\ "") do
+
   end
 end
