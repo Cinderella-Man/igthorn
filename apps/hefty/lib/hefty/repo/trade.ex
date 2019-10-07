@@ -1,4 +1,6 @@
 defmodule Hefty.Repo.Trade do
+  @moduledoc false
+
   use Ecto.Schema
 
   @primary_key {:id, :integer, autogenerate: false}

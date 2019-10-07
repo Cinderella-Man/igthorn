@@ -71,21 +71,21 @@ defmodule UiWeb.TradesChartLive do
     symbols |> Enum.filter(&(&1 !== "ALL"))
   end
 
-  defp get_active_symbols(symbol, symbols), do: [symbol]
+  defp get_active_symbols(symbol, _symbols), do: [symbol]
 
   defp get_active_values("ALL", symbols) do
-    Hefty.Trades.count_trades_by_symbol(get_active_symbols("ALL", symbols), "")
+    Hefty.Trades.count_trades_by_symbol(get_active_symbols("ALL", symbols))
 
     JSON.encode!(
       labels: Hefty.Utils.Datetime.get_last_days(30),
-      values: Hefty.Trades.count_trades_by_symbol(get_active_symbols("ALL", symbols), "")
+      values: Hefty.Trades.count_trades_by_symbol(get_active_symbols("ALL", symbols))
     )
   end
 
   defp get_active_values(symbol, symbols) do
     JSON.encode!(
       labels: Hefty.Utils.Datetime.get_last_days(30),
-      values: Hefty.Trades.count_trades_by_symbol(get_active_symbols(symbol, symbols), "")
+      values: Hefty.Trades.count_trades_by_symbol(get_active_symbols(symbol, symbols))
     )
   end
 end
