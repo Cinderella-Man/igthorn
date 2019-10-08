@@ -103,7 +103,7 @@ defmodule UiWeb.ProfitIndicatorLive do
     ]
   end
 
-  defp get_profit_base_currency(n, :all, symbol) do
+  defp get_profit_base_currency(_n, :all, symbol) do
     Hefty.Trades.profit_base_currency_by_time(symbol)
   end
 

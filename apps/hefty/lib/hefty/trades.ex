@@ -238,10 +238,10 @@ defmodule Hefty.Trades do
         "ORDER BY to_char(to_timestamp(buy_time / 1000.0), 'YYYY-MM-DD') DESC;"
 
       Ecto.Adapters.SQL.query!(Hefty.Repo, query).rows
-      |> Enum.map(&List.fist/1)
+      |> Enum.map(&List.first/1)
   end
 
-  def count_trades_by_symbol(symbols, symbol \\ "") do
+  def count_trades_by_symbol(symbols) do
     query =
       "SELECT symbol, COUNT(NULLIF(id,0)), to_char(to_timestamp(sell_time / 1000.0), 'YYYY-MM-DD')" <>
         "FROM trades " <>

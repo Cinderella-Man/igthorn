@@ -1,4 +1,6 @@
 defmodule Hefty.Repo.Binance.TradeEvent do
+  @moduledoc false
+
   use Ecto.Schema
 
   @primary_key {:id, :binary_id, autogenerate: true}
