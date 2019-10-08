@@ -267,8 +267,4 @@ defmodule Hefty.Trades do
       ]
     end)
   end
-
-  def get_average_by_last_minutes(n, symbol \\ "") do
-
-  end
 end
