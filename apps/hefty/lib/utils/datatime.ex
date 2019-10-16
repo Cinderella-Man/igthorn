@@ -48,8 +48,8 @@ defmodule Hefty.Utils.Datetime do
       :this_week => get_timestamps(Timex.beginning_of_week(date), Timex.end_of_week(date)),
       :last_week =>
         get_timestamps(
-          Timex.beginning_of_week(Timex.shift(date, days: -7)),
-          Timex.end_of_week(Timex.shift(date, days: -7))
+          Timex.beginning_of_week(Timex.shift(date, weeks: -1)),
+          Timex.end_of_week(Timex.shift(date, weeks: -1))
         ),
       :this_month => get_timestamps(Timex.beginning_of_month(date), Timex.end_of_month(date)),
       :last_month =>
