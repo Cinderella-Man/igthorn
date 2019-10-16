@@ -35,7 +35,11 @@ defmodule UiWeb.BinanceApiDetails do
     {:ok, assign(socket, api_key: details.api_key, secret_key: "")}
   end
 
-  def handle_event("binance_api_update", %{"api_key" => api_key, "secret_key" => secret_key}, socket) do
+  def handle_event(
+        "binance_api_update",
+        %{"api_key" => api_key, "secret_key" => secret_key},
+        socket
+      ) do
     Hefty.Settings.update_binance_api_details(api_key, secret_key)
     {:noreply, assign(socket, api_key: api_key, secret_key: "")}
   end
