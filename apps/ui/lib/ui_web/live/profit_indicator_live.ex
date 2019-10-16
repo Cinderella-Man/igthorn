@@ -120,19 +120,19 @@ defmodule UiWeb.ProfitIndicatorLive do
       [
         %{
           :symbol => symbol,
-          :type => :this_year,
+          :type => "this year",
           :total => get_profit_base_currency(:this_year, symbol)
         },
         %{
           :symbol => symbol,
-          :type => :last_year,
+          :type => "last year",
           :total => get_profit_base_currency(:last_year, symbol)
         }
       ],
       [
         %{
           :symbol => symbol,
-          :type => :all,
+          :type => "all",
           :total => get_profit_base_currency(:all, symbol)
         }
       ]
