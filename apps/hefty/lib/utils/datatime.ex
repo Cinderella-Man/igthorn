@@ -41,32 +41,41 @@ defmodule Hefty.Utils.Datetime do
 
   def get_timestamps_by(interval) do
     date = Timex.today()
-
-    seconds_map = %{
-      :today => get_timestamps(date),
-      :yesterday => get_timestamps(Timex.shift(date, days: -1)),
-      :this_week => get_timestamps(Timex.beginning_of_week(date), Timex.end_of_week(date)),
-      :last_week =>
-        get_timestamps(
-          Timex.beginning_of_week(Timex.shift(date, weeks: -1)),
-          Timex.end_of_week(Timex.shift(date, weeks: -1))
-        ),
-      :this_month => get_timestamps(Timex.beginning_of_month(date), Timex.end_of_month(date)),
-      :last_month =>
-        get_timestamps(
-          Timex.beginning_of_month(Timex.shift(date, months: -1)),
-          Timex.end_of_month(Timex.shift(date, months: -1))
-        ),
-      :this_year => get_timestamps(Timex.beginning_of_year(date), Timex.end_of_year(date)),
-      :last_year =>
-        get_timestamps(
-          Timex.beginning_of_year(Timex.shift(date, years: -1)),
-          Timex.end_of_year(Timex.shift(date, years: -1))
-        )
-    }
-
-    seconds_map[interval]
+    by_interval(interval, date)
   end
+
+  defp by_interval(:today, date), do: get_timestamps(date)
+  defp by_interval(:yesterday, date), do: get_timestamps(Timex.shift(date, days: -1))
+
+  defp by_interval(:this_week, date),
+    do: get_timestamps(Timex.beginning_of_week(date), Timex.end_of_week(date))
+
+  defp by_interval(:last_week, date),
+    do:
+      get_timestamps(
+        Timex.beginning_of_week(Timex.shift(date, weeks: -1)),
+        Timex.end_of_week(Timex.shift(date, weeks: -1))
+      )
+
+  defp by_interval(:this_month, date),
+    do: get_timestamps(Timex.beginning_of_month(date), Timex.end_of_month(date))
+
+  defp by_interval(:last_month, date),
+    do:
+      get_timestamps(
+        Timex.beginning_of_month(Timex.shift(date, months: -1)),
+        Timex.end_of_month(Timex.shift(date, months: -1))
+      )
+
+  defp by_interval(:this_year, date),
+    do: get_timestamps(Timex.beginning_of_year(date), Timex.end_of_year(date))
+
+  defp by_interval(:last_year, date),
+    do:
+      get_timestamps(
+        Timex.beginning_of_year(Timex.shift(date, years: -1)),
+        Timex.end_of_year(Timex.shift(date, years: -1))
+      )
 
   def get_last(n, interval, datetime) do
     seconds_map = %{:day => 86_400, :week => 604_800, :year => 31_536_000}
