@@ -27,21 +27,22 @@ defmodule Hefty.TradeEvents do
   def fetch_latest_prices(symbol) do
     timestamp =
       T.now()
-      |> DateTime.to_unix
+      |> DateTime.to_unix()
 
-    target = (timestamp - (3600)) * 1000
+    target = (timestamp - 3600) * 1000
 
     from(te in Hefty.Repo.Binance.TradeEvent,
       select: [te.price, te.trade_time],
       order_by: [desc: te.trade_time],
-#      limit: 2000,
       where: te.symbol == ^symbol and te.trade_time > ^target
     )
     |> Hefty.Repo.all()
-    |> Enum.map(fn [a, b] -> [a, T.format!(DateTime.from_unix!(b, :millisecond), "{h24}:{0m}:{0s}"), div(b, 5000)] end)
+    |> Enum.map(fn [a, b] ->
+      [a, T.format!(DateTime.from_unix!(b, :millisecond), "{h24}:{0m}:{0s}"), div(b, 5000)]
+    end)
     |> Enum.group_by(fn [a, _, c] -> c end)
     |> Enum.map(fn {symbol, data} -> data end)
-    |> Enum.map(&(List.first(&1)))
+    |> Enum.map(&List.first(&1))
     |> Enum.map(fn [a, b, c] -> [a, b] end)
     |> Enum.sort(&(List.last(&1) >= List.last(&2)))
   end

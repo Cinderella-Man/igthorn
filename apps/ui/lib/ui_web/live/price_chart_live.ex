@@ -82,7 +82,6 @@ defmodule UiWeb.PriceChartLive do
   defp price_chart_data(symbol) do
     data = Hefty.TradeEvents.fetch_latest_prices(symbol)
 
-
     prices =
       data
       |> Enum.map(&List.first/1)
