@@ -2,6 +2,7 @@ defmodule Hefty.TradeEvents do
   import Ecto.Query, only: [from: 2, select: 3, order_by: 2, limit: 2]
 
   alias Hefty.Repo.Binance.TradeEvent, as: RepoTradeEvent
+  alias Timex, as: T
 
   def fetch_prices(symbols) do
     prices =
@@ -24,13 +25,25 @@ defmodule Hefty.TradeEvents do
 
   # TODO - make unique time (group by time)
   def fetch_latest_prices(symbol) do
+    timestamp =
+      T.now()
+      |> DateTime.to_unix
+
+    target = (timestamp - (3600)) * 1000
+
     from(te in Hefty.Repo.Binance.TradeEvent,
-      select: [te.price, te.inserted_at],
+      select: [te.price, te.trade_time],
       order_by: [desc: te.trade_time],
-      limit: 500,
-      where: te.symbol == ^symbol
+#      limit: 2000,
+      where: te.symbol == ^symbol and te.trade_time > ^target
     )
     |> Hefty.Repo.all()
+    |> Enum.map(fn [a, b] -> [a, T.format!(DateTime.from_unix!(b, :millisecond), "{h24}:{0m}:{0s}"), div(b, 5000)] end)
+    |> Enum.group_by(fn [a, _, c] -> c end)
+    |> Enum.map(fn {symbol, data} -> data end)
+    |> Enum.map(&(List.first(&1)))
+    |> Enum.map(fn [a, b, c] -> [a, b] end)
+    |> Enum.sort(&(List.last(&1) >= List.last(&2)))
   end
 
   def count(symbol, from, to) do

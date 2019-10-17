@@ -82,6 +82,7 @@ defmodule UiWeb.PriceChartLive do
   defp price_chart_data(symbol) do
     data = Hefty.TradeEvents.fetch_latest_prices(symbol)
 
+
     prices =
       data
       |> Enum.map(&List.first/1)
@@ -93,7 +94,6 @@ defmodule UiWeb.PriceChartLive do
       data
       |> Enum.map(&List.last/1)
       |> Enum.reverse()
-      |> Enum.map(&T.format!(&1, "{h24}:{0m}:{0s}"))
 
     %{
       :labels => labels,
