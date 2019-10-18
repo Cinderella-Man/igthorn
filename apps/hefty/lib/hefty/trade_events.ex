@@ -37,13 +37,11 @@ defmodule Hefty.TradeEvents do
       where: te.symbol == ^symbol and te.trade_time > ^target
     )
     |> Hefty.Repo.all()
-    |> Enum.map(fn [a, b] ->
-      [a, T.format!(DateTime.from_unix!(b, :millisecond), "{h24}:{0m}:{0s}"), div(b, 5000)]
-    end)
-    |> Enum.group_by(fn [a, _, c] -> c end)
+    |> Enum.map(fn [a, b] -> [a, div(b, 5000)] end)
+    |> Enum.map(fn [a, b] -> [a, T.format!(DateTime.from_unix!(b * 5000, :millisecond), "{h24}:{0m}:{0s}")] end)
+    |> Enum.group_by(fn [a, b] -> b end)
     |> Enum.map(fn {symbol, data} -> data end)
-    |> Enum.map(&List.first(&1))
-    |> Enum.map(fn [a, b, c] -> [a, b] end)
+    |> Enum.map(&List.last(&1))
     |> Enum.sort(&(List.last(&1) >= List.last(&2)))
   end
 
