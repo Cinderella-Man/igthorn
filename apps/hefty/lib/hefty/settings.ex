@@ -4,18 +4,19 @@ defmodule Hefty.Settings do
   import Ecto.Query, only: [from: 2]
   alias Hefty.Repo.Setting
 
-  @secret "EC7+ItmG04KZzcS1Bg3o1g==" # TODO - make this generate per app and keep in config
+  # TODO - make this generate per app and keep in config
+  @secret "EC7+ItmG04KZzcS1Bg3o1g=="
 
   def fetch_binance_api_details() do
     Logger.debug("Fetching binance api details")
 
     from(s in Setting,
-        select: [s.key, s.value],
-        where: s.key in ^["api_key", "secret_key"]
-      )
-      |> Hefty.Repo.all()
-      |> Enum.map(&{String.to_atom(List.first(&1)), List.last(&1)})
-      |> Map.new()
+      select: [s.key, s.value],
+      where: s.key in ^["api_key", "secret_key"]
+    )
+    |> Hefty.Repo.all()
+    |> Enum.map(&{String.to_atom(List.first(&1)), List.last(&1)})
+    |> Map.new()
   end
 
   def update_binance_api_details(api_key, "") do
@@ -30,6 +31,7 @@ defmodule Hefty.Settings do
 
   defp update_settings(key, value) do
     setting = Hefty.Repo.get_by!(Setting, key: key)
+
     data =
       Ecto.Changeset.change(
         setting,

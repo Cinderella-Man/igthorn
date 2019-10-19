@@ -1,6 +1,5 @@
 defmodule UiWeb.ProfitIndicatorLive do
   use Phoenix.LiveView
-  alias Timex, as: T
 
   def render(assigns) do
     ~L"""
@@ -35,16 +34,18 @@ defmodule UiWeb.ProfitIndicatorLive do
         </div><br>
         <div class="row">
           <%= for row <- @data do %>
-            <div class="col-md-12">
-              <div class="info-box">
-                <div class="info-box-content">
-                  <span class="info-box-text"><%= row.type %></span>
-                  <span class="info-box-number"><%= row.total || 0.0 %></span>
+            <%= for elem <- row do %>
+              <div class="col-md-<%= div(12, length(row)) %>">
+                <div class="info-box">
+                  <div class="info-box-content">
+                    <span class="info-box-text"><%= elem.type %></span>
+                    <span class="info-box-number"><%= elem.total || 0.0 %></span>
+                  </div>
+                  <!-- /.info-box-content -->
                 </div>
-                <!-- /.info-box-content -->
+                <!-- /.info-box -->
               </div>
-              <!-- /.info-box -->
-            </div>
+            <% end %>
           <% end %>
         </div>
         <!-- /.row -->
@@ -80,35 +81,70 @@ defmodule UiWeb.ProfitIndicatorLive do
 
   def get_data(symbol \\ '') do
     [
-      %{
-        :symbol => symbol,
-        :type => :day,
-        :total => get_profit_base_currency(1, :day, symbol)
-      },
-      %{
-        :symbol => symbol,
-        :type => :week,
-        :total => get_profit_base_currency(1, :week, symbol)
-      },
-      %{
-        :symbol => symbol,
-        :type => :year,
-        :total => get_profit_base_currency(1, :year, symbol)
-      },
-      %{
-        :symbol => symbol,
-        :type => :all,
-        :total => get_profit_base_currency(1, :all, symbol)
-      }
+      [
+        %{
+          :symbol => symbol,
+          :type => "today",
+          :total => get_profit_base_currency(:today, symbol)
+        },
+        %{
+          :symbol => symbol,
+          :type => "yesterday",
+          :total => get_profit_base_currency(:yesterday, symbol)
+        }
+      ],
+      [
+        %{
+          :symbol => symbol,
+          :type => "this week",
+          :total => get_profit_base_currency(:this_week, symbol)
+        },
+        %{
+          :symbol => symbol,
+          :type => "last week",
+          :total => get_profit_base_currency(:last_week, symbol)
+        }
+      ],
+      [
+        %{
+          :symbol => symbol,
+          :type => "this month",
+          :total => get_profit_base_currency(:this_month, symbol)
+        },
+        %{
+          :symbol => symbol,
+          :type => "last month",
+          :total => get_profit_base_currency(:last_month, symbol)
+        }
+      ],
+      [
+        %{
+          :symbol => symbol,
+          :type => "this year",
+          :total => get_profit_base_currency(:this_year, symbol)
+        },
+        %{
+          :symbol => symbol,
+          :type => "last year",
+          :total => get_profit_base_currency(:last_year, symbol)
+        }
+      ],
+      [
+        %{
+          :symbol => symbol,
+          :type => "all",
+          :total => get_profit_base_currency(:all, symbol)
+        }
+      ]
     ]
   end
 
-  defp get_profit_base_currency(_n, :all, symbol) do
+  defp get_profit_base_currency(:all, symbol) do
     Hefty.Trades.profit_base_currency_by_time(symbol)
   end
 
-  defp get_profit_base_currency(n, interval, symbol) do
-    [from, to] = Hefty.Utils.Datetime.get_last(n, interval, T.now())
+  defp get_profit_base_currency(interval, symbol) do
+    [from, to] = Hefty.Utils.Datetime.get_timestamps_by(interval)
     Hefty.Trades.profit_base_currency_by_time(from, to, symbol)
   end
 end
