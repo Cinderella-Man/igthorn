@@ -1,4 +1,6 @@
 defmodule UiWeb.NaiveSettingsController do
+  @moduledoc false
+
   use UiWeb, :controller
 
   def index(conn, _params) do

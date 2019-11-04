@@ -1,4 +1,6 @@
 defmodule UiWeb.TradesChartLive do
+  @moduledoc false
+
   use Phoenix.LiveView
   use Phoenix.HTML
 

@@ -1,4 +1,6 @@
 defmodule UiWeb.TradesLive do
+  @moduledoc false
+
   use Phoenix.LiveView
 
   alias Timex, as: T

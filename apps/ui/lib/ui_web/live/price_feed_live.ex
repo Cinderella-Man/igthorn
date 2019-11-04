@@ -1,4 +1,6 @@
 defmodule UiWeb.PriceFeedLive do
+  @moduledoc false
+
   use Phoenix.LiveView
   alias Decimal, as: D
 

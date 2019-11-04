@@ -1,4 +1,6 @@
 defmodule UiWeb.SettingsLive do
+  @moduledoc false
+
   use Phoenix.LiveView
 
   def render(assigns) do

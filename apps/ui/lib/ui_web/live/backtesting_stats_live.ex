@@ -1,4 +1,6 @@
 defmodule UiWeb.BacktestingStatsLive do
+  @moduledoc false
+
   use Phoenix.LiveView
   require Logger
 
