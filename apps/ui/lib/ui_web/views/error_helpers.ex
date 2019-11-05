@@ -1,4 +1,6 @@
 defmodule UiWeb.ErrorHelpers do
+  @moduledoc false
+
   @moduledoc """
   Conveniences for translating and building error messages.
   """

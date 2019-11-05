@@ -1,4 +1,6 @@
 defmodule UiWeb.PriceChartLive do
+  @moduledoc false
+
   use Phoenix.LiveView
   alias Timex, as: T
 

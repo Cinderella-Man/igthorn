@@ -1,4 +1,6 @@
 defmodule UiWeb.LayoutView do
+  @moduledoc false
+
   use UiWeb, :view
 
   def get_page_title(conn) do

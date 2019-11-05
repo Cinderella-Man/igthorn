@@ -1,4 +1,6 @@
 defmodule UiWeb.StreamingSettingsLive do
+  @moduledoc false
+
   use Phoenix.LiveView
   require Logger
 

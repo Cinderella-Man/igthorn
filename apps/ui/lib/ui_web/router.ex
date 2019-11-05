@@ -1,4 +1,5 @@
 defmodule UiWeb.Router do
+  @moduledoc false
   use UiWeb, :router
 
   pipeline :browser do

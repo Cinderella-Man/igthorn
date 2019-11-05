@@ -1,4 +1,5 @@
 defmodule Ui do
+  @moduledoc false
   @moduledoc """
   Ui keeps the contexts that define your domain
   and business logic.

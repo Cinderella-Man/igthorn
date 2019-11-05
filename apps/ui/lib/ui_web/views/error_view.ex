@@ -1,4 +1,6 @@
 defmodule UiWeb.ErrorView do
+  @moduledoc false
+
   use UiWeb, :view
 
   # If you want to customize a particular status code

@@ -1,4 +1,6 @@
 defmodule UiWeb.UserSocket do
+  @moduledoc false
+
   use Phoenix.Socket
 
   ## Channels
