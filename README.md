@@ -1,5 +1,7 @@
 # Igthorn
 
+## This project is archived now. It was the foundation for my book, but I'm no longer actively working on it.
+
 [![Build Status](https://travis-ci.com/Frathon/Igthorn.svg?branch=1.0.1)](https://travis-ci.com/Frathon/Igthorn)
 
 Igthorn is a batteries-included cryptocurrency trading platform written in Elixir.
